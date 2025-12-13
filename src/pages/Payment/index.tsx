@@ -1,3 +1,5 @@
+"use client";
+
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -22,9 +24,17 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
+interface ItemCarrinho {
+  id: number;
+  nome: string;
+  preco: number;
+  quantidade: number;
+}
+
 const Pagamento = () => {
   const location = useLocation();
-  const { nome, preco, quantidade } = location.state || {};
+  const items: ItemCarrinho[] = location.state?.items || [];
+
   const [name, setName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [month, setMonth] = useState("");
@@ -33,40 +43,41 @@ const Pagamento = () => {
   const [sameAddress, setSameAddress] = useState(true);
   const [comments, setComments] = useState("");
 
-  if (!nome)
+  if (items.length === 0)
     return <p className="p-10 text-center text-gray-500">Nenhum produto selecionado.</p>;
 
-  const total = preco * quantidade;
+  const total = items.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success(`Pagamento de ${total.toLocaleString()} KZ confirmado para ${nome}!`);
+    toast.success(`Pagamento de ${total.toLocaleString()} KZ confirmado para ${items.length} produtos!`);
   };
 
   return (
     <div className="min-h-screen p-10 bg-gray-50 flex flex-col items-center gap-6">
       <h1 className="text-3xl font-bold text-gray-800">Efectuar Pagamento</h1>
 
-      <p className="text-gray-600">
-        Produto: <span className="font-semibold">{nome}</span>
-      </p>
-      <p className="text-gray-600">
-        Preço: <span className="font-semibold">{preco.toLocaleString()} KZ</span>
-      </p>
-      <p className="text-gray-600">
-        Quantidade: <span className="font-semibold">{quantidade}</span>
-      </p>
-      <p className="text-[#D4AF37] font-semibold text-lg">
-        Total: {total.toLocaleString()} KZ
-      </p>
+      <div className="w-full max-w-md bg-white p-4 rounded-lg shadow-sm">
+        {items.map((item) => (
+          <div key={item.id} className="flex justify-between mb-2">
+            <div>
+              <p className="font-semibold">{item.nome}</p>
+              <p className="text-gray-500">Qtd: {item.quantidade}</p>
+            </div>
+            <p className="text-[#D4AF37] font-semibold">{(item.preco * item.quantidade).toLocaleString()} KZ</p>
+          </div>
+        ))}
+        <div className="border-t mt-2 pt-2 flex justify-between font-bold">
+          <span>Total:</span>
+          <span className="text-[#D4AF37]">{total.toLocaleString()} KZ</span>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="w-full max-w-md">
         <FieldGroup>
           <FieldSet>
-            <FieldLegend>Payment Method</FieldLegend>
-            <FieldDescription>
-              Todas as transações são seguras e criptografadas
-            </FieldDescription>
+            <FieldLegend>Método de Pagamento</FieldLegend>
+            <FieldDescription>Todas as transações são seguras e criptografadas</FieldDescription>
 
             <FieldGroup>
               <Field>
@@ -75,7 +86,7 @@ const Pagamento = () => {
                   id="card-name"
                   placeholder="Seu Nome"
                   value={name}
-                  onChange={(e:any) => setName(e.target.value)}
+                  onChange={(e: any) => setName(e.target.value)}
                   required
                 />
               </Field>
@@ -131,7 +142,7 @@ const Pagamento = () => {
                     id="cvv"
                     placeholder="123"
                     value={cvv}
-                    onChange={(e:any) => setCvv(e.target.value)}
+                    onChange={(e: any) => setCvv(e.target.value)}
                     required
                   />
                 </Field>
@@ -143,9 +154,7 @@ const Pagamento = () => {
 
           <FieldSet>
             <FieldLegend>Endereço de Cobrança</FieldLegend>
-            <FieldDescription>
-              O endereço de cobrança associado ao seu método de pagamento
-            </FieldDescription>
+            <FieldDescription>O endereço de cobrança associado ao seu método de pagamento</FieldDescription>
             <FieldGroup>
               <Field orientation="horizontal">
                 <Checkbox
