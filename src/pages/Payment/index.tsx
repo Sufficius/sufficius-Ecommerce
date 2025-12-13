@@ -20,10 +20,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 const Pagamento = () => {
   const location = useLocation();
-  const { produto, quantidade } = location.state || {};
+  const { nome, preco, quantidade } = location.state || {};
   const [name, setName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [month, setMonth] = useState("");
@@ -32,22 +33,25 @@ const Pagamento = () => {
   const [sameAddress, setSameAddress] = useState(true);
   const [comments, setComments] = useState("");
 
-  if (!produto)
+  if (!nome)
     return <p className="p-10 text-center text-gray-500">Nenhum produto selecionado.</p>;
 
-  const total = produto.preco * quantidade;
+  const total = preco * quantidade;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Pagamento de ${total.toLocaleString()} KZ confirmado para ${produto.nome}!`);
+    toast.success(`Pagamento de ${total.toLocaleString()} KZ confirmado para ${nome}!`);
   };
 
   return (
     <div className="min-h-screen p-10 bg-gray-50 flex flex-col items-center gap-6">
-      <h1 className="text-3xl font-bold text-gray-800">Pagamento</h1>
+      <h1 className="text-3xl font-bold text-gray-800">Efectuar Pagamento</h1>
 
       <p className="text-gray-600">
-        Produto: <span className="font-semibold">{produto.nome}</span>
+        Produto: <span className="font-semibold">{nome}</span>
+      </p>
+      <p className="text-gray-600">
+        Preço: <span className="font-semibold">{preco.toLocaleString()} KZ</span>
       </p>
       <p className="text-gray-600">
         Quantidade: <span className="font-semibold">{quantidade}</span>
