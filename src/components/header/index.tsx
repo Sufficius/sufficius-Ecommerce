@@ -4,8 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ShoppingCart, Search, Menu, X, Grid, List } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { CgClose } from "react-icons/cg";
+import { CgClose, CgProfile } from "react-icons/cg";
 import { toast } from "sonner";
+import { FiLogOut } from "react-icons/fi";
 
 interface ItemCarrinho {
   id: number;
@@ -41,7 +42,10 @@ const Header = () => {
   // Fechar popover ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
         setProfileOpen(false);
       }
     };
@@ -54,7 +58,8 @@ const Header = () => {
   const handleQuantidade = (id: number, action: "increment" | "decrement") => {
     setQuantidades((prev) => {
       const atual = prev[id] || 1;
-      const nova = action === "increment" ? atual + 1 : atual > 1 ? atual - 1 : 1;
+      const nova =
+        action === "increment" ? atual + 1 : atual > 1 ? atual - 1 : 1;
       return { ...prev, [id]: nova };
     });
   };
@@ -91,7 +96,7 @@ const Header = () => {
   const handleLogout = () => {
     localStorage.removeItem("token");
     toast.success("Logout efetuado!");
-    navigate("/");
+    location.reload();
   };
 
   return (
@@ -99,31 +104,57 @@ const Header = () => {
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex h-16 items-center justify-between">
           {/* LOGO COM POPOVER */}
+          {/* LOGO COM POPOVER */}
           <div className="relative" ref={profileRef}>
             <div
               className="flex items-center gap-3 cursor-pointer"
               onClick={() => setProfileOpen(!profileOpen)}
             >
-              <img src="/logo.jpg" alt="Logo" className="h-9 w-9 rounded-full" />
+              <img
+                src="/logo.jpg"
+                alt="Logo"
+                className="h-9 w-9 rounded-full"
+              />
               <div className="flex flex-col">
-                <span className="font-semibold text-[#d4af37] text-lg">Sufficius</span>
-                <p className="text-xs text-gray-400 truncate max-w-[120px]">{user}</p>
+                <span className="font-semibold text-[#d4af37] text-lg">
+                  Sufficius
+                </span>
+                <p className="text-xs text-gray-400 truncate max-w-[120px]">
+                  {user}
+                </p>
               </div>
             </div>
 
             {profileOpen && (
-              <div className="absolute top-full mt-2 right-0 w-48 bg-white border rounded-lg shadow-lg z-50">
+              <div
+                className="
+        absolute top-full mt-2
+        left-0 md:right-0
+        w-48 bg-white border rounded-lg shadow-xl
+        z-50
+        origin-top-right scale-95 opacity-0
+        animate-popover
+      "
+              >
                 <button
-                  onClick={() => navigate("/perfil")}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                  onClick={() => {
+                    navigate("/perfil");
+                    setProfileOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100"
                 >
+                  <CgProfile size={20} />
                   Editar Perfil
                 </button>
                 <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                  onClick={() => {
+                    handleLogout();
+                    setProfileOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-100 text-red-600"
                 >
-                  Logout
+                  <FiLogOut size={20} />
+                  Terminar Sessão
                 </button>
               </div>
             )}
@@ -143,10 +174,18 @@ const Header = () => {
 
           {/* MENU DESKTOP */}
           <nav className="hidden md:flex items-center gap-6 text-sm text-gray-700">
-            <a href="#" className="hover:text-black">E-commerce</a>
-            <a href="#" className="hover:text-black">Vendas</a>
-            <a href="#" className="hover:text-black">Homens</a>
-            <a href="#" className="hover:text-black">Mulheres</a>
+            <a href="#" className="hover:text-black">
+              E-commerce
+            </a>
+            <a href="#" className="hover:text-black">
+              Vendas
+            </a>
+            <a href="#" className="hover:text-black">
+              Homens
+            </a>
+            <a href="#" className="hover:text-black">
+              Mulheres
+            </a>
           </nav>
 
           {/* ACTIONS */}
@@ -189,10 +228,18 @@ const Header = () => {
       {/* MOBILE MENU */}
       {open && (
         <div className="md:hidden border-t py-4 space-y-3 text-sm">
-          <a href="#" className="block text-gray-700">E-commerce</a>
-          <a href="#" className="block text-gray-700">Vendas</a>
-          <a href="#" className="block text-gray-700">Homens</a>
-          <a href="#" className="block text-gray-700">Mulheres</a>
+          <a href="#" className="block text-gray-700">
+            E-commerce
+          </a>
+          <a href="#" className="block text-gray-700">
+            Vendas
+          </a>
+          <a href="#" className="block text-gray-700">
+            Homens
+          </a>
+          <a href="#" className="block text-gray-700">
+            Mulheres
+          </a>
         </div>
       )}
 
@@ -201,18 +248,33 @@ const Header = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl p-6 flex flex-col max-h-[80vh]">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Meu Carrinho ({carrinho.length})</h2>
-              <button onClick={() => setCartOpen(false)} className="text-gray-500 hover:text-gray-800">
+              <h2 className="text-xl font-bold">
+                Meu Carrinho ({carrinho.length})
+              </h2>
+              <button
+                onClick={() => setCartOpen(false)}
+                className="text-gray-500 hover:text-gray-800"
+              >
                 <X size={24} />
               </button>
             </div>
 
             {/* Toggle Grid/List */}
             <div className="flex gap-2 mb-4">
-              <button onClick={() => setViewMode("grid")} className={`p-1 rounded ${viewMode === "grid" ? "bg-gray-200" : ""}`}>
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-1 rounded ${
+                  viewMode === "grid" ? "bg-gray-200" : ""
+                }`}
+              >
                 <Grid size={20} />
               </button>
-              <button onClick={() => setViewMode("list")} className={`p-1 rounded ${viewMode === "list" ? "bg-gray-200" : ""}`}>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-1 rounded ${
+                  viewMode === "list" ? "bg-gray-200" : ""
+                }`}
+              >
                 <List size={20} />
               </button>
             </div>
@@ -220,28 +282,58 @@ const Header = () => {
             {/* Lista de produtos com scroll */}
             <div className="flex-1 overflow-y-auto">
               {carrinho.length === 0 ? (
-                <p className="text-center text-gray-500">Seu carrinho está vazio</p>
+                <p className="text-center text-gray-500">
+                  Seu carrinho está vazio
+                </p>
               ) : (
-                <div className={viewMode === "grid" ? "grid grid-cols-2 gap-4" : "flex flex-col gap-4"}>
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-2 gap-4"
+                      : "flex flex-col gap-4"
+                  }
+                >
                   {carrinho.map((id) => {
                     const produto = produtos.find((p) => p.id === id);
                     if (!produto) return null;
                     const qtd = quantidades[id] || 1;
                     return (
-                      <div key={id} className={`flex items-center border p-2 rounded ${viewMode === "grid" ? "flex-col" : "flex-row"}`}>
-                        <div className="w-24 h-24 flex items-center justify-center bg-gray-50 rounded-md overflow-hidden">{produto.imagem}</div>
+                      <div
+                        key={id}
+                        className={`flex items-center border p-2 rounded ${
+                          viewMode === "grid" ? "flex-col" : "flex-row"
+                        }`}
+                      >
+                        <div className="w-24 h-24 flex items-center justify-center bg-gray-50 rounded-md overflow-hidden">
+                          {produto.imagem}
+                        </div>
                         <div className="flex-1 ml-2">
                           <h3 className="font-bold">{produto.nome}</h3>
                           <p className="text-gray-500">{produto.descricao}</p>
-                          <p className="text-[#D4AF37] font-semibold">{produto.preco.toLocaleString()} KZ</p>
+                          <p className="text-[#D4AF37] font-semibold">
+                            {produto.preco.toLocaleString()} KZ
+                          </p>
 
                           <div className="flex items-center gap-2 mt-2">
-                            <button onClick={() => handleQuantidade(id, "decrement")} className="bg-gray-800 text-white w-8 h-8 rounded-md">-</button>
+                            <button
+                              onClick={() => handleQuantidade(id, "decrement")}
+                              className="bg-gray-800 text-white w-8 h-8 rounded-md"
+                            >
+                              -
+                            </button>
                             <span className="w-8 text-center">{qtd}</span>
-                            <button onClick={() => handleQuantidade(id, "increment")} className="bg-gray-800 text-white w-8 h-8 rounded-md">+</button>
+                            <button
+                              onClick={() => handleQuantidade(id, "increment")}
+                              className="bg-gray-800 text-white w-8 h-8 rounded-md"
+                            >
+                              +
+                            </button>
                           </div>
                         </div>
-                        <button onClick={() => removerDoCarrinho(id)} className="text-red-500 hover:text-red-700 mt-2 md:mt-0">
+                        <button
+                          onClick={() => removerDoCarrinho(id)}
+                          className="text-red-500 hover:text-red-700 mt-2 md:mt-0"
+                        >
                           <CgClose size={20} />
                         </button>
                       </div>
@@ -254,8 +346,13 @@ const Header = () => {
             {/* Total e finalizar */}
             {carrinho.length > 0 && (
               <div className="mt-4 flex justify-between items-center pt-4 border-t">
-                <span className="font-bold text-lg">Total: {total.toLocaleString()} KZ</span>
-                <button onClick={finalizarCompra} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-500 transition">
+                <span className="font-bold text-lg">
+                  Total: {total.toLocaleString()} KZ
+                </span>
+                <button
+                  onClick={finalizarCompra}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-500 transition"
+                >
                   Finalizar Compra
                 </button>
               </div>

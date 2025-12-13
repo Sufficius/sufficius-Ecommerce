@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -18,41 +20,35 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // 🔐 SIMULAÇÃO DE LOGIN
       if (email === "admin@email.com" && password === "123456") {
-        toast.success("")
+        toast.success("Sessão iniciada com sucesso");
         localStorage.setItem("token", "Adolfo Monteiro");
         navigate("/", { replace: true });
       } else {
         toast.error("Email ou palavra-passe inválidos!");
-        // setError("Email ou palavra-passe inválidos");
       }
     } catch {
-        toast.error("Erro ao autenticar!");
-    //   setError("Erro ao autenticar");
+      toast.error("Erro ao autenticar!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="relative min-h-screen flex items-center justify-center bg-gray-100">
+
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg"
+        className="relative w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg z-10"
       >
-        <h1 className="text-2xl font-semibold text-center mb-6">
-          Login
-        </h1>
+        <h1 className="text-2xl font-semibold text-center mb-6">Login</h1>
 
         {error && (
-          <p className="mb-4 text-sm text-red-600 text-center">
-            {error}
-          </p>
+          <p className="mb-4 text-sm text-red-600 text-center">{error}</p>
         )}
 
         <div className="mb-4">
-          <input
+          <Input
             type="email"
             placeholder="Email"
             value={email}
@@ -63,7 +59,7 @@ const Login = () => {
         </div>
 
         <div className="mb-6">
-          <input
+          <Input
             type="password"
             placeholder="Palavra-passe"
             value={password}
@@ -73,13 +69,13 @@ const Login = () => {
           />
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="w-full py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-2 rounded-lg hover:bg-[#f0d270] bg-[#D4AF37] text-white font-medium  transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "A entrar..." : "Entrar"}
-        </button>
+        </Button>
       </form>
     </div>
   );

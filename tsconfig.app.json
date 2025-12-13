@@ -2,15 +2,13 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2022",
-    "lib": ["ES2023", "DOM"],
+    "lib": ["ES2023", "DOM", "ESNext"],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": false,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": true,
-    "jsx": "react-jsx",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -20,7 +18,14 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+
+    "jsx": "react-jsx",
+
+    /* ✅ Para Project References */
+    "composite": true,
+    "declaration": true,
+    "outDir": "./dist"
   },
   "include": ["src"]
 }
