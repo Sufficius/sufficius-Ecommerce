@@ -3,6 +3,7 @@ import { Layout } from "./layout";
 import Landing from "../pages/Landing";
 import { PrivateRoute } from "./routes/PrivateRoute";
 import Login from "../pages/Login";
+import Pagamento from "@/pages/Payment";
 
 export const App = () => {
   return (
@@ -18,6 +19,16 @@ export const App = () => {
             <PrivateRoute>
               <Layout>
                 <Landing />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/pagamento"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <Pagamento />
               </Layout>
             </PrivateRoute>
           }

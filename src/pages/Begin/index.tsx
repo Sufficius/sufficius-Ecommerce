@@ -9,10 +9,11 @@ import {
 import { FiShoppingCart } from "react-icons/fi";
 import { BsEye } from "react-icons/bs";
 import { useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { CgClose } from "react-icons/cg";
 import { BiDollar } from "react-icons/bi";
+import { toast } from "sonner";
 
 interface Produto {
   id: number;
@@ -25,53 +26,18 @@ interface Produto {
 const Begin = () => {
   const [, setCarrinho] = useState<number[]>([]);
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const [quantidade, setQuantidade] = useState(1);
 
   const query = params.get("q")?.toLowerCase() || "";
 
   const produtos: Produto[] = [
-    {
-      id: 1,
-      imagem: <PrimeiraImagem />,
-      nome: "Rose de Soleil",
-      descricao: "For Women",
-      preco: 2500,
-    },
-    {
-      id: 2,
-      imagem: <SegundaImagem />,
-      nome: "Zara Rosella",
-      descricao: "Loui Martin",
-      preco: 15000,
-    },
-    {
-      id: 3,
-      imagem: <TerceiraImagem />,
-      nome: "Berry Kiss",
-      descricao: "Body Luxures",
-      preco: 5500,
-    },
-    {
-      id: 4,
-      imagem: <QuartaImagem />,
-      nome: "Kiss Me",
-      descricao: "Rumor Sexy",
-      preco: 20000,
-    },
-    {
-      id: 5,
-      imagem: <QuintaImagem />,
-      nome: "Sauvage",
-      descricao: "Eau de Parfum",
-      preco: 2500,
-    },
-    {
-      id: 6,
-      imagem: <SextaImagem />,
-      nome: "3.4 Floz",
-      descricao: "Zara Eau de Parfum",
-      preco: 2500,
-    },
+    { id: 1, imagem: <PrimeiraImagem />, nome: "Rose de Soleil", descricao: "For Women", preco: 2500 },
+    { id: 2, imagem: <SegundaImagem />, nome: "Zara Rosella", descricao: "Loui Martin", preco: 15000 },
+    { id: 3, imagem: <TerceiraImagem />, nome: "Berry Kiss", descricao: "Body Luxures", preco: 5500 },
+    { id: 4, imagem: <QuartaImagem />, nome: "Kiss Me", descricao: "Rumor Sexy", preco: 20000 },
+    { id: 5, imagem: <QuintaImagem />, nome: "Sauvage", descricao: "Eau de Parfum", preco: 2500 },
+    { id: 6, imagem: <SextaImagem />, nome: "3.4 Floz", descricao: "Zara Eau de Parfum", preco: 2500 },
   ];
 
   // Filtra produtos em tempo real
@@ -84,13 +50,11 @@ const Begin = () => {
     );
   }, [query, produtos]);
 
-  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(
-    null
-  );
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
 
   const adicionarAoCarrinho = (produto: Produto) => {
     setCarrinho((prev) => [...prev, produto.id]);
-    alert(`${produto.nome} adicionado ao carrinho!`);
+    toast.success(`${produto.nome} adicionado ao carrinho!`);
   };
 
   const handleQuantidade = (action: "increment" | "decrement") => {
@@ -105,16 +69,13 @@ const Begin = () => {
       {/* INDICADOR DE PESQUISA */}
       {query && (
         <p className="text-sm text-gray-600">
-          Resultados para:{" "}
-          <span className="font-semibold text-[#D4AF37]">{query}</span>
+          Resultados para: <span className="font-semibold text-[#D4AF37]">{query}</span>
         </p>
       )}
 
       {/* SEM RESULTADOS */}
       {produtosFiltrados.length === 0 && (
-        <p className="text-center text-gray-500 mt-10">
-          Nenhum produto encontrado 😕
-        </p>
+        <p className="text-center text-gray-500 mt-10">Nenhum produto encontrado 😕</p>
       )}
 
       {/* PRODUTOS */}
@@ -124,19 +85,13 @@ const Begin = () => {
             key={produto.id}
             className="bg-white rounded-lg border hover:scale-105 shadow hover:shadow-lg transition overflow-hidden flex flex-col"
           >
-            <div className="h-56 w-full flex items-center justify-center overflow-hidden">
-              {produto.imagem}
-            </div>
+            <div className="h-56 w-full flex items-center justify-center overflow-hidden">{produto.imagem}</div>
 
             <div className="p-4 flex flex-col justify-between flex-1">
               <div>
-                <h2 className="text-xl font-bold text-gray-800">
-                  {produto.nome}
-                </h2>
+                <h2 className="text-xl font-bold text-gray-800">{produto.nome}</h2>
                 <p className="text-gray-500 mt-1">{produto.descricao}</p>
-                <p className="text-[#D4AF37] font-semibold mt-2 text-lg">
-                  {produto.preco.toLocaleString()} KZ
-                </p>
+                <p className="text-[#D4AF37] font-semibold mt-2 text-lg">{produto.preco.toLocaleString()} KZ</p>
               </div>
 
               <div className="mt-4 flex gap-2">
@@ -170,10 +125,8 @@ const Begin = () => {
       {produtoSelecionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="relative bg-white w-full max-w-4xl rounded-2xl shadow-2xl animate-fadeIn overflow-hidden">
-            {/* BRILHO */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-[#D4AF37]/20 via-transparent to-transparent pointer-events-none" />
 
-            {/* CONTEÚDO */}
             <div className="relative flex flex-col md:flex-row gap-6 p-6 md:p-10">
               {/* IMAGEM */}
               <div className="w-56 flex items-center justify-center bg-gray-50 rounded-xl h-80 md:h-auto overflow-hidden">
@@ -183,48 +136,46 @@ const Begin = () => {
               {/* DETALHES */}
               <div className="flex-1 flex flex-col justify-between gap-4">
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-800">
-                    {produtoSelecionado.nome}
-                  </h2>
-                  <p className="text-gray-500 mt-2">
-                    {produtoSelecionado.descricao}
-                  </p>
-                  <p className="text-[#D4AF37] text-2xl font-semibold mt-4">
-                    {produtoSelecionado.preco.toLocaleString()} KZ
-                  </p>
-                  <p className="text-gray-500 mt-2">
-                    Quantidade em estoque: 20
-                  </p>
+                  <h2 className="text-3xl font-bold text-gray-800">{produtoSelecionado.nome}</h2>
+                  <p className="text-gray-500 mt-2">{produtoSelecionado.descricao}</p>
+                  <p className="text-[#D4AF37] text-2xl font-semibold mt-4">{produtoSelecionado.preco.toLocaleString()} KZ</p>
+                  <p className="text-gray-500 mt-2">Quantidade em estoque: 20</p>
                 </div>
 
                 {/* QUANTIDADE E PAGAR */}
                 <div className="flex items-center justify-center gap-3 mt-4">
-                 <div className="flex gap-3 justify-center items-center">
+                  <div className="flex gap-3 justify-center items-center">
+                    <button
+                      onClick={() => handleQuantidade("decrement")}
+                      className="bg-gray-800 text-white w-10 h-10 rounded-md"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      value={quantidade}
+                      readOnly
+                      className="w-16 text-center flex items-center border rounded-md text-gray-700"
+                    />
+                    <button
+                      onClick={() => handleQuantidade("increment")}
+                      className="bg-gray-800 text-white w-10 h-10 rounded-md"
+                    >
+                      +
+                    </button>
 
-                  <button
-                    onClick={() => handleQuantidade("decrement")}
-                    className="bg-gray-800 text-white w-10 h-10 rounded-md"
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    min={1}
-                    value={quantidade}
-                    readOnly
-                    className="w-16 text-center flex items-center border rounded-md text-gray-700"
-                  />
-                  <button
-                    onClick={() => handleQuantidade("increment")}
-                    className="bg-gray-800 text-white w-10 h-10 rounded-md"
-                  >
-                    +
-                  </button>
-                  <button className=" flex gap-1 items-center bg-green-600 text-white px-4 py-2 rounded-md ml-auto hover:bg-green-500 transition">
-                    <BiDollar size={20} />
-                    Pagar
-                  </button>
-                    </div>
+                    <button
+                      onClick={() => {
+                        setProdutoSelecionado(null);
+                        navigate("/pagamento", { state: { produto: produtoSelecionado, quantidade } });
+                      }}
+                      className="flex gap-1 items-center bg-green-600 text-white px-4 py-2 rounded-md ml-auto hover:bg-green-500 transition"
+                    >
+                      <BiDollar size={20} />
+                      Pagar
+                    </button>
+                  </div>
                 </div>
 
                 {/* AÇÕES */}
@@ -251,7 +202,6 @@ const Begin = () => {
               </div>
             </div>
 
-            {/* BOTÃO FECHAR NO CANTO */}
             <button
               onClick={() => setProdutoSelecionado(null)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-xl font-bold"
