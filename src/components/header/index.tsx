@@ -3,12 +3,11 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ShoppingCart, Search, Menu, X } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 const Header = () => {
   const [open, setOpen] = useState(false);
-
-  // 🔔 depois podes ligar isto a Context / Zustand
-  const [cartCount] = useState(2);
+  const {carrinho} = useCart();
 
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -72,9 +71,9 @@ const Header = () => {
             {/* CART */}
             <button className="relative hover:text-black">
               <ShoppingCart size={20} />
-              {cartCount > 0 && (
+              {carrinho.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                  {cartCount}
+                  {carrinho.length}
                 </span>
               )}
             </button>

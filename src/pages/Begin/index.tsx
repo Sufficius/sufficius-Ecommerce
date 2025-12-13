@@ -1,3 +1,5 @@
+"use client";
+
 import {
   PrimeiraImagem,
   QuartaImagem,
@@ -14,6 +16,7 @@ import { ShoppingCart } from "lucide-react";
 import { CgClose } from "react-icons/cg";
 import { BiDollar } from "react-icons/bi";
 import { toast } from "sonner";
+import { useCart } from "@/context/CartContext";
 
 interface Produto {
   id: number;
@@ -24,10 +27,10 @@ interface Produto {
 }
 
 const Begin = () => {
-  const [carrinho, setCarrinho] = useState<number[]>([]);
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const [quantidade, setQuantidade] = useState(1);
+  const { carrinho, adicionarAoCarrinho } = useCart();
 
   const query = params.get("q")?.toLowerCase() || "";
 
@@ -76,7 +79,6 @@ const Begin = () => {
     },
   ];
 
-  // Filtra produtos
   const produtosFiltrados = useMemo(() => {
     if (!query) return produtos;
     return produtos.filter(
@@ -90,20 +92,15 @@ const Begin = () => {
     null
   );
 
-  // Adicionar ao carrinho
-  const adicionarAoCarrinho = (produto: Produto) => {
-    setCarrinho((prev) => {
-      if (!prev.includes(produto.id)) {
-        toast.success(`${produto.nome} adicionado ao carrinho!`);
-        return [...prev, produto.id];
-      } else {
-        toast.warning(`${produto.nome} já está no carrinho.`);
-        return prev;
-      }
-    });
+  const handleAdicionarAoCarrinho = (produto: Produto) => {
+    if (!carrinho.includes(produto.id)) {
+      adicionarAoCarrinho(produto.id);
+      toast.success(`${produto.nome} adicionado ao carrinho!`);
+    } else {
+      toast.warning(`${produto.nome} já está no carrinho.`);
+    }
   };
 
-  // Pagamento
   const handlePagar = (produto: Produto, quantidade: number) => {
     navigate("/pagamento", {
       state: {
@@ -115,23 +112,16 @@ const Begin = () => {
     });
   };
 
-  // Quantidade
   const handleQuantidade = (action: "increment" | "decrement") => {
-    setQuantidade((prev) => {
-      if (action === "increment") return prev + 1;
-      return prev > 1 ? prev - 1 : 1;
-    });
+    setQuantidade((prev) =>
+      action === "increment" ? prev + 1 : prev > 1 ? prev - 1 : 1
+    );
   };
 
   return (
     <div className="flex flex-col gap-6 p-5 md:p-10 bg-gray-50 min-h-screen">
       {/* Carrinho contador */}
-      {carrinho.length > 0 && (
-        <div className="fixed top-5 right-5 bg-[#D4AF37] text-white px-4 py-2 rounded-full shadow-lg z-50">
-          Carrinho: {carrinho.length}
-        </div>
-      )}
-
+   
       {/* Indicador de pesquisa */}
       {query && (
         <p className="text-sm text-gray-600">
@@ -178,7 +168,7 @@ const Begin = () => {
                   <BsEye size={20} /> Detalhes
                 </button>
                 <button
-                  onClick={() => adicionarAoCarrinho(produto)}
+                  onClick={() => handleAdicionarAoCarrinho(produto)}
                   className="flex items-center justify-center gap-2 flex-1 h-10 bg-gray-600 text-white rounded hover:bg-gray-800 transition text-sm"
                 >
                   <FiShoppingCart size={20} /> Carrinho
@@ -250,7 +240,7 @@ const Begin = () => {
                 <div className="mt-6 flex flex-col gap-3">
                   <button
                     onClick={() => {
-                      adicionarAoCarrinho(produtoSelecionado);
+                      handleAdicionarAoCarrinho(produtoSelecionado);
                       setProdutoSelecionado(null);
                     }}
                     className="flex items-center justify-center gap-3 h-12 bg-[#D4AF37] text-white rounded-lg hover:bg-[#dfae0e] transition font-medium"
