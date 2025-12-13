@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ShoppingCart, Search, Menu, X, Grid, List } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { CgClose } from "react-icons/cg";
 import { toast } from "sonner";
-
 
 interface ItemCarrinho {
   id: number;
@@ -19,6 +18,7 @@ const Header = () => {
   const [open, setOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const { carrinho, removerDoCarrinho, produtos } = useCart();
   const [quantidades, setQuantidades] = useState<Record<number, number>>({}); // id -> quantidade
@@ -28,6 +28,8 @@ const Header = () => {
   const query = params.get("q") || "";
   const user = localStorage.getItem("token");
 
+  const profileRef = useRef<HTMLDivElement>(null);
+
   const handleChange = (value: string) => {
     if (!value.trim()) {
       navigate("/", { replace: true });
@@ -36,7 +38,19 @@ const Header = () => {
     }
   };
 
-  // Incrementa ou decrementa a quantidade
+  // Fechar popover ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const handleQuantidade = (id: number, action: "increment" | "decrement") => {
     setQuantidades((prev) => {
       const atual = prev[id] || 1;
@@ -45,14 +59,12 @@ const Header = () => {
     });
   };
 
-  // Calcula total do carrinho
   const total = carrinho.reduce((acc, id) => {
     const produto = produtos.find((p) => p.id === id);
     const qtd = quantidades[id] || 1;
     return produto ? acc + produto.preco * qtd : acc;
   }, 0);
 
-  // Finalizar compra: envia todos os produtos do carrinho
   const finalizarCompra = () => {
     const items: ItemCarrinho[] = carrinho
       .map((id) => {
@@ -76,17 +88,45 @@ const Header = () => {
     setCartOpen(false);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    toast.success("Logout efetuado!");
+    navigate("/");
+  };
+
   return (
     <header className="w-full border-b bg-white">
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* LOGO */}
-          <div className="flex items-center gap-3">
-            <img src="/logo.jpg" alt="Logo" className="h-9 w-9 rounded-full" />
-            <div className="flex flex-col">
-              <span className="font-semibold text-[#d4af37] text-lg">Sufficius</span>
-              <p className="text-xs text-gray-400 truncate max-w-[120px]">{user}</p>
+          {/* LOGO COM POPOVER */}
+          <div className="relative" ref={profileRef}>
+            <div
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => setProfileOpen(!profileOpen)}
+            >
+              <img src="/logo.jpg" alt="Logo" className="h-9 w-9 rounded-full" />
+              <div className="flex flex-col">
+                <span className="font-semibold text-[#d4af37] text-lg">Sufficius</span>
+                <p className="text-xs text-gray-400 truncate max-w-[120px]">{user}</p>
+              </div>
             </div>
+
+            {profileOpen && (
+              <div className="absolute top-full mt-2 right-0 w-48 bg-white border rounded-lg shadow-lg z-50">
+                <button
+                  onClick={() => navigate("/perfil")}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                >
+                  Editar Perfil
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
 
           {/* SEARCH DESKTOP */}
@@ -195,7 +235,6 @@ const Header = () => {
                           <p className="text-gray-500">{produto.descricao}</p>
                           <p className="text-[#D4AF37] font-semibold">{produto.preco.toLocaleString()} KZ</p>
 
-                          {/* Quantidade */}
                           <div className="flex items-center gap-2 mt-2">
                             <button onClick={() => handleQuantidade(id, "decrement")} className="bg-gray-800 text-white w-8 h-8 rounded-md">-</button>
                             <span className="w-8 text-center">{qtd}</span>
