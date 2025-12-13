@@ -4,27 +4,55 @@ import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ShoppingCart, Search, Menu, X, Grid, List } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import {CgClose } from "react-icons/cg"; // ou importe o que precisar
+import { CgClose } from "react-icons/cg";
 
 const Header = () => {
   const [open, setOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const { carrinho, removerDoCarrinho, produtos } = useCart(); // produtos deve estar no contexto
+
+  const { carrinho, removerDoCarrinho, produtos } = useCart();
+  const [quantidades, setQuantidades] = useState<Record<number, number>>({}); // id -> quantidade
 
   const navigate = useNavigate();
   const [params] = useSearchParams();
-
   const query = params.get("q") || "";
   const user = localStorage.getItem("token");
 
-  // pesquisa em tempo real
   const handleChange = (value: string) => {
     if (!value.trim()) {
       navigate("/", { replace: true });
     } else {
       navigate(`/?q=${encodeURIComponent(value)}`, { replace: true });
     }
+  };
+
+  // Incrementa ou decrementa a quantidade
+  const handleQuantidade = (id: number, action: "increment" | "decrement") => {
+    setQuantidades((prev) => {
+      const atual = prev[id] || 1;
+      const nova = action === "increment" ? atual + 1 : atual > 1 ? atual - 1 : 1;
+      return { ...prev, [id]: nova };
+    });
+  };
+
+  // Calcula total do carrinho
+  const total = carrinho.reduce((acc, id) => {
+    const produto = produtos.find((p) => p.id === id);
+    const qtd = quantidades[id] || 1;
+    return produto ? acc + produto.preco * qtd : acc;
+  }, 0);
+
+  // Finalizar compra
+  const finalizarCompra = () => {
+    const items = carrinho.map((id) => {
+      const produto = produtos.find((p) => p.id === id);
+      return produto
+        ? { id: produto.id, nome: produto.nome, preco: produto.preco, quantidade: quantidades[id] || 1 }
+        : null;
+    }).filter(Boolean);
+    navigate("/pagamento", { state: { items } });
+    setCartOpen(false);
   };
 
   return (
@@ -78,30 +106,6 @@ const Header = () => {
             </button>
           </div>
         </div>
-
-        {/* SEARCH MOBILE */}
-        <div className="md:hidden py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="search"
-              placeholder="Pesquisar produtos"
-              value={query}
-              onChange={(e) => handleChange(e.target.value)}
-              className="w-full rounded-lg border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-            />
-          </div>
-        </div>
-
-        {/* MOBILE MENU */}
-        {open && (
-          <div className="md:hidden border-t py-4 space-y-3 text-sm">
-            <a href="#" className="block text-gray-700">E-commerce</a>
-            <a href="#" className="block text-gray-700">Vendas</a>
-            <a href="#" className="block text-gray-700">Homens</a>
-            <a href="#" className="block text-gray-700">Mulheres</a>
-          </div>
-        )}
       </div>
 
       {/* MODAL CARRINHO */}
@@ -133,11 +137,9 @@ const Header = () => {
                 {carrinho.map((id) => {
                   const produto = produtos.find((p) => p.id === id);
                   if (!produto) return null;
+                  const qtd = quantidades[id] || 1;
                   return (
-                    <div
-                      key={id}
-                      className={`flex items-center border p-2 rounded ${viewMode === "grid" ? "flex-col" : "flex-row"}`}
-                    >
+                    <div key={id} className={`flex items-center border p-2 rounded ${viewMode === "grid" ? "flex-col" : "flex-row"}`}>
                       <div className="w-24 h-24 flex items-center justify-center bg-gray-50 rounded-md overflow-hidden">
                         {produto.imagem}
                       </div>
@@ -145,16 +147,33 @@ const Header = () => {
                         <h3 className="font-bold">{produto.nome}</h3>
                         <p className="text-gray-500">{produto.descricao}</p>
                         <p className="text-[#D4AF37] font-semibold">{produto.preco.toLocaleString()} KZ</p>
+
+                        {/* Quantidade */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <button onClick={() => handleQuantidade(id, "decrement")} className="bg-gray-800 text-white w-8 h-8 rounded-md">-</button>
+                          <span className="w-8 text-center">{qtd}</span>
+                          <button onClick={() => handleQuantidade(id, "increment")} className="bg-gray-800 text-white w-8 h-8 rounded-md">+</button>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => removerDoCarrinho(id)}
-                        className="text-red-500 hover:text-red-700 mt-2 md:mt-0"
-                      >
+                      <button onClick={() => removerDoCarrinho(id)} className="text-red-500 hover:text-red-700 mt-2 md:mt-0">
                         <CgClose size={20} />
                       </button>
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Total e finalizar */}
+            {carrinho.length > 0 && (
+              <div className="mt-4 flex justify-between items-center">
+                <span className="font-bold text-lg">Total: {total.toLocaleString()} KZ</span>
+                <button
+                  onClick={finalizarCompra}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-500 transition"
+                >
+                  Finalizar Compra
+                </button>
               </div>
             )}
           </div>
