@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
   Search,
@@ -12,6 +13,7 @@ const Header = () => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
+  const navigate = useNavigate();
   const user = localStorage.getItem("token");
 
   const handleSearch = (e?: React.FormEvent) => {
@@ -19,13 +21,7 @@ const Header = () => {
 
     if (!query.trim()) return;
 
-    // 👉 por agora apenas log
-    console.log("Pesquisar por:", query);
-
-    // EXEMPLOS FUTUROS:
-    // navigate(`/pesquisa?q=${query}`);
-    // fetchProdutos(query);
-
+    navigate(`/?q=${encodeURIComponent(query)}`);
     setQuery("");
   };
 
@@ -56,10 +52,12 @@ const Header = () => {
             onSubmit={handleSearch}
             className="hidden md:flex relative w-full max-w-md mx-6"
           >
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
-              onClick={() => handleSearch()}
-            />
+            <button
+              type="submit"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            >
+              <Search size={18} />
+            </button>
             <input
               type="search"
               placeholder="Pesquisar produtos"
@@ -101,10 +99,12 @@ const Header = () => {
           className="md:hidden py-3"
         >
           <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
-              onClick={() => handleSearch()}
-            />
+            <button
+              type="submit"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            >
+              <Search size={18} />
+            </button>
             <input
               type="search"
               placeholder="Pesquisar produtos"
