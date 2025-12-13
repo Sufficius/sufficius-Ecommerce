@@ -7,12 +7,16 @@ import { ShoppingCart, Search, Menu, X } from "lucide-react";
 const Header = () => {
   const [open, setOpen] = useState(false);
 
+  // 🔔 depois podes ligar isto a Context / Zustand
+  const [cartCount] = useState(2);
+
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
   const query = params.get("q") || "";
   const user = localStorage.getItem("token");
 
+  // 🔍 pesquisa em tempo real
   const handleChange = (value: string) => {
     if (!value.trim()) {
       navigate("/", { replace: true });
@@ -28,8 +32,12 @@ const Header = () => {
 
           {/* LOGO */}
           <div className="flex items-center gap-3">
-            <img src="/logo.jpg" className="h-9 w-9 rounded-full" />
-            <div>
+            <img
+              src="/logo.jpg"
+              alt="Logo"
+              className="h-9 w-9 rounded-full"
+            />
+            <div className="flex flex-col">
               <span className="font-semibold text-[#d4af37] text-lg">
                 Sufficius
               </span>
@@ -51,10 +59,31 @@ const Header = () => {
             />
           </div>
 
+          {/* MENU DESKTOP */}
+          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-700">
+            <a href="#" className="hover:text-black">E-commerce</a>
+            <a href="#" className="hover:text-black">Vendas</a>
+            <a href="#" className="hover:text-black">Homens</a>
+            <a href="#" className="hover:text-black">Mulheres</a>
+          </nav>
+
           {/* ACTIONS */}
           <div className="flex items-center gap-4">
-            <ShoppingCart size={20} />
-            <button className="md:hidden" onClick={() => setOpen(!open)}>
+            {/* CART */}
+            <button className="relative hover:text-black">
+              <ShoppingCart size={20} />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
+            {/* MOBILE MENU BUTTON */}
+            <button
+              className="md:hidden"
+              onClick={() => setOpen(!open)}
+            >
               {open ? <X /> : <Menu />}
             </button>
           </div>
@@ -73,6 +102,16 @@ const Header = () => {
             />
           </div>
         </div>
+
+        {/* MOBILE MENU */}
+        {open && (
+          <div className="md:hidden border-t py-4 space-y-3 text-sm">
+            <a href="#" className="block text-gray-700">E-commerce</a>
+            <a href="#" className="block text-gray-700">Vendas</a>
+            <a href="#" className="block text-gray-700">Homens</a>
+            <a href="#" className="block text-gray-700">Mulheres</a>
+          </div>
+        )}
       </div>
     </header>
   );
