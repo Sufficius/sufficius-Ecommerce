@@ -35,48 +35,12 @@ const Begin = () => {
   const query = params.get("q")?.toLowerCase() || "";
 
   const produtos: Produto[] = [
-    {
-      id: 1,
-      imagem: <PrimeiraImagem />,
-      nome: "Rose de Soleil",
-      descricao: "For Women",
-      preco: 2500,
-    },
-    {
-      id: 2,
-      imagem: <SegundaImagem />,
-      nome: "Zara Rosella",
-      descricao: "Loui Martin",
-      preco: 15000,
-    },
-    {
-      id: 3,
-      imagem: <TerceiraImagem />,
-      nome: "Berry Kiss",
-      descricao: "Body Luxures",
-      preco: 5500,
-    },
-    {
-      id: 4,
-      imagem: <QuartaImagem />,
-      nome: "Kiss Me",
-      descricao: "Rumor Sexy",
-      preco: 20000,
-    },
-    {
-      id: 5,
-      imagem: <QuintaImagem />,
-      nome: "Sauvage",
-      descricao: "Eau de Parfum",
-      preco: 2500,
-    },
-    {
-      id: 6,
-      imagem: <SextaImagem />,
-      nome: "3.4 Floz",
-      descricao: "Zara Eau de Parfum",
-      preco: 2500,
-    },
+    { id: 1, imagem: <PrimeiraImagem />, nome: "Rose de Soleil", descricao: "For Women", preco: 2500 },
+    { id: 2, imagem: <SegundaImagem />, nome: "Zara Rosella", descricao: "Loui Martin", preco: 15000 },
+    { id: 3, imagem: <TerceiraImagem />, nome: "Berry Kiss", descricao: "Body Luxures", preco: 5500 },
+    { id: 4, imagem: <QuartaImagem />, nome: "Kiss Me", descricao: "Rumor Sexy", preco: 20000 },
+    { id: 5, imagem: <QuintaImagem />, nome: "Sauvage", descricao: "Eau de Parfum", preco: 2500 },
+    { id: 6, imagem: <SextaImagem />, nome: "3.4 Floz", descricao: "Zara Eau de Parfum", preco: 2500 },
   ];
 
   const produtosFiltrados = useMemo(() => {
@@ -88,9 +52,7 @@ const Begin = () => {
     );
   }, [query, produtos]);
 
-  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(
-    null
-  );
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
 
   const handleAdicionarAoCarrinho = (produto: Produto) => {
     if (!carrinho.includes(produto.id)) {
@@ -101,13 +63,18 @@ const Begin = () => {
     }
   };
 
+  // Corrigido: envia um array de items para o Pagamento
   const handlePagar = (produto: Produto, quantidade: number) => {
     navigate("/pagamento", {
       state: {
-        id: produto.id,
-        nome: produto.nome,
-        preco: produto.preco,
-        quantidade,
+        items: [
+          {
+            id: produto.id,
+            nome: produto.nome,
+            preco: produto.preco,
+            quantidade,
+          },
+        ],
       },
     });
   };
@@ -120,42 +87,28 @@ const Begin = () => {
 
   return (
     <div className="flex flex-col gap-6 p-5 md:p-10 bg-gray-50 min-h-screen">
-      {/* Carrinho contador */}
-   
-      {/* Indicador de pesquisa */}
       {query && (
         <p className="text-sm text-gray-600">
-          Resultados para:{" "}
-          <span className="font-semibold text-[#D4AF37]">{query}</span>
+          Resultados para: <span className="font-semibold text-[#D4AF37]">{query}</span>
         </p>
       )}
 
-      {/* Sem resultados */}
       {produtosFiltrados.length === 0 && (
-        <p className="text-center text-gray-500 mt-10">
-          Nenhum produto encontrado 😕
-        </p>
+        <p className="text-center text-gray-500 mt-10">Nenhum produto encontrado 😕</p>
       )}
 
-      {/* Produtos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {produtosFiltrados.map((produto) => (
           <div
             key={produto.id}
             className="bg-white rounded-lg border hover:scale-105 shadow hover:shadow-lg transition overflow-hidden flex flex-col"
           >
-            <div className="h-56 w-full flex items-center justify-center overflow-hidden">
-              {produto.imagem}
-            </div>
+            <div className="h-56 w-full flex items-center justify-center overflow-hidden">{produto.imagem}</div>
             <div className="p-4 flex flex-col justify-between flex-1">
               <div>
-                <h2 className="text-xl font-bold text-gray-800">
-                  {produto.nome}
-                </h2>
+                <h2 className="text-xl font-bold text-gray-800">{produto.nome}</h2>
                 <p className="text-gray-500 mt-1">{produto.descricao}</p>
-                <p className="text-[#D4AF37] font-semibold mt-2 text-lg">
-                  {produto.preco.toLocaleString()} KZ
-                </p>
+                <p className="text-[#D4AF37] font-semibold mt-2 text-lg">{produto.preco.toLocaleString()} KZ</p>
               </div>
               <div className="mt-4 flex gap-2">
                 <button
@@ -185,51 +138,22 @@ const Begin = () => {
           <div className="relative bg-white w-full max-w-4xl rounded-2xl shadow-2xl animate-fadeIn overflow-hidden">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-[#D4AF37]/20 via-transparent to-transparent pointer-events-none" />
             <div className="relative flex flex-col md:flex-row gap-6 p-6 md:p-10">
-              <div className="w-56 flex items-center justify-center bg-gray-50 rounded-xl h-80 md:h-auto overflow-hidden">
-                {produtoSelecionado.imagem}
-              </div>
+              <div className="w-56 flex items-center justify-center bg-gray-50 rounded-xl h-80 md:h-auto overflow-hidden">{produtoSelecionado.imagem}</div>
               <div className="flex-1 flex flex-col justify-between gap-4">
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-800">
-                    {produtoSelecionado.nome}
-                  </h2>
-                  <p className="text-gray-500 mt-2">
-                    {produtoSelecionado.descricao}
-                  </p>
-                  <p className="text-[#D4AF37] text-2xl font-semibold mt-4">
-                    {produtoSelecionado.preco.toLocaleString()} KZ
-                  </p>
-                  <p className="text-gray-500 mt-2">
-                    Quantidade em estoque: 20
-                  </p>
+                  <h2 className="text-3xl font-bold text-gray-800">{produtoSelecionado.nome}</h2>
+                  <p className="text-gray-500 mt-2">{produtoSelecionado.descricao}</p>
+                  <p className="text-[#D4AF37] text-2xl font-semibold mt-4">{produtoSelecionado.preco.toLocaleString()} KZ</p>
+                  <p className="text-gray-500 mt-2">Quantidade em estoque: 20</p>
                 </div>
 
-                {/* Quantidade e pagar */}
                 <div className="flex items-center justify-center gap-3 mt-4">
                   <div className="flex gap-3 justify-center items-center">
+                    <button onClick={() => handleQuantidade("decrement")} className="bg-gray-800 text-white w-10 h-10 rounded-md">-</button>
+                    <input type="number" min={1} value={quantidade} readOnly className="w-16 text-center flex items-center border rounded-md text-gray-700" />
+                    <button onClick={() => handleQuantidade("increment")} className="bg-gray-800 text-white w-10 h-10 rounded-md">+</button>
                     <button
-                      onClick={() => handleQuantidade("decrement")}
-                      className="bg-gray-800 text-white w-10 h-10 rounded-md"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      value={quantidade}
-                      readOnly
-                      className="w-16 text-center flex items-center border rounded-md text-gray-700"
-                    />
-                    <button
-                      onClick={() => handleQuantidade("increment")}
-                      className="bg-gray-800 text-white w-10 h-10 rounded-md"
-                    >
-                      +
-                    </button>
-                    <button
-                      onClick={() =>
-                        handlePagar(produtoSelecionado, quantidade)
-                      }
+                      onClick={() => handlePagar(produtoSelecionado, quantidade)}
                       className="flex gap-1 items-center bg-green-600 text-white px-4 py-2 rounded-md ml-auto hover:bg-green-500 transition"
                     >
                       <BiDollar size={20} /> Pagar

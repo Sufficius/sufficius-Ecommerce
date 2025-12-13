@@ -7,13 +7,6 @@ import { useCart } from "@/context/CartContext";
 import { CgClose } from "react-icons/cg";
 import { toast } from "sonner";
 
-interface Produto {
-  id: number;
-  imagem: JSX.Element;
-  nome: string;
-  descricao: string;
-  preco: number;
-}
 
 interface ItemCarrinho {
   id: number;
