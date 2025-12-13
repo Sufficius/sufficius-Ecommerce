@@ -14,6 +14,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
+    "emitDeclarationOnly": true,
+    "jsx": "react-jsx",
 
     /* ✅ Para Project References */
     "composite": true,
