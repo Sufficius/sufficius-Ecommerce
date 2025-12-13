@@ -1,28 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  ShoppingCart,
-  Search,
-  Menu,
-  X,
-} from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ShoppingCart, Search, Menu, X } from "lucide-react";
 
 const Header = () => {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
 
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+
+  const query = params.get("q") || "";
   const user = localStorage.getItem("token");
 
-  const handleSearch = (e?: React.FormEvent) => {
-    e?.preventDefault();
-
-    if (!query.trim()) return;
-
-    navigate(`/?q=${encodeURIComponent(query)}`);
-    setQuery("");
+  const handleChange = (value: string) => {
+    if (!value.trim()) {
+      navigate("/", { replace: true });
+    } else {
+      navigate(`/?q=${encodeURIComponent(value)}`, { replace: true });
+    }
   };
 
   return (
@@ -32,12 +28,8 @@ const Header = () => {
 
           {/* LOGO */}
           <div className="flex items-center gap-3">
-            <img
-              src="/logo.jpg"
-              alt="Logo"
-              className="h-9 w-9 rounded-full"
-            />
-            <div className="flex flex-col">
+            <img src="/logo.jpg" className="h-9 w-9 rounded-full" />
+            <div>
               <span className="font-semibold text-[#d4af37] text-lg">
                 Sufficius
               </span>
@@ -48,82 +40,39 @@ const Header = () => {
           </div>
 
           {/* SEARCH DESKTOP */}
-          <form
-            onSubmit={handleSearch}
-            className="hidden md:flex relative w-full max-w-md mx-6"
-          >
-            <button
-              type="submit"
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            >
-              <Search size={18} />
-            </button>
+          <div className="hidden md:flex relative w-full max-w-md mx-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="search"
               placeholder="Pesquisar produtos"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => handleChange(e.target.value)}
               className="w-full rounded-lg border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
             />
-          </form>
-
-          {/* NAV DESKTOP */}
-          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-700">
-            <a href="#" className="hover:text-black">E-commerce</a>
-            <a href="#" className="hover:text-black">Vendas</a>
-            <a href="#" className="hover:text-black">Homens</a>
-            <a href="#" className="hover:text-black">Mulheres</a>
-          </nav>
+          </div>
 
           {/* ACTIONS */}
           <div className="flex items-center gap-4">
-            <button title="Carrinho" className="relative hover:text-black">
-              <ShoppingCart size={20} />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                2
-              </span>
-            </button>
-
-            <button
-              className="md:hidden"
-              onClick={() => setOpen(!open)}
-            >
+            <ShoppingCart size={20} />
+            <button className="md:hidden" onClick={() => setOpen(!open)}>
               {open ? <X /> : <Menu />}
             </button>
           </div>
         </div>
 
         {/* SEARCH MOBILE */}
-        <form
-          onSubmit={handleSearch}
-          className="md:hidden py-3"
-        >
+        <div className="md:hidden py-3">
           <div className="relative">
-            <button
-              type="submit"
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            >
-              <Search size={18} />
-            </button>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="search"
               placeholder="Pesquisar produtos"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => handleChange(e.target.value)}
               className="w-full rounded-lg border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
             />
           </div>
-        </form>
-
-        {/* MOBILE MENU */}
-        {open && (
-          <div className="md:hidden border-t py-4 space-y-3 text-sm">
-            <a href="#" className="block text-gray-700">E-commerce</a>
-            <a href="#" className="block text-gray-700">Vendas</a>
-            <a href="#" className="block text-gray-700">Homens</a>
-            <a href="#" className="block text-gray-700">Mulheres</a>
-          </div>
-        )}
+        </div>
       </div>
     </header>
   );
