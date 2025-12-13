@@ -108,10 +108,34 @@ const Header = () => {
         </div>
       </div>
 
+      {/* SEARCH MOBILE */}
+      <div className="md:hidden py-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="search"
+            placeholder="Pesquisar produtos"
+            value={query}
+            onChange={(e) => handleChange(e.target.value)}
+            className="w-full rounded-lg border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+          />
+        </div>
+      </div>
+
+      {/* MOBILE MENU */}
+      {open && (
+        <div className="md:hidden border-t py-4 space-y-3 text-sm">
+          <a href="#" className="block text-gray-700">E-commerce</a>
+          <a href="#" className="block text-gray-700">Vendas</a>
+          <a href="#" className="block text-gray-700">Homens</a>
+          <a href="#" className="block text-gray-700">Mulheres</a>
+        </div>
+      )}
+
       {/* MODAL CARRINHO */}
       {cartOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl p-6">
+          <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl p-6 flex flex-col max-h-[80vh]">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Meu Carrinho ({carrinho.length})</h2>
               <button onClick={() => setCartOpen(false)} className="text-gray-500 hover:text-gray-800">
@@ -129,44 +153,46 @@ const Header = () => {
               </button>
             </div>
 
-            {/* Lista de produtos */}
-            {carrinho.length === 0 ? (
-              <p className="text-center text-gray-500">Seu carrinho está vazio</p>
-            ) : (
-              <div className={viewMode === "grid" ? "grid grid-cols-2 gap-4" : "flex flex-col gap-4"}>
-                {carrinho.map((id) => {
-                  const produto = produtos.find((p) => p.id === id);
-                  if (!produto) return null;
-                  const qtd = quantidades[id] || 1;
-                  return (
-                    <div key={id} className={`flex items-center border p-2 rounded ${viewMode === "grid" ? "flex-col" : "flex-row"}`}>
-                      <div className="w-24 h-24 flex items-center justify-center bg-gray-50 rounded-md overflow-hidden">
-                        {produto.imagem}
-                      </div>
-                      <div className="flex-1 ml-2">
-                        <h3 className="font-bold">{produto.nome}</h3>
-                        <p className="text-gray-500">{produto.descricao}</p>
-                        <p className="text-[#D4AF37] font-semibold">{produto.preco.toLocaleString()} KZ</p>
-
-                        {/* Quantidade */}
-                        <div className="flex items-center gap-2 mt-2">
-                          <button onClick={() => handleQuantidade(id, "decrement")} className="bg-gray-800 text-white w-8 h-8 rounded-md">-</button>
-                          <span className="w-8 text-center">{qtd}</span>
-                          <button onClick={() => handleQuantidade(id, "increment")} className="bg-gray-800 text-white w-8 h-8 rounded-md">+</button>
+            {/* Lista de produtos com scroll */}
+            <div className="flex-1 overflow-y-auto">
+              {carrinho.length === 0 ? (
+                <p className="text-center text-gray-500">Seu carrinho está vazio</p>
+              ) : (
+                <div className={viewMode === "grid" ? "grid grid-cols-2 gap-4" : "flex flex-col gap-4"}>
+                  {carrinho.map((id) => {
+                    const produto = produtos.find((p) => p.id === id);
+                    if (!produto) return null;
+                    const qtd = quantidades[id] || 1;
+                    return (
+                      <div key={id} className={`flex items-center border p-2 rounded ${viewMode === "grid" ? "flex-col" : "flex-row"}`}>
+                        <div className="w-24 h-24 flex items-center justify-center bg-gray-50 rounded-md overflow-hidden">
+                          {produto.imagem}
                         </div>
+                        <div className="flex-1 ml-2">
+                          <h3 className="font-bold">{produto.nome}</h3>
+                          <p className="text-gray-500">{produto.descricao}</p>
+                          <p className="text-[#D4AF37] font-semibold">{produto.preco.toLocaleString()} KZ</p>
+
+                          {/* Quantidade */}
+                          <div className="flex items-center gap-2 mt-2">
+                            <button onClick={() => handleQuantidade(id, "decrement")} className="bg-gray-800 text-white w-8 h-8 rounded-md">-</button>
+                            <span className="w-8 text-center">{qtd}</span>
+                            <button onClick={() => handleQuantidade(id, "increment")} className="bg-gray-800 text-white w-8 h-8 rounded-md">+</button>
+                          </div>
+                        </div>
+                        <button onClick={() => removerDoCarrinho(id)} className="text-red-500 hover:text-red-700 mt-2 md:mt-0">
+                          <CgClose size={20} />
+                        </button>
                       </div>
-                      <button onClick={() => removerDoCarrinho(id)} className="text-red-500 hover:text-red-700 mt-2 md:mt-0">
-                        <CgClose size={20} />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Total e finalizar */}
             {carrinho.length > 0 && (
-              <div className="mt-4 flex justify-between items-center">
+              <div className="mt-4 flex justify-between items-center pt-4 border-t">
                 <span className="font-bold text-lg">Total: {total.toLocaleString()} KZ</span>
                 <button
                   onClick={finalizarCompra}
