@@ -1,46 +1,89 @@
-import { ShoppingCart, User, Search } from "lucide-react";
+"use client";
 
-export const Header = () => {
+import { useState } from "react";
+import {
+  ShoppingCart,
+  Search,
+  Menu,
+  X,
+} from "lucide-react";
+
+const Header = () => {
+  const [open, setOpen] = useState(false);
+  const user = localStorage.getItem("token")
+
   return (
-    <header className="py-5 px-5 w-full">
-      <div className="flex gap-5 items-center">
-        <div className="p-5 rounded-full animate-pulse"></div>
-        {/* <img src="" alt="LOGOTIPO" /> */}
-        <div className="relative w-1/3">
-          <input
-            type="search"
-            placeholder="Pesquise Produtos"
-            className="font-sans text-center p-2 border  rounded-md outline-none focus-within:border focus-visible:border-[#D4AF37] w-full"
-          />
-          <button
-            title="Pesquisar"
-            className="absolute top-1/2 right-3 transform -translate-y-1/2 -translate-x-[25.7rem] text-gray-500"
-          >
-            <Search />
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-5 text-end m-auto items-center justify-end">
-          <div className="text-[#434343]">
-            <a href="#">E-commerce</a>
+    <header className="w-full border-b bg-white">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="flex h-16 items-center justify-between">
+
+          {/* LOGO */}
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-full bg-gray-200 animate-pulse" />
+            <div className="flex flex-col items-center">
+            <span className="font-semibold text-[#d4af37] text-lg">Sufficius</span>
+            <p className="text-sm text-gray-400">{user}</p>
+            </div>
           </div>
-          <div className="text-[#434343]">
-            <a href="#">Vendas</a>
+
+          {/* SEARCH (DESKTOP) */}
+          <div className="hidden md:flex relative w-full max-w-md mx-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="search"
+              placeholder="Pesquisar produtos"
+              className="w-full rounded-lg border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+            />
           </div>
-          <div className="text-[#434343]">
-            <a href="#">Homens</a>
-          </div>
-          <div className="text-[#434343]">
-            <a href="#">Mulheres</a>{" "}
-          </div>
-          <div className="text-[#434343] ml-28 flex gap-4 justify-end">
-            <button title="Entrar">
-              <User />
+
+          {/* NAV DESKTOP */}
+          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-700">
+            <a href="#" className="hover:text-black">E-commerce</a>
+            <a href="#" className="hover:text-black">Vendas</a>
+            <a href="#" className="hover:text-black">Homens</a>
+            <a href="#" className="hover:text-black">Mulheres</a>
+          </nav>
+
+          {/* ACTIONS */}
+          <div className="flex items-center">
+            <button title="Carrinho" className="relative hover:text-black">
+              <ShoppingCart size={20} />
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                2
+              </span>
             </button>
-            <button title="Carrinho">
-              <ShoppingCart />
+
+            {/* MOBILE MENU BUTTON */}
+            <button
+              className="md:hidden"
+              onClick={() => setOpen(!open)}
+            >
+              {open ? <X /> : <Menu />}
             </button>
           </div>
         </div>
+
+        {/* SEARCH MOBILE */}
+        <div className="md:hidden py-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="search"
+              placeholder="Pesquisar produtos"
+              className="w-full rounded-lg border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+            />
+          </div>
+        </div>
+
+        {/* MOBILE MENU */}
+        {open && (
+          <div className="md:hidden border-t py-4 space-y-3 text-sm">
+            <a href="#" className="block text-gray-700">E-commerce</a>
+            <a href="#" className="block text-gray-700">Vendas</a>
+            <a href="#" className="block text-gray-700">Homens</a>
+            <a href="#" className="block text-gray-700">Mulheres</a>
+          </div>
+        )}
       </div>
     </header>
   );
