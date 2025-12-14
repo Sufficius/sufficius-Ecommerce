@@ -63,7 +63,7 @@ const Login = () => {
             type="password"
             placeholder="Palavra-passe"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e:any) => setPassword(e.target.value)}
             required
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />

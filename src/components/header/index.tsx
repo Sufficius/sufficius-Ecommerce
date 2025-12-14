@@ -49,9 +49,9 @@ const Header = () => {
         setProfileOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
+    window.document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      window.document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -64,16 +64,16 @@ const Header = () => {
     });
   };
 
-  const total = carrinho.reduce((acc, id) => {
-    const produto = produtos.find((p) => p.id === id);
+  const total = carrinho.reduce((acc:number, id:any) => {
+    const produto = produtos.find((p:any) => p.id === id);
     const qtd = quantidades[id] || 1;
     return produto ? acc + produto.preco * qtd : acc;
   }, 0);
 
   const finalizarCompra = () => {
     const items: ItemCarrinho[] = carrinho
-      .map((id) => {
-        const produto = produtos.find((p) => p.id === id);
+      .map((id:any) => {
+        const produto = produtos.find((p:any) => p.id === id);
         if (!produto) return null;
         return {
           id: produto.id,
@@ -82,7 +82,7 @@ const Header = () => {
           quantidade: quantidades[id] || 1,
         };
       })
-      .filter((item): item is ItemCarrinho => item !== null);
+      .filter((item:any): item is ItemCarrinho => item !== null);
 
     if (items.length === 0) {
       toast.error("Nenhum produto no carrinho!");
@@ -96,7 +96,7 @@ const Header = () => {
   const handleLogout = () => {
     localStorage.removeItem("token");
     toast.success("Logout efetuado!");
-    location.reload();
+    window.location.reload();
   };
 
   return (
@@ -167,7 +167,7 @@ const Header = () => {
               type="search"
               placeholder="Pesquisar produtos"
               value={query}
-              onChange={(e) => handleChange(e.target.value)}
+              onChange={(e:any) => handleChange(e.target.value)}
               className="w-full rounded-lg border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
             />
           </div>
@@ -219,7 +219,7 @@ const Header = () => {
             type="search"
             placeholder="Pesquisar produtos"
             value={query}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e:any) => handleChange(e.target.value)}
             className="w-full rounded-lg border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
           />
         </div>
@@ -293,8 +293,8 @@ const Header = () => {
                       : "flex flex-col gap-4"
                   }
                 >
-                  {carrinho.map((id) => {
-                    const produto = produtos.find((p) => p.id === id);
+                  {carrinho.map((id:any) => {
+                    const produto = produtos.find((p:any) => p.id === id);
                     if (!produto) return null;
                     const qtd = quantidades[id] || 1;
                     return (

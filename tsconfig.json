@@ -3,8 +3,6 @@
   "emitDeclarationOnly": true,
   "references": [
     { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" },
-
-  ],
-  "include": ["src"]
+    { "path": "./tsconfig.node.json" }
+  ]
 }

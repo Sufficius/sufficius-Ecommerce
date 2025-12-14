@@ -44,13 +44,24 @@ const Pagamento = () => {
   const [comments, setComments] = useState("");
 
   if (items.length === 0)
-    return <p className="p-10 text-center text-gray-500">Nenhum produto selecionado.</p>;
+    return (
+      <p className="p-10 text-center text-gray-500">
+        Nenhum produto selecionado.
+      </p>
+    );
 
-  const total = items.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
+  const total = items.reduce(
+    (acc, item) => acc + item.preco * item.quantidade,
+    0
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success(`Pagamento de ${total.toLocaleString()} KZ confirmado para ${items.length} produtos!`);
+    toast.success(
+      `Pagamento de ${total.toLocaleString()} KZ confirmado para ${
+        items.length
+      } produtos!`
+    );
   };
 
   return (
@@ -64,7 +75,9 @@ const Pagamento = () => {
               <p className="font-semibold">{item.nome}</p>
               <p className="text-gray-500">Qtd: {item.quantidade}</p>
             </div>
-            <p className="text-[#D4AF37] font-semibold">{(item.preco * item.quantidade).toLocaleString()} KZ</p>
+            <p className="text-[#D4AF37] font-semibold">
+              {(item.preco * item.quantidade).toLocaleString()} KZ
+            </p>
           </div>
         ))}
         <div className="border-t mt-2 pt-2 flex justify-between font-bold">
@@ -77,7 +90,9 @@ const Pagamento = () => {
         <FieldGroup>
           <FieldSet>
             <FieldLegend>Método de Pagamento</FieldLegend>
-            <FieldDescription>Todas as transações são seguras e criptografadas</FieldDescription>
+            <FieldDescription>
+              Todas as transações são seguras e criptografadas
+            </FieldDescription>
 
             <FieldGroup>
               <Field>
@@ -100,7 +115,9 @@ const Pagamento = () => {
                   onChange={(e: any) => setCardNumber(e.target.value)}
                   required
                 />
-                <FieldDescription>Digite seu número de 16 dígitos</FieldDescription>
+                <FieldDescription>
+                  Digite seu número de 16 dígitos
+                </FieldDescription>
               </Field>
 
               <div className="grid grid-cols-3 gap-4">
@@ -112,7 +129,10 @@ const Pagamento = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from({ length: 12 }, (_, i) => (
-                        <SelectItem key={i + 1} value={String(i + 1).padStart(2, "0")}>
+                        <SelectItem
+                          key={i + 1}
+                          value={String(i + 1).padStart(2, "0")}
+                        >
                           {String(i + 1).padStart(2, "0")}
                         </SelectItem>
                       ))}
@@ -154,13 +174,17 @@ const Pagamento = () => {
 
           <FieldSet>
             <FieldLegend>Endereço de Cobrança</FieldLegend>
-            <FieldDescription>O endereço de cobrança associado ao seu método de pagamento</FieldDescription>
+            <FieldDescription>
+              O endereço de cobrança associado ao seu método de pagamento
+            </FieldDescription>
             <FieldGroup>
               <Field orientation="horizontal">
                 <Checkbox
                   id="same-as-shipping"
                   checked={sameAddress}
-                  onCheckedChange={(checked: any) => setSameAddress(Boolean(checked))}
+                  onCheckedChange={(checked: any) =>
+                    setSameAddress(Boolean(checked))
+                  }
                 />
                 <FieldLabel htmlFor="same-as-shipping" className="font-normal">
                   Mesmo endereço de envio
@@ -177,7 +201,7 @@ const Pagamento = () => {
                   id="comments"
                   placeholder="Comentários adicionais"
                   value={comments}
-                  onChange={(e) => setComments(e.target.value)}
+                  onChange={(e: any) => setComments(e.target.value)}
                   className="resize-none"
                 />
               </Field>
@@ -188,7 +212,11 @@ const Pagamento = () => {
             <Button type="submit" className="bg-[#D4AF37] hover:bg-[#dfae0e]">
               Confirmar Pagamento
             </Button>
-            <Button variant="outline" type="button" onClick={() => window.history.back()}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => window.history.back()}
+            >
               Cancelar
             </Button>
           </Field>
