@@ -5,15 +5,16 @@ import { APP_CONFIG } from "./app";
 type IItem = {
   item: (typeof APP_CONFIG.ROUTES.MENU)[number];
   activeSegment: string;
+  onClick?: () => void;
 };
 
-export default function Item({ item, activeSegment }: IItem) {
+export default function Item({ item, activeSegment , onClick}: IItem) {
   const thisPath = item.path.split("/akin/")[1];
   const isActive = thisPath === activeSegment;
   const isLogout = item.path === "/logout";
 
   return (
-    <li role="menuitem">
+    <li role="menuitem" onClick={onClick}>
       <Link
         to={item.path}
         aria-current={isActive ? "page" : undefined}
