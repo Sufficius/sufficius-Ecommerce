@@ -1,6 +1,8 @@
 "use client";
 
+import { NotificationData } from "@/api/notification";
 import { useState, useEffect } from "react";
+import NotificationPreview from "./NotificationPreview";
 
 
 interface NotificationIndicatorProps {
@@ -16,7 +18,7 @@ export function NotificationIndicator({ id_usuario, className = "", showPreview 
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await notificationRoutes.getAllNotifications();
+        // const response = await notificationRoutes.getAllNotifications();
         const notificationsArray: NotificationData[] = Array.isArray(response.notificacoes) ? response.notificacoes : [];
 
         setNotifications(notificationsArray);
