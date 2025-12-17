@@ -1,41 +1,40 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Landing from "../pages/Landing";
-import { PrivateRoute } from "./routes/PrivateRoute";
-import Login from "../pages/Login";
-import Pagamento from "@/pages/Payment";
-import { CartProvider } from "@/context/CartContext";
+// App.tsx - Versão simplificada
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import Login from '@/pages/Login';
+import Dashboard from '@/pages/Dashboard';
 
-export const App = () => {
+function App() {
   return (
-    <CartProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Rota pública */}
-          <Route path="/login" element={<Login />} />
-
-          {/* Rotas privadas */}
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                {/* <Layout> */}
-                <Landing />
-                {/* </Layout> */}
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/pagamento"
-            element={
-              <PrivateRoute>
-                {/* <Layout> */}
-                <Pagamento />
-                {/* </Layout> */}
-              </PrivateRoute>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
-    </CartProvider>
+    <BrowserRouter>
+      <Routes>
+        {/* Rota pública - Login */}
+        <Route path="/" element={<Login />} />
+        
+        {/* Rotas protegidas */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute requiredRoles={["ADMIN", "OPERADOR"]}>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/akin/dashboard" 
+          element={
+            <ProtectedRoute requiredRoles={["ADMIN", "OPERADOR"]}>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
-};
+}
+
+export default App;
