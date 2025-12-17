@@ -13,14 +13,22 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
+interface SubItem {
+  label: string;
+  path: string;
+  access: string[];
+}
+
+interface NavItem {
+  label: string;
+  icon?: LucideIcon;
+  path: string;
+  access: string[];
+  subItems?: SubItem[];
+}
+
 interface NavMainProps {
-  items: {
-    label: string;
-    icon?: LucideIcon;
-    path: string;
-    access: string[];
-    subItems?: { label: string; path: string; access: string[] }[];
-  }[];
+  items: NavItem[];
   userRole: string;
 }
 
@@ -28,83 +36,91 @@ export function NavMain({ items, userRole }: NavMainProps) {
   const location = useLocation();
   const pathname = location.pathname;
 
+  const filteredItems = items.filter((item) => item.access.includes(userRole));
+
+  if (filteredItems.length === 0) {
+    return null;
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel></SidebarGroupLabel>
       <SidebarMenu>
-        {items
-          .filter((item) => item.access.includes(userRole))
-          .map((item) => {
-            const isActive = pathname.startsWith(item.path);
-            const hasSubItems = item.subItems && item.subItems.length > 0;
+        {filteredItems.map((item) => {
+          const isActive = pathname.startsWith(item.path);
+          const hasSubItems = item.subItems && item.subItems.length > 0;
+          const filteredSubItems = item.subItems?.filter((subItem) => 
+            subItem.access.includes(userRole)
+          ) || [];
 
-            return (
-              <SidebarMenuItem key={item.label}>
-                {hasSubItems ? (
-                  <Collapsible asChild defaultOpen={isActive}>
-                    <div>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton
-                          className={cn(
-                            "w-full justify-between hover:bg-accent",
-                            isActive && "bg-accent text-accent-foreground"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            {item.icon && (
-                              <item.icon className="h-4 w-4" />
-                            )}
-                            <span>{item.label}</span>
-                          </div>
-                          <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.subItems
-                            .filter((subItem) => subItem.access.includes(userRole))
-                            .map((subItem) => {
-                              const isSubActive = pathname === subItem.path;
-                              return (
-                                <SidebarMenuSubItem key={subItem.label}>
-                                  <SidebarMenuSubButton
-                                    asChild
-                                    className={cn(
-                                      "pl-8 hover:bg-accent",
-                                      isSubActive && "bg-accent text-accent-foreground"
-                                    )}
-                                  >
-                                    <Link to={subItem.path}>
-                                      <span>{subItem.label}</span>
-                                    </Link>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                              );
-                            })}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </div>
-                  </Collapsible>
-                ) : (
-                  <SidebarMenuButton
-                    asChild
+          return (
+            <Collapsible
+              key={item.label}
+              asChild
+              defaultOpen={isActive && hasSubItems}
+              className="group/collapsible"
+            >
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild disabled={!hasSubItems}>
+                  <SidebarMenuButton 
+                    tooltip={item.label}
                     className={cn(
-                      "w-full justify-start hover:bg-accent",
-                      isActive && "bg-accent text-accent-foreground"
+                      "w-full justify-between transition-colors",
+                      isActive && !hasSubItems && "bg-sidebar-accent text-sidebar-accent-foreground",
+                      hasSubItems && "cursor-pointer"
                     )}
                   >
-                    <Link to={item.path}>
+                    <div className="flex items-center gap-2 flex-1">
                       {item.icon && (
-                        <item.icon className="h-4 w-4 mr-2" />
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
                       )}
-                      <span>{item.label}</span>
-                    </Link>
+                      <span className="truncate">{item.label}</span>
+                    </div>
+                    
+                    {hasSubItems && (
+                      <ChevronRight 
+                        className="ml-auto h-4 w-4 flex-shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" 
+                      />
+                    )}
                   </SidebarMenuButton>
+                </CollapsibleTrigger>
+                
+                {hasSubItems && filteredSubItems.length > 0 && (
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {filteredSubItems.map((subItem) => {
+                        const isSubActive = pathname.startsWith(subItem.path);
+                        return (
+                          <SidebarMenuSubItem key={subItem.label}>
+                            <SidebarMenuSubButton 
+                              asChild
+                              className={cn(
+                                "w-full justify-start pl-8",
+                                isSubActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                              )}
+                            >
+                              <Link to={subItem.path}>
+                                <span className="truncate">{subItem.label}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        );
+                      })}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                )}
+                
+                {!hasSubItems && (
+                  <Link 
+                    to={item.path} 
+                    className="absolute inset-0"
+                    aria-label={item.label}
+                  />
                 )}
               </SidebarMenuItem>
-            );
-          })}
+            </Collapsible>
+          );
+        })}
       </SidebarMenu>
     </SidebarGroup>
   );

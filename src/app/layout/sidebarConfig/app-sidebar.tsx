@@ -5,7 +5,7 @@ import { NavMain } from "./nav-main"
 import { NavUser } from "./nav-user"
 import { TeamSwitcher } from "./team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
-import { APP_CONFIG } from "@/components/layout/app"
+import { APP_CONFIG } from "../app"
 import { getAllDataInCookies } from "@/utils/get-data-in-cookies"
 
 
