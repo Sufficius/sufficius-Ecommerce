@@ -1,5 +1,4 @@
-"use client";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Chart } from "primereact/chart";
 
 export const dynamic = "force-dynamic";

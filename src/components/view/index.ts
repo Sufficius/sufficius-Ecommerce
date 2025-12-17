@@ -3,7 +3,7 @@ import Scroll from "./scroll";
 import { Vertical } from "./vertical";
 
 export const View = {
-  Vertical,
-  Horizontal,
-  Scroll
+    Vertical,
+    Horizontal,
+    Scroll
 };
