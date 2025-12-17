@@ -1,4 +1,3 @@
-// components/layout/ExpandableAppSidebar.tsx
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import {
@@ -13,7 +12,6 @@ import {
   SidebarSeparator,
   SidebarFooter,
   SidebarRail,
-  useSidebar,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import { type LucideIcon } from "lucide-react"
@@ -105,13 +103,20 @@ const data = {
   ],
 }
 
-interface ExpandableAppSidebarProps extends React.ComponentProps<typeof Sidebar> { }
+interface ExpandableAppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  collapsed?: boolean
+  onCollapsedChange?: (collapsed: boolean) => void
+}
 
-export function ExpandableAppSidebar({ ...props }: ExpandableAppSidebarProps) {
+export function ExpandableAppSidebar({ 
+  collapsed = false,
+  onCollapsedChange,
+  ...props 
+}: ExpandableAppSidebarProps) {
   const userRole = getAllDataInCookies().userRole
-  const location = useLocation() // useLocation do React Router em vez de usePathname
-  const pathname = location.pathname // Extrair pathname da location
-  const { state: sidebarState } = useSidebar() // Renomeado para evitar conflito
+  const location = useLocation()
+  const pathname = location.pathname
+  
   const {
     expandedMenu,
     updateSidebarState
@@ -172,15 +177,15 @@ export function ExpandableAppSidebar({ ...props }: ExpandableAppSidebarProps) {
 
   // Collapse expanded menu when sidebar is collapsed
   React.useEffect(() => {
-    if (sidebarState === "collapsed" && expandedMenu) {
+    if (collapsed && expandedMenu) {
       // Temporariamente fechar o menu expandido quando sidebar colapsa
       // Mas não limpar o estado persistido para que possa ser restaurado
     }
-  }, [sidebarState, expandedMenu])
+  }, [collapsed, expandedMenu])
 
   const handleMenuClick = (menuId: string, hasSubItems: boolean, path: string) => {
     // Se a sidebar está colapsada, não expande menus
-    if (sidebarState === "collapsed") {
+    if (collapsed) {
       if (hasSubItems) {
         // Para itens com submenus, navega para a página principal do menu
         return
@@ -233,16 +238,20 @@ export function ExpandableAppSidebar({ ...props }: ExpandableAppSidebarProps) {
   const expandedMenuData = expandedMenu ? menuData.find((item) => item.id === expandedMenu) : null
 
   return (
-    <Sidebar collapsible="icon" {...props} className={cn(
-      "bg-akin-turquoise border-r-akin-turquoise p-0 m-0",
-      sidebarState === "collapsed" ? "max-w-[60px]" : "max-w-[245px]",
-    )}>
+    <Sidebar 
+      collapsible="icon" 
+      {...props} 
+      className={cn(
+        "bg-akin-turquoise border-r-akin-turquoise p-0 m-0",
+        collapsed ? "max-w-[60px]" : "max-w-[245px]",
+      )}
+    >
       <SidebarHeader className="bg-akin-turquoise text-white">
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
 
       <SidebarContent className="bg-akin-turquoise text-white">
-        {expandedMenu && sidebarState !== "collapsed" ? (
+        {expandedMenu && !collapsed ? (
           // Expanded submenu view
           <div className="flex flex-col">
             <SidebarSeparator className="bg-white/20" />
@@ -314,7 +323,6 @@ export function ExpandableAppSidebar({ ...props }: ExpandableAppSidebarProps) {
                 {menuData.map((item) => {
                   const isActive = pathname ? pathname.startsWith(item.path) : false
                   const hasSubItems = Boolean(item.items && item.items.length > 0)
-                  const isCollapsed = sidebarState === "collapsed"
 
                   return (
                     <SidebarMenuItem key={item.id}>
@@ -329,7 +337,7 @@ export function ExpandableAppSidebar({ ...props }: ExpandableAppSidebarProps) {
                           tooltip={item.title}
                           className={cn(
                             "w-full gap-3 rounded-md",
-                            isCollapsed
+                            collapsed
                               ? "justify-center px-2 py-3 hover:bg-white/10 hover:text-white"
                               : "justify-between px-4 py-3 hover:bg-white/10 hover:text-white",
                             isActive && "bg-sidebar-accent/80 text-black hover:bg-sidebar-accent hover:text-black",
@@ -338,32 +346,32 @@ export function ExpandableAppSidebar({ ...props }: ExpandableAppSidebarProps) {
                           {hasSubItems ? (
                             <div className={cn(
                               "flex items-center",
-                              isCollapsed ? "justify-center" : "w-full justify-between"
+                              collapsed ? "justify-center" : "w-full justify-between"
                             )}>
                               <div className={cn(
                                 "flex items-center",
-                                isCollapsed ? "justify-center" : "gap-3"
+                                collapsed ? "justify-center" : "gap-3"
                               )}>
                                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                                {!isCollapsed && <span className="text-xs">{item.title}</span>}
+                                {!collapsed && <span className="text-xs">{item.title}</span>}
                               </div>
-                              {!isCollapsed && <ChevronRight className="h-4 w-4 flex-shrink-0" />}
+                              {!collapsed && <ChevronRight className="h-4 w-4 flex-shrink-0" />}
                             </div>
                           ) : (
                             <Link 
                               to={item.path} 
                               className={cn(
                                 "flex items-center",
-                                isCollapsed ? "justify-center" : "w-full justify-between"
+                                collapsed ? "justify-center" : "w-full justify-between"
                               )}
                               onClick={() => handleMenuClick(item.id, hasSubItems, item.path)}
                             >
                               <div className={cn(
                                 "flex items-center",
-                                isCollapsed ? "justify-center" : "gap-3"
+                                collapsed ? "justify-center" : "gap-3"
                               )}>
                                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                                {!isCollapsed && <span className="text-xs">{item.title}</span>}
+                                {!collapsed && <span className="text-xs">{item.title}</span>}
                               </div>
                             </Link>
                           )}

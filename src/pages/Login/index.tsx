@@ -1,80 +1,143 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LoginSchema, loginSchema } from "@/modules/validation/login";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { authRoute } from "@/modules/services/api/auth";
+import Cookies from "js-cookie";
+import { useAuthStore } from "@/modules/services/store/auth-store";
+import { mapUser } from "@/lib/mapUser";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
+  const login = useAuthStore((state) => state.login);
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const form = useForm<LoginSchema>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (values: LoginSchema) => {
+    setIsLoading(true);
     setError("");
-    setLoading(true);
 
     try {
-      if (email === "admin@email.com" && password === "123456") {
-        toast.success("Sessão iniciada com sucesso");
-        localStorage.setItem("token", "Adolfo Monteiro");
-        navigate("/dashboard", { replace: true });
-      } else {
-        toast.error("Email ou palavra-passe inválidos!");
+      const response = await authRoute.login(values);
+      const { user, token } = response;
+
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 1);
+      Cookies.set("Sufficius-role", user.role);
+      Cookies.set("Sufficius-token", token, { expires: expirationDate });
+      toast.success("Sessão iniciada com sucesso");
+      login(mapUser(user), token);
+
+      let rota = user.role === "ADMINISTRADOR" ? "/" : "/auth/login";
+      navigate(rota, { replace: true });
+    } catch (error: any) {
+      if (error || error.response?.data?.error === "User not found") {
+        toast.error("Credenciais inválidas! Tente novamente.");
       }
-    } catch {
       toast.error("Erro ao autenticar!");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-gray-100">
-
-      <form
-        onSubmit={handleSubmit}
-        className="relative w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg z-10"
-      >
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="w-full max-w-full border rounded-xl p-11">
         <h1 className="text-2xl font-semibold text-center mb-6">Login</h1>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="relative w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg z-10"
+          >
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-black">Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="email"
+                      placeholder="Email"
+                      className="border-gray-300 focus:border-blue-500"
+                      {...field}
+                      aria-label="Email"
+                      autoComplete="off"
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        {error && (
-          <p className="mb-4 text-sm text-red-600 text-center">{error}</p>
-        )}
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem className="relative">
+                  <FormLabel className="text-black">Senha</FormLabel>
+                  <FormControl>
+                    <div>
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Senha"
+                        className="border-gray-300 focus:border-blue-500"
+                        {...field}
+                        aria-label="Senha"
+                        autoComplete="off"
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-4 top-[53px] transform -translate-y-1/2"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <Eye className="size-5" />
+                        ) : (
+                          <EyeOff className="size-5" />
+                        )}
+                      </button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <div className="mb-4">
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <div className="mb-6">
-          <Input
-            type="password"
-            placeholder="Palavra-passe"
-            value={password}
-            onChange={(e:any) => setPassword(e.target.value)}
-            required
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <Button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2 rounded-lg hover:bg-[#f0d270] bg-[#D4AF37] text-white font-medium  transition disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? "A entrar..." : "Entrar"}
-        </Button>
-      </form>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-2 rounded-lg hover:bg-[#f0d270] bg-[#D4AF37] text-white font-medium  transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? "A entrar..." : "Entrar"}
+            </Button>
+          </form>
+        </Form>
+      </div>
     </div>
   );
 };
