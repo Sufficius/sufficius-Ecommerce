@@ -1,31 +1,30 @@
-// src/pages/Dashboard/chart-b.tsx
 import { useState, useEffect } from 'react';
-import { Chart } from 'primereact/chart'; // Alterado de "primereact/chart" para "primereact/chartjs"
+import { Chart } from 'primereact/chart';
 
-export default function DoughnutChart() {
+export default function CategoryChart() {
     const [chartData, setChartData] = useState({});
     const [chartOptions, setChartOptions] = useState({});
 
     useEffect(() => {
         const data = {
-            labels: ['COVID-19', 'Hemograma', 'HIV', 'Malária', 'Urina', 'Outros'],
+            labels: ['Eletrônicos', 'Moda', 'Casa & Jardim', 'Beleza', 'Esportes', 'Livros'],
             datasets: [
                 {
-                    data: [85, 120, 45, 65, 95, 40],
+                    data: [35, 25, 15, 10, 8, 7],
                     backgroundColor: [
-                        '#EF4444', // red-500
                         '#3B82F6', // blue-500
+                        '#8B5CF6', // purple-500
                         '#10B981', // green-500
                         '#F59E0B', // yellow-500
-                        '#8B5CF6', // purple-500
+                        '#EF4444', // red-500
                         '#6B7280'  // gray-500
                     ],
                     hoverBackgroundColor: [
-                        '#DC2626', // red-600
                         '#2563EB', // blue-600
+                        '#7C3AED', // purple-600
                         '#059669', // green-600
                         '#D97706', // yellow-600
-                        '#7C3AED', // purple-600
+                        '#DC2626', // red-600
                         '#4B5563'  // gray-600
                     ],
                     borderWidth: 2,
@@ -45,6 +44,9 @@ export default function DoughnutChart() {
                         color: '#374151',
                         usePointStyle: true,
                         padding: 20,
+                        font: {
+                            size: 12
+                        }
                     },
                 },
                 tooltip: {
@@ -53,9 +55,7 @@ export default function DoughnutChart() {
                     bodyColor: '#ffffff',
                     callbacks: {
                         label: function (context: any) {
-                            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                            return `${context.label}: ${context.parsed} exames (${percentage}%)`;
+                            return `${context.label}: ${context.parsed}% das vendas`;
                         }
                     }
                 }

@@ -1,10 +1,7 @@
-// src/pages/Dashboard/chart-a.tsx
 import { useState, useEffect } from "react";
-import { Chart } from "primereact/chart"; // Alterado de "primereact/chart" para "primereact/chartjs"
+import { Chart } from "primereact/chart";
 
-export const dynamic = "force-dynamic";
-
-export default function VerticalBarChart() {
+export default function SalesChart() {
   const [chartData, setChartData] = useState({});
   const [chartOptions, setChartOptions] = useState({});
 
@@ -17,28 +14,28 @@ export default function VerticalBarChart() {
       labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
       datasets: [
         {
-          label: "Pedidos de Exames",
-          backgroundColor: "#EF4444",
-          borderColor: "#DC2626",
-          borderWidth: 1,
-          data: [120, 145, 180, 165, 195, 210, 185, 220, 240, 200, 190, 175],
+          label: "Vendas Realizadas",
+          backgroundColor: "#3B82F6",
+          borderColor: "#2563EB",
+          borderWidth: 2,
+          borderRadius: 6,
+          data: [245, 320, 280, 390, 420, 510, 480, 590, 640, 570, 530, 680],
+          fill: true,
+          tension: 0.4,
         },
         {
-          label: "Exames Concluídos",
-          backgroundColor: "#10B981",
-          borderColor: "#059669",
-          borderWidth: 1,
-          data: [115, 140, 175, 160, 190, 200, 180, 210, 235, 195, 185, 170],
-        },
-        {
-          label: "Exames em Andamento",
-          backgroundColor: "#F59E0B",
-          borderColor: "#D97706",
-          borderWidth: 1,
-          data: [5, 5, 5, 5, 5, 10, 5, 10, 5, 5, 5, 5],
+          label: "Meta de Vendas",
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          borderColor: "#10B981",
+          borderWidth: 2,
+          borderDash: [5, 5],
+          data: [300, 350, 400, 450, 500, 550, 600, 650, 700, 650, 600, 750],
+          fill: false,
+          tension: 0.4,
         },
       ],
     };
+    
     const options = {
       responsive: true,
       maintainAspectRatio: false,
@@ -58,11 +55,20 @@ export default function VerticalBarChart() {
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
           titleColor: '#ffffff',
           bodyColor: '#ffffff',
+          callbacks: {
+            label: function(context: any) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              label += new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(context.parsed.y * 1000);
+              return label;
+            }
+          }
         },
       },
       scales: {
         x: {
-          stacked: false,
           ticks: {
             color: textColorSecondary,
             font: {
@@ -70,17 +76,16 @@ export default function VerticalBarChart() {
             },
           },
           grid: {
-            display: false,
+            color: surfaceBorder,
             drawBorder: false,
           },
         },
         y: {
-          stacked: false,
           beginAtZero: true,
           ticks: {
             color: textColorSecondary,
-            callback: function (value: any) {
-              return value + ' exames';
+            callback: function(value: any) {
+              return new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(value * 1000);
             }
           },
           grid: {
@@ -102,7 +107,7 @@ export default function VerticalBarChart() {
 
   return (
     <div className="card">
-      <Chart type="bar" data={chartData} options={chartOptions} />
+      <Chart type="line" data={chartData} options={chartOptions} />
     </div>
   );
 }

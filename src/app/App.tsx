@@ -15,20 +15,12 @@ function App() {
         <Route 
           path="/dashboard" 
           element={
-            <ProtectedRoute requiredRoles={["ADMIN", "OPERADOR"]}>
+            <ProtectedRoute requiredRoles={["ADMIN"]}>
               <Dashboard />
             </ProtectedRoute>
           } 
         />
         
-        <Route 
-          path="/akin/dashboard" 
-          element={
-            <ProtectedRoute requiredRoles={["ADMIN", "OPERADOR"]}>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
         
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

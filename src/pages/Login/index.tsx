@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
@@ -23,7 +21,7 @@ const Login = () => {
       if (email === "admin@email.com" && password === "123456") {
         toast.success("Sessão iniciada com sucesso");
         localStorage.setItem("token", "Adolfo Monteiro");
-        navigate("/", { replace: true });
+        navigate("/dashboard", { replace: true });
       } else {
         toast.error("Email ou palavra-passe inválidos!");
       }

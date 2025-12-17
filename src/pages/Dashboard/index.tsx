@@ -1,6 +1,3 @@
-// src/pages/Dashboard/index.tsx
-"use client";
-
 import {
   Card,
   CardContent,
@@ -11,8 +8,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Users,
-  FlaskConical,
+  ShoppingCart,
+  Package,
   TrendingUp,
   TrendingDown,
   AlertTriangle,
@@ -22,30 +19,33 @@ import {
   Activity,
   UserCheck,
   Calendar,
-  Stethoscope,
+  ShoppingBag,
   FileText,
   PieChart,
+  Star,
+  Truck,
+  RefreshCw,
 } from "lucide-react";
 import { View } from "@/components/view";
-import VerticalBarChart from "./chart-a";
-import DoughnutChart from "./chart-b";
+import SalesChart from "./chart-a";
+import CategoryChart from "./chart-b";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Dados fictícios para as estatísticas
+// Dados fictícios para as estatísticas de E-commerce
 const DASHBOARD_STATS = {
   overview: [
     {
       id: 1,
-      title: "Total de Pacientes",
-      value: 1247,
+      title: "Vendas do Mês",
+      value: "124.7K",
       change: "+12.5%",
       changeType: "increase",
-      icon: Users,
-      description: "Pacientes registrados no sistema",
+      icon: ShoppingCart,
+      description: "Valor total das vendas",
     },
     {
       id: 2,
-      title: "Exames Pendentes",
+      title: "Pedidos Pendentes",
       value: 89,
       change: "-5.2%",
       changeType: "decrease",
@@ -54,12 +54,12 @@ const DASHBOARD_STATS = {
     },
     {
       id: 3,
-      title: "Exames Concluídos",
+      title: "Pedidos Concluídos",
       value: 345,
       change: "+18.3%",
       changeType: "increase",
       icon: CheckCircle,
-      description: "Finalizados este mês",
+      description: "Entregues este mês",
     },
     {
       id: 4,
@@ -72,78 +72,101 @@ const DASHBOARD_STATS = {
     },
   ],
   quickStats: [
-    { label: "Agendamentos Hoje", value: 24, color: "bg-blue-500" },
-    { label: "Técnicos Ativos", value: 12, color: "bg-green-500" },
-    { label: "Laboratórios", value: 8, color: "bg-purple-500" },
-    { label: "Equipamentos", value: 15, color: "bg-orange-500" },
+    { label: "Clientes Novos", value: 124, color: "bg-blue-500" },
+    { label: "Taxa de Conversão", value: "3.2%", color: "bg-green-500" },
+    { label: "Produtos em Estoque", value: 856, color: "bg-purple-500" },
+    { label: "Devoluções", value: 15, color: "bg-orange-500" },
   ],
-  recentExams: [
+  recentOrders: [
     {
       id: 1,
-      patient: "Ana Silva",
-      exam: "COVID-19",
+      customer: "Ana Silva",
+      product: "Smartphone XYZ Pro",
+      amount: "245.990 AOA",
       time: "14:30",
-      type: "complete",
+      status: "delivered",
     },
     {
       id: 2,
-      patient: "João Santos",
-      exam: "Hemograma",
+      customer: "João Santos",
+      product: "Notebook Ultra Slim",
+      amount: "1.245.990 AOA",
       time: "15:00",
-      type: "progress",
+      status: "processing",
     },
     {
       id: 3,
-      patient: "Maria José",
-      exam: "HIV",
+      customer: "Maria José",
+      product: "Fones Bluetooth",
+      amount: "45.990 AOA",
       time: "15:30",
-      type: "pending",
+      status: "pending",
     },
     {
       id: 4,
-      patient: "Carlos Lima",
-      exam: "Malária",
+      customer: "Carlos Lima",
+      product: "Smartwatch Pro",
+      amount: "125.990 AOA",
       time: "16:00",
-      type: "complete",
+      status: "delivered",
     },
     {
       id: 5,
-      patient: "Paula André",
-      exam: "Urina",
+      customer: "Paula André",
+      product: "Tablet 10''",
+      amount: "345.990 AOA",
       time: "16:30",
-      type: "progress",
+      status: "shipped",
     },
   ],
   alerts: [
     {
       id: 1,
       type: "warning",
-      message: "5 exames aguardam há mais de 2 horas",
+      message: "5 produtos com estoque baixo",
       priority: "medium",
     },
     {
       id: 2,
       type: "info",
-      message: "Novo equipamento disponível - Lab 3",
+      message: "Campanha Black Friday disponível",
       priority: "low",
     },
     {
       id: 3,
       type: "error",
-      message: "Material insuficiente para exames de sangue",
+      message: "3 pedidos com atraso na entrega",
       priority: "high",
     },
+  ],
+  topProducts: [
+    { name: "Smartphone XYZ Pro", sales: 245, revenue: "245.990 AOA" },
+    { name: "Notebook Ultra Slim", sales: 89, revenue: "1.245.990 AOA" },
+    { name: "Fones Bluetooth", sales: 456, revenue: "45.990 AOA" },
+    { name: "Smartwatch Pro", sales: 167, revenue: "125.990 AOA" },
+    { name: "Tablet 10''", sales: 92, revenue: "345.990 AOA" },
   ],
 };
 
 export default function Dashboard() {
-  const getStatusBadge = (type: string) => {
+  const getStatusBadge = (status: string) => {
     const variants = {
-      complete: "bg-green-100 text-green-800 border-green-200",
-      progress: "bg-blue-100 text-blue-800 border-blue-200",
+      delivered: "bg-green-100 text-green-800 border-green-200",
+      processing: "bg-blue-100 text-blue-800 border-blue-200",
       pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
+      shipped: "bg-purple-100 text-purple-800 border-purple-200",
     };
-    return variants[type as keyof typeof variants] || variants.pending;
+    return variants[status as keyof typeof variants] || variants.pending;
+  };
+
+  const getStatusText = (status: string) => {
+    const texts = {
+      delivered: "Entregue",
+      processing: "Processando",
+      pending: "Pendente",
+      shipped: "Enviado",
+    };
+    return texts[status as keyof typeof texts] || "Pendente";
   };
 
   const getAlertIcon = (type: string) => {
@@ -158,13 +181,13 @@ export default function Dashboard() {
   };
 
   return (
-    <View.Vertical className="min-h-screen bg-gray-50/10 space-y-6 p-6">
+    <View.Vertical className="min-h-screen bg-gray-50/10 space-y-6 p-4 md:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600">
-            Visão geral das atividades do laboratório
+            Visão geral das vendas e desempenho da loja
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -174,15 +197,19 @@ export default function Dashboard() {
           </Button>
           <Button variant="outline" size="sm">
             <FileText className="h-4 w-4 mr-2" />
-            Relatório
+            Exportar
+          </Button>
+          <Button className="bg-[#D4AF37] hover:bg-[#B8860B]">
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Novo Pedido
           </Button>
         </div>
       </div>
 
       {/* Estatísticas Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {DASHBOARD_STATS.overview.map((stat) => (
-          <Card key={stat.id} className="hover:shadow-lg transition-shadow">
+          <Card key={stat.id} className="hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
                 {stat.title}
@@ -190,7 +217,7 @@ export default function Dashboard() {
               <stat.icon className="h-5 w-5 text-gray-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-xl md:text-2xl font-bold text-gray-900">
                 {stat.value}
               </div>
               <div className="flex items-center space-x-2 mt-2">
@@ -221,7 +248,7 @@ export default function Dashboard() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Activity className="h-5 w-5 mr-2" />
-            Estatísticas Rápidas
+            Métricas Rápidas
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -243,135 +270,149 @@ export default function Dashboard() {
       </Card>
 
       {/* Conteúdo em Abas */}
-      <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className="grid w-full lg:w-[400px] grid-cols-3">
+      <Tabs defaultValue="analytics" className="space-y-4 md:space-y-6">
+        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
           <TabsTrigger value="analytics">Análises</TabsTrigger>
           <TabsTrigger value="activity">Atividade</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="analytics" className="space-y-6">
+        <TabsContent value="analytics" className="space-y-4 md:space-y-6">
           {/* Gráficos */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <PieChart className="h-5 w-5 mr-2" />
-                  Exames por Mês
+                  Vendas por Mês
                 </CardTitle>
                 <CardDescription>
-                  Comparativo de pedidos vs exames concluídos
+                  Comparativo de vendas vs meta mensal
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <VerticalBarChart />
+                <SalesChart />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <FlaskConical className="h-5 w-5 mr-2" />
-                  Distribuição por Tipo
+                  <ShoppingBag className="h-5 w-5 mr-2" />
+                  Vendas por Categoria
                 </CardTitle>
                 <CardDescription>
-                  Tipos de exames mais solicitados
+                  Distribuição de vendas por categoria de produtos
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <DoughnutChart />
+                <CategoryChart />
               </CardContent>
             </Card>
           </div>
 
-          {/* Métricas Adicionais */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
+          {/* Métricas Adicionais e Top Produtos */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+            <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle className="text-lg">Taxa de Conclusão</CardTitle>
+                <CardTitle className="flex items-center">
+                  <Star className="h-5 w-5 mr-2" />
+                  Produtos Mais Vendidos
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-green-600">94.2%</div>
+                <div className="space-y-4">
+                  {DASHBOARD_STATS.topProducts.map((product, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Package className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {product.name}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {product.sales} unidades
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">
+                          {product.revenue}
+                        </p>
+                        <Badge variant="outline" className="mt-1">
+                          Top {index + 1}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Taxa de Conversão</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-600">3.2%</div>
                 <p className="text-sm text-gray-600">
-                  Exames finalizados no prazo
+                  Visitantes que compram
                 </p>
                 <div className="mt-2 bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-green-500 h-2 rounded-full"
-                    style={{ width: "94.2%" }}
+                    style={{ width: "32%" }}
                   ></div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Tempo Médio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-600">2.4h</div>
-                <p className="text-sm text-gray-600">
-                  Para conclusão de exames
-                </p>
-                <Badge variant="secondary" className="mt-2">
-                  -15 min vs ontem
+                <Badge variant="secondary" className="mt-4">
+                  +0.5% vs semana passada
                 </Badge>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Satisfação</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-purple-600">4.8/5</div>
-                <p className="text-sm text-gray-600">Avaliação dos pacientes</p>
-                <div className="flex mt-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <span key={star} className="text-yellow-400">
-                      ★
-                    </span>
-                  ))}
-                </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="activity" className="space-y-6">
+        <TabsContent value="activity" className="space-y-4 md:space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Stethoscope className="h-5 w-5 mr-2" />
-                Exames Recentes
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Pedidos Recentes
               </CardTitle>
               <CardDescription>
-                Últimas atividades do laboratório
+                Últimos pedidos realizados na loja
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {DASHBOARD_STATS.recentExams.map((exam) => (
+              <div className="space-y-3">
+                {DASHBOARD_STATS.recentOrders.map((order) => (
                   <div
-                    key={exam.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    key={order.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 mb-3 sm:mb-0">
                       <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                         <UserCheck className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">
-                          {exam.patient}
+                          {order.customer}
                         </p>
-                        <p className="text-sm text-gray-600">{exam.exam}</p>
+                        <p className="text-sm text-gray-600">{order.product}</p>
+                        <p className="text-sm font-medium text-gray-900 mt-1">
+                          {order.amount}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <span className="text-sm text-gray-500">{exam.time}</span>
-                      <Badge className={getStatusBadge(exam.type)}>
-                        {exam.type === "complete" ? "Concluído" : 
-                         exam.type === "progress" ? "Em Andamento" : "Pendente"}
+                    <div className="flex items-center justify-between sm:justify-end space-x-3">
+                      <span className="text-sm text-gray-500">{order.time}</span>
+                      <Badge className={getStatusBadge(order.status)}>
+                        {getStatusText(order.status)}
                       </Badge>
                     </div>
                   </div>
@@ -381,56 +422,160 @@ export default function Dashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="alerts" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <AlertTriangle className="h-5 w-5 mr-2" />
-                Alertas e Notificações
-              </CardTitle>
-              <CardDescription>
-                Monitoramento de situações que requerem atenção
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {DASHBOARD_STATS.alerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className={`p-4 rounded-lg border-l-4 ${
-                      alert.priority === "high"
-                        ? "border-red-500 bg-red-50"
-                        : alert.priority === "medium"
-                        ? "border-yellow-500 bg-yellow-50"
-                        : "border-blue-500 bg-blue-50"
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      {getAlertIcon(alert.type)}
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          {alert.message}
-                        </p>
-                        <p className="text-xs text-gray-600 mt-1">
-                          Prioridade:{" "}
-                          {alert.priority === "high"
-                            ? "Alta"
-                            : alert.priority === "medium"
-                            ? "Média"
-                            : "Baixa"}
-                        </p>
+        <TabsContent value="alerts" className="space-y-4 md:space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <AlertTriangle className="h-5 w-5 mr-2" />
+                  Alertas e Notificações
+                </CardTitle>
+                <CardDescription>
+                  Situações que requerem atenção imediata
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {DASHBOARD_STATS.alerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className={`p-4 rounded-lg border-l-4 ${
+                        alert.priority === "high"
+                          ? "border-red-500 bg-red-50"
+                          : alert.priority === "medium"
+                          ? "border-yellow-500 bg-yellow-50"
+                          : "border-blue-500 bg-blue-50"
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        {getAlertIcon(alert.type)}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {alert.message}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            Prioridade:{" "}
+                            {alert.priority === "high"
+                              ? "Alta"
+                              : alert.priority === "medium"
+                              ? "Média"
+                              : "Baixa"}
+                          </p>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          Resolver
+                        </Button>
                       </div>
-                      <Button variant="outline" size="sm">
-                        Resolver
-                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Truck className="h-5 w-5 mr-2" />
+                  Status de Entregas
+                </CardTitle>
+                <CardDescription>
+                  Monitoramento de entregas em tempo real
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-green-800">Em Trânsito</p>
+                        <p className="text-sm text-green-600">15 pedidos</p>
+                      </div>
+                      <Truck className="h-6 w-6 text-green-500" />
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-yellow-800">Processando</p>
+                        <p className="text-sm text-yellow-600">24 pedidos</p>
+                      </div>
+                      <Package className="h-6 w-6 text-yellow-500" />
+                    </div>
+                  </div>
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-red-800">Atrasados</p>
+                        <p className="text-sm text-red-600">3 pedidos</p>
+                      </div>
+                      <Clock className="h-6 w-6 text-red-500" />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
+
+      {/* Rodapé do Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Tempo Médio de Entrega
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-900">2.4 dias</div>
+            <p className="text-xs text-gray-600 mt-1">
+              -0.5 dias vs mês anterior
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Satisfação do Cliente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">4.8/5</div>
+            <p className="text-xs text-gray-600 mt-1">
+              Avaliação média dos clientes
+            </p>
+            <div className="flex mt-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <span key={star} className="text-yellow-400">
+                  ★
+                </span>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Taxa de Retorno
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">24%</div>
+            <p className="text-xs text-gray-600 mt-1">
+              Clientes que compram novamente
+            </p>
+            <div className="mt-2 bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-500 h-2 rounded-full"
+                style={{ width: "24%" }}
+              ></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </View.Vertical>
   );
 }

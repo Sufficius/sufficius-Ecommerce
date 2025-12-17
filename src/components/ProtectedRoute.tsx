@@ -1,15 +1,18 @@
 // components/ProtectedRoute.tsx
-import { getCookie } from '@/middleware';
-import { Navigate, useLocation } from 'react-router-dom';
+import { getCookie } from "@/middleware";
+import { Navigate, useLocation } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: JSX.Element;
   requiredRoles?: string[];
 }
 
-export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  requiredRoles,
+}: ProtectedRouteProps) {
   const location = useLocation();
-  const token = getCookie("akin-token");
+  const token = getCookie("akin-token") ?? localStorage.getItem("token");
   const userRole = getCookie("akin-role");
 
   // 1. Verificar autenticação
