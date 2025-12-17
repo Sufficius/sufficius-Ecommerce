@@ -30,6 +30,7 @@ import { View } from "@/components/view";
 import SalesChart from "./chart-a";
 import CategoryChart from "./chart-b";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AppSidebar } from "@/app/layout/sidebarConfig/app-sidebar";
 
 // Dados fictícios para as estatísticas de E-commerce
 const DASHBOARD_STATS = {
@@ -181,6 +182,8 @@ export default function Dashboard() {
   };
 
   return (
+    <>
+    <AppSidebar />
     <View.Vertical className="min-h-screen bg-gray-50/10 space-y-6 p-4 md:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
@@ -577,5 +580,6 @@ export default function Dashboard() {
         </Card>
       </div>
     </View.Vertical>
+    </>
   );
 }
