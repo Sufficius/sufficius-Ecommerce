@@ -1,5 +1,4 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { Layout } from "./layout";
 import Landing from "../pages/Landing";
 import { PrivateRoute } from "./routes/PrivateRoute";
 import Login from "../pages/Login";
@@ -19,9 +18,9 @@ export const App = () => {
             path="/"
             element={
               <PrivateRoute>
-                <Layout>
-                  <Landing />
-                </Layout>
+                {/* <Layout> */}
+                <Landing />
+                {/* </Layout> */}
               </PrivateRoute>
             }
           />
@@ -29,9 +28,9 @@ export const App = () => {
             path="/pagamento"
             element={
               <PrivateRoute>
-                <Layout>
-                  <Pagamento />
-                </Layout>
+                {/* <Layout> */}
+                <Pagamento />
+                {/* </Layout> */}
               </PrivateRoute>
             }
           />

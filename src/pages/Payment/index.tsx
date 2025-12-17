@@ -57,6 +57,7 @@ const Pagamento = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
     toast.success(
       `Pagamento de ${total.toLocaleString()} KZ confirmado para ${
         items.length
