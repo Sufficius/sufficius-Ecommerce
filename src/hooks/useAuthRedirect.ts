@@ -15,7 +15,7 @@ export function useAuthRedirect() {
   // Retorna se o usuário tem acesso à rota atual
   const hasAccessTo = (pathname: string): boolean => {
     let hasAccess = true;
-    const mockNavigate = ((path: string) => {
+    const mockNavigate = (() => {
       hasAccess = false;
     }) as any;
     

@@ -15,7 +15,7 @@ export function AuthMiddlewareProvider({ children }: { children: React.ReactNode
 
   const checkAccess = useCallback((pathname: string): boolean => {
     let hasAccess = true;
-    const mockNavigate = ((path: string) => {
+    const mockNavigate = (() => {
       hasAccess = false;
     }) as any;
     
@@ -32,7 +32,7 @@ export function AuthMiddlewareProvider({ children }: { children: React.ReactNode
         console.log(`Acesso negado para: ${location.pathname}`);
       }
     }
-  }, [location.pathname, navigate, checkAccess]);
+  }, [location.pathname, navigate]); // Removi checkAccess das dependências
 
   return (
     <AuthMiddlewareContext.Provider value={{ checkAccess }}>

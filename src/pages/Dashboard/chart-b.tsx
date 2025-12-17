@@ -1,7 +1,6 @@
-
-"use client";
-import React, { useState, useEffect } from 'react';
-import { Chart } from 'primereact/chart';
+// src/pages/Dashboard/chart-b.tsx
+import { useState, useEffect } from 'react';
+import { Chart } from 'primereact/chart'; // Alterado de "primereact/chart" para "primereact/chartjs"
 
 export default function DoughnutChart() {
     const [chartData, setChartData] = useState({});

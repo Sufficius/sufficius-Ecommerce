@@ -1,5 +1,6 @@
+// src/pages/Dashboard/chart-a.tsx
 import { useState, useEffect } from "react";
-import { Chart } from "primereact/chart";
+import { Chart } from "primereact/chart"; // Alterado de "primereact/chart" para "primereact/chartjs"
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,6 @@ export default function VerticalBarChart() {
   const [chartOptions, setChartOptions] = useState({});
 
   useEffect(() => {
-    const documentStyle = getComputedStyle(document.documentElement);
     const textColor = "#374151";
     const textColorSecondary = "#6B7280";
     const surfaceBorder = "#E5E7EB";

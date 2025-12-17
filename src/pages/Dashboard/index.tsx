@@ -1,3 +1,4 @@
+// src/pages/Dashboard/index.tsx
 "use client";
 
 import {
@@ -81,7 +82,6 @@ const DASHBOARD_STATS = {
       id: 1,
       patient: "Ana Silva",
       exam: "COVID-19",
-      status: "Concluído",
       time: "14:30",
       type: "complete",
     },
@@ -89,7 +89,6 @@ const DASHBOARD_STATS = {
       id: 2,
       patient: "João Santos",
       exam: "Hemograma",
-      status: "Em Andamento",
       time: "15:00",
       type: "progress",
     },
@@ -97,7 +96,6 @@ const DASHBOARD_STATS = {
       id: 3,
       patient: "Maria José",
       exam: "HIV",
-      status: "Pendente",
       time: "15:30",
       type: "pending",
     },
@@ -105,7 +103,6 @@ const DASHBOARD_STATS = {
       id: 4,
       patient: "Carlos Lima",
       exam: "Malária",
-      status: "Concluído",
       time: "16:00",
       type: "complete",
     },
@@ -113,7 +110,6 @@ const DASHBOARD_STATS = {
       id: 5,
       patient: "Paula André",
       exam: "Urina",
-      status: "Em Andamento",
       time: "16:30",
       type: "progress",
     },
@@ -141,9 +137,7 @@ const DASHBOARD_STATS = {
 };
 
 export default function Dashboard() {
-  //   const [selectedPeriod, setSelectedPeriod] = useState("month");
-
-  const getStatusBadge = (status: string, type: string) => {
+  const getStatusBadge = (type: string) => {
     const variants = {
       complete: "bg-green-100 text-green-800 border-green-200",
       progress: "bg-blue-100 text-blue-800 border-blue-200",
@@ -375,8 +369,9 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className="text-sm text-gray-500">{exam.time}</span>
-                      <Badge className={getStatusBadge(exam.status, exam.type)}>
-                        {exam.status}
+                      <Badge className={getStatusBadge(exam.type)}>
+                        {exam.type === "complete" ? "Concluído" : 
+                         exam.type === "progress" ? "Em Andamento" : "Pendente"}
                       </Badge>
                     </div>
                   </div>
