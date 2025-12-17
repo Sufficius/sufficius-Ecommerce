@@ -14,7 +14,7 @@ export default defineConfig({
   },
   plugins: [react()],
   optimizeDeps: {
-    include: ["primereact", "primereact/chartjs", "chart.js"],
+    include: ["primereact"],
     exclude: ["quill"], // Adicione quill aqui
     force: true
   },
@@ -27,7 +27,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "primereact/chart": "primereact/chartjs",
       "quill": path.resolve(__dirname, "node_modules/quill/dist/quill.js") // Alias para quill
     },
   }
