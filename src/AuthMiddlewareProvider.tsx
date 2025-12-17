@@ -14,25 +14,26 @@ export function AuthMiddlewareProvider({ children }: { children: React.ReactNode
   const location = useLocation();
 
   const checkAccess = useCallback((pathname: string): boolean => {
-    let hasAccess = true;
+    let accessAllowed = true;
     const mockNavigate = (() => {
-      hasAccess = false;
+      accessAllowed = false;
     }) as any;
     
-    return authMiddleware(pathname, mockNavigate);
+    authMiddleware(pathname, mockNavigate);
+    return accessAllowed;
   }, []);
 
   useEffect(() => {
     // Executa o middleware apenas se a rota atual não for a raiz
     // Evita loop infinito na raiz
     if (location.pathname !== '/') {
-      const hasAccess = authMiddleware(location.pathname, navigate);
+      const accessAllowed = authMiddleware(location.pathname, navigate);
       
-      if (!hasAccess) {
+      if (!accessAllowed) {
         console.log(`Acesso negado para: ${location.pathname}`);
       }
     }
-  }, [location.pathname, navigate]); // Removi checkAccess das dependências
+  }, [location.pathname, navigate]);
 
   return (
     <AuthMiddlewareContext.Provider value={{ checkAccess }}>

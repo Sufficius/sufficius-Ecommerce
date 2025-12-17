@@ -14,12 +14,13 @@ export function useAuthRedirect() {
 
   // Retorna se o usuário tem acesso à rota atual
   const hasAccessTo = (pathname: string): boolean => {
-    let hasAccess = true;
+    let accessAllowed = true;
     const mockNavigate = (() => {
-      hasAccess = false;
+      accessAllowed = false;
     }) as any;
     
-    return authMiddleware(pathname, mockNavigate);
+    authMiddleware(pathname, mockNavigate);
+    return accessAllowed;
   };
 
   return { hasAccessTo };
