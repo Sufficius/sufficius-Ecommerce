@@ -1,5 +1,5 @@
-import sufficiusLogo from "@/assets/images/sufficius-logo.png";
-import sufficiusLogoWhite from "@/assets/images/sufficius-logo-white.png";
+import sufficiusLogo from "../../../public/logo.jpg";
+import sufficiusLogoWhite from "../../../public/logo.jpg";
 import {
   CalendarCheck,
   LayoutDashboard,

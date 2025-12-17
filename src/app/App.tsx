@@ -1,8 +1,8 @@
 // App.tsx - Versão simplificada
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import Login from '@/pages/Login';
-import Dashboard from '@/pages/Dashboard';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Login from "@/pages/Login";
+import Dashboard from "@/pages/Dashboard";
 
 function App() {
   return (
@@ -10,18 +10,17 @@ function App() {
       <Routes>
         {/* Rota pública - Login */}
         <Route path="/" element={<Login />} />
-        
+
         {/* Rotas protegidas */}
-        <Route 
-          path="/dashboard" 
+        <Route
+          path="/dashboard"
           element={
             <ProtectedRoute requiredRoles={["ADMIN"]}>
               <Dashboard />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        
+
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
