@@ -32,40 +32,40 @@ export const APP_CONFIG = {
         label: "Painel Geral",
         icon: LayoutDashboard,
         path: "/",
-        access: ["ADMIN"]
+        access: [""]
       },
       {
         label: "Agendamentos",
         icon: CalendarCheck,
         path: "",
-        access: ["ADMIN"],
+        access: [""],
         subItems: [
-          // { label: "Painel", icon: LayoutDashboard, path: "/akin/schedule/dashboard", access: ["ADMIN", "CHEFE", "TECNICO"] },
-          { label: "Novo", icon: CalendarPlus2, path: "/akin/schedule/new", access: ["ADMIN"] },
-          { label: "Solicitações", icon: CalendarSearch, path: "/akin/schedule/request", access: ["ADMIN"] },
-          { label: "Gestão de Agendamentos", icon: CalendarCheck2, path: "/akin/schedule/completed", access: ["CHEFE", "ADMIN"] }
+          // { label: "Painel", icon: LayoutDashboard, path: "/akin/schedule/dashboard", access: ["", "CHEFE", "TECNICO"] },
+          { label: "Novo", icon: CalendarPlus2, path: "/akin/schedule/new", access: [""] },
+          { label: "Solicitações", icon: CalendarSearch, path: "/akin/schedule/request", access: [""] },
+          { label: "Gestão de Agendamentos", icon: CalendarCheck2, path: "/akin/schedule/completed", access: ["CHEFE", ""] }
         ]
       },
       {
         label: "Agendamentos",
         icon: CalendarCheck,
-        path: "/schedule/dashboard",
+        path: "/dashboard",
         access: ["CHEFE"],
         subItems: [
-          { label: "Painel", icon: LayoutDashboard, path: "/akin/schedule/dashboard", access: ["ADMIN", "CHEFE", "TECNICO"] },
-          { label: "Novo", icon: CalendarPlus2, path: "/akin/schedule/new", access: ["ADMIN"] },
-          { label: "Solicitações", icon: CalendarSearch, path: "/akin/schedule/request", access: ["ADMIN"] },
-          { label: "Gestão de Agendamentos", icon: CalendarCheck2, path: "/akin/schedule/completed", access: ["CHEFE", "ADMIN"] }
+          { label: "Painel", icon: LayoutDashboard, path: "/akin/schedule/dashboard", access: ["", "CHEFE", "TECNICO"] },
+          { label: "Novo", icon: CalendarPlus2, path: "/akin/schedule/new", access: [""] },
+          { label: "Solicitações", icon: CalendarSearch, path: "/akin/schedule/request", access: [""] },
+          { label: "Gestão de Agendamentos", icon: CalendarCheck2, path: "/akin/schedule/completed", access: ["CHEFE", ""] }
         ]
       },
       {
         label: "Pacientes",
         icon: UsersRound,
         path: "/akin/patient/dashboard",
-        access: ["ADMIN", "CHEFE", "TECNICO"],
+        access: ["", "CHEFE", "TECNICO"],
         subItems: [
           { label: "Painel", icon: LayoutDashboard, path: "/akin/patient/dashboard", access: ["CHEFE", "TECNICO"] },
-          { label: "Lista de Pacientes", icon: UsersRound, path: "/akin/patient/list", access: ["ADMIN", "CHEFE", "TECNICO"] },
+          { label: "Lista de Pacientes", icon: UsersRound, path: "/akin/patient/list", access: ["", "CHEFE", "TECNICO"] },
         ]
       },
       {
@@ -74,10 +74,10 @@ export const APP_CONFIG = {
         path: "/akin/lab-exams",
         access: ["CHEFE", "TECNICO"],
         subItems: [
-          { label: "Painel", icon: LayoutDashboard, path: "/akin/lab-exams", access: ["ADMIN", "CHEFE", "TECNICO"] },
-          { label: "Exames Pendentes", icon: SquareActivity, path: "/akin/lab-exams/pending-exams", access: ["ADMIN", "CHEFE", "TECNICO"] },
+          { label: "Painel", icon: LayoutDashboard, path: "/akin/lab-exams", access: ["", "CHEFE", "TECNICO"] },
+          { label: "Exames Pendentes", icon: SquareActivity, path: "/akin/lab-exams/pending-exams", access: ["", "CHEFE", "TECNICO"] },
           { label: "Exame a Realizar", icon: Play, path: "/akin/lab-exams/ready-exam", access: ["CHEFE", "TECNICO"] },
-          { label: "Historico de Exames", icon: History, path: "/akin/lab-exams/exams-history", access: ["ADMIN", "CHEFE", "TECNICO"] },
+          { label: "Historico de Exames", icon: History, path: "/akin/lab-exams/exams-history", access: ["", "CHEFE", "TECNICO"] },
         ]
       },
       {
@@ -107,7 +107,7 @@ export const APP_CONFIG = {
       //   label: "Pagamentos",
       //   icon: CreditCard,
       //   path: "/akin/payment",
-      //   access: ["ADMIN"]
+      //   access: [""]
       // },
       {
         label: "Mensagens",
@@ -137,7 +137,7 @@ export const APP_CONFIG = {
         label: "Sair",
         icon: LogOut,
         path: "/logout",
-        access: ["ADMIN", "CHEFE", "TECNICO"]
+        access: ["", "CHEFE", "TECNICO"]
       },
     ],
 
@@ -146,24 +146,24 @@ export const APP_CONFIG = {
         label: "Novo",
         icon: CalendarPlus2,
         path: "/akin/schedule/new",
-        access: ["ADMIN"],
+        access: [""],
         subItems: [
-          { label: "Novo", path: "/akin/schedule/new", access: ["ADMIN"] },
-          { label: "Solicitações", path: "/akin/schedule/request", access: ["ADMIN"] },
-          { label: "Concluídos", path: "/akin/schedule/completed", access: ["ADMIN", "CHEFE"] }
+          { label: "Novo", path: "/akin/schedule/new", access: [""] },
+          { label: "Solicitações", path: "/akin/schedule/request", access: [""] },
+          { label: "Concluídos", path: "/akin/schedule/completed", access: ["", "CHEFE"] }
         ]
       },
       {
         label: "Solicitações",
         icon: CalendarSearch,
         path: "/akin/schedule/request",
-        access: ["ADMIN"]
+        access: [""]
       },
       {
         label: "Concluídos",
         icon: CalendarCheck2,
         path: "/akin/schedule/completed",
-        access: ["ADMIN", "CHEFE"]
+        access: ["", "CHEFE"]
       },
     ],
     PATIENT: {
@@ -176,7 +176,7 @@ export const APP_CONFIG = {
         label: "Perfil",
         icon: null,
         path: "/akin/...",
-        access: ["ADMIN", "CHEFE", "TECNICO"]
+        access: ["", "CHEFE", "TECNICO"]
       },
     },
   },

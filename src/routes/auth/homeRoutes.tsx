@@ -1,16 +1,16 @@
-import Home from "@/app";
+import Dashboard from "@/pages/Dashboard";
 import { HomeLayout } from "@/pages/layout/homeLayout";
 import { NotFound } from "@/pages/not-found";
 
 export const HomesRoutes: IRouteProps = {
   path: "/",
   element: HomeLayout,
-  visibility: "private",
+  visibility: "auth",
   children: [
     {
       path: "/",
-      element: Home,
-      visibility: "private",
+      element: Dashboard,
+      visibility: "auth",
     },
     // {
     //   path: "/venda",

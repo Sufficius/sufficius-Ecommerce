@@ -13,7 +13,7 @@ const RouteWrapper = ({ element: Element, visibility }: IRouteWrapperProps) => {
   const from = location.state?.from?.pathname || "/";
 
   if ((!token || !user) && visibility === "private") {
-    return <Navigate to="/auth/login" state={{ from: location }} />;
+    return <Navigate to="/" state={{ from: location }} />;
   }
 
   if (token && user && visibility === "auth") {

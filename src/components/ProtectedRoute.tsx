@@ -12,8 +12,8 @@ export function ProtectedRoute({
   requiredRoles,
 }: ProtectedRouteProps) {
   const location = useLocation();
-  const token = getCookie("akin-token") ?? localStorage.getItem("token");
-  const userRole = getCookie("akin-role");
+  const token = getCookie("sufficius-token") ?? localStorage.getItem("token");
+  const userRole = getCookie("sufficius-role");
 
   // 1. Verificar autenticação
   if (!token) {

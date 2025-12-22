@@ -1,5 +1,4 @@
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -12,26 +11,31 @@ import {
   SidebarSeparator,
   SidebarFooter,
   SidebarRail,
+  SidebarProvider,
+  // useSidebar,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import { type LucideIcon } from "lucide-react"
 import { APP_CONFIG } from "../app"
-import { Link, useLocation } from "react-router-dom"
+import { Link, Outlet, useLocation } from "react-router-dom"
 import { Collapsible } from "@/components/ui/collapsible"
 import { TeamSwitcher } from "./team-switcher"
 import { NavUser } from "./nav-user"
+import { Suspense, useEffect, useMemo, useState } from "react"
+import { AppSidebar } from "./app-sidebar"
+import { NavMain } from "./nav-main"
 
 // Funções auxiliares que precisam ser implementadas
 const getAllDataInCookies = () => {
   // Implemente conforme sua lógica de cookies
   const token = document.cookie
     .split('; ')
-    .find(row => row.startsWith('akin-token='))
+    .find(row => row.startsWith('sufficius-token='))
     ?.split('=')[1];
   
   const userRole = document.cookie
     .split('; ')
-    .find(row => row.startsWith('akin-role='))
+    .find(row => row.startsWith('sufficius-role='))
     ?.split('=')[1] || 'ADMIN'; // Fallback para ADMIN
   
   return { token, userRole };
@@ -39,7 +43,7 @@ const getAllDataInCookies = () => {
 
 // Hook customizado para gerenciar estado da sidebar
 const useSidebarState = () => {
-  const [state, setState] = React.useState({
+  const [state, setState] = useState({
     expandedMenu: null as string | null,
     selectedItem: "",
     selectedSubItem: null as string | null,
@@ -115,6 +119,7 @@ export function ExpandableAppSidebar({
 }: ExpandableAppSidebarProps) {
   const userRole = getAllDataInCookies().userRole
   const location = useLocation()
+  // const { state } = useSidebar()
   const pathname = location.pathname
   
   const {
@@ -122,13 +127,13 @@ export function ExpandableAppSidebar({
     updateSidebarState
   } = useSidebarState()
 
-  const menuData = React.useMemo(() =>
+  const menuData = useMemo(() =>
     transformMenuData(APP_CONFIG.ROUTES.MENU, userRole),
     [userRole]
   )
 
   // Auto-select current menu based on pathname and expand if in submenu
-  React.useEffect(() => {
+  useEffect(() => {
     if (pathname && menuData.length > 0) {
       const currentItem = menuData.find(item =>
         pathname.startsWith(item.path) ||
@@ -176,7 +181,7 @@ export function ExpandableAppSidebar({
   }, [pathname, menuData, updateSidebarState])
 
   // Collapse expanded menu when sidebar is collapsed
-  React.useEffect(() => {
+  useEffect(() => {
     if (collapsed && expandedMenu) {
       // Temporariamente fechar o menu expandido quando sidebar colapsa
       // Mas não limpar o estado persistido para que possa ser restaurado
@@ -238,53 +243,64 @@ export function ExpandableAppSidebar({
   const expandedMenuData = expandedMenu ? menuData.find((item) => item.id === expandedMenu) : null
 
   return (
-    <Sidebar 
-      collapsible="icon" 
-      {...props} 
-      className={cn(
-        "bg-akin-turquoise border-r-akin-turquoise p-0 m-0",
-        collapsed ? "max-w-[60px]" : "max-w-[245px]",
-      )}
-    >
-      <SidebarHeader className="bg-akin-turquoise text-white">
-        <TeamSwitcher teams={data.teams} />
+    // <Sidebar
+    // collapsible="icon"
+    // {...props}
+    // className={cn(
+    //   "bg-akin-turquoise border-r-akin-turquoise p-0 m-0",
+    //   state === "collapsed" ? "max-w-[60px]" : "max-w-[245px]",
+    // )}
+    // >
+
+    <SidebarProvider className="h-screen">
+      <AppSidebar />
+      <main className="w-full overflow-hidden">
+    <NavMain items={[]} userRole="" />
+    <div>
+      <section>
+        <Suspense fallback={<Loader2 className="animate-spin transition-all" />}>
+              <Outlet />
+            </Suspense>
+      </section>
+    </div>
+        <SidebarHeader className="bg-akin-turquoise text-white">
+         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
 
-      <SidebarContent className="bg-akin-turquoise text-white">
-        {expandedMenu && !collapsed ? (
+       <SidebarContent className="bg-akin-turquoise text-white">
+       {expandedMenu && !collapsed ? ( 
           // Expanded submenu view
           <div className="flex flex-col">
-            <SidebarSeparator className="bg-white/20" />
+           <SidebarSeparator className="bg-white/20" />
 
-            {/* Back button */}
             <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
+               <SidebarGroupContent>
+                 <SidebarMenu>
+                   <SidebarMenuItem>
+                     <SidebarMenuButton
                       className="w-full justify-start gap-3 py-3 bg-akin-turquoise/50 text-white hover:bg-akin-turquoise/60 rounded-md hover:text-white "
                     >
-                      <div className="flex items-center gap-2 text-xs font-bold">
-                        {expandedMenuData?.icon && <expandedMenuData.icon className="h-5 w-5 font-bold" />}
-                        {expandedMenuData?.title}
-                      </div>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+                       <div className="flex items-center gap-2 text-xs font-bold">
+                         {expandedMenuData?.icon && <expandedMenuData.icon className="h-5 w-5 font-bold" />}
+                         {expandedMenuData?.title}
+                       </div>
+                     </SidebarMenuButton>
+                   </SidebarMenuItem>
+                 </SidebarMenu>
+               </SidebarGroupContent>
+             </SidebarGroup>
 
-            <SidebarSeparator className="bg-white/20" />
+             <SidebarSeparator className="bg-white/20" />
 
-            {/* Current menu header and subitems */}
-            <SidebarGroup>
-              <button
-                onClick={handleBackClick}
-                className="w-full flex items-center gap-2 py-2 px-3 text-white font-semibold cursor-pointer hover:bg-slate-600/50 mb-1 rounded-md transition-colors"
-              >
-                <ChevronLeft className="h-6 w-6 font-bold" />
-                <span className="text-[12px]">Voltar</span>
-              </button>
+      
+              <SidebarGroup> 
+             <button 
+                 onClick={handleBackClick}
+                 className="w-full flex items-center gap-2 py-2 px-3 text-white font-semibold cursor-pointer hover:bg-slate-600/50 mb-1 rounded-md transition-colors"
+               >
+                 <ChevronLeft className="h-6 w-6 font-bold" />
+                 <span className="text-[12px]">Voltar</span>
+               </button>
 
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -323,7 +339,7 @@ export function ExpandableAppSidebar({
                 {menuData.map((item) => {
                   const isActive = pathname ? pathname.startsWith(item.path) : false
                   const hasSubItems = Boolean(item.items && item.items.length > 0)
-
+    
                   return (
                     <SidebarMenuItem key={item.id}>
                       <Collapsible>
@@ -336,17 +352,17 @@ export function ExpandableAppSidebar({
                           } : undefined}
                           tooltip={item.title}
                           className={cn(
-                            "w-full gap-3 rounded-md",
-                            collapsed
-                              ? "justify-center px-2 py-3 hover:bg-white/10 hover:text-white"
+                              "w-full gap-3 rounded-md",
+                              collapsed
+                                ? "justify-center px-2 py-3 hover:bg-white/10 hover:text-white"
                               : "justify-between px-4 py-3 hover:bg-white/10 hover:text-white",
                             isActive && "bg-sidebar-accent/80 text-black hover:bg-sidebar-accent hover:text-black",
                           )}
                         >
                           {hasSubItems ? (
-                            <div className={cn(
-                              "flex items-center",
-                              collapsed ? "justify-center" : "w-full justify-between"
+                              <div className={cn(
+                                  "flex items-center",
+                                  collapsed ? "justify-center" : "w-full justify-between"
                             )}>
                               <div className={cn(
                                 "flex items-center",
@@ -385,11 +401,13 @@ export function ExpandableAppSidebar({
           </SidebarGroup>
         )}
       </SidebarContent>
+      </main>
 
       <SidebarFooter className="bg-akin-turquoise text-white">
-        <NavUser />
-      </SidebarFooter>
+         <NavUser />
+       </SidebarFooter>
       <SidebarRail />
-    </Sidebar>
+    </SidebarProvider>
+    // </Sidebar>
   )
 }

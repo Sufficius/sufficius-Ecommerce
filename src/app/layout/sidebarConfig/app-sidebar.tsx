@@ -18,9 +18,9 @@ const data = {
   },
   teams: [
     {
-      name: "OsapiCare",
-      plan: "Akin System",
-      image: "/avatars/osapicare.png",
+      name: "Sufficius",
+      plan: "Sufficius System",
+      image: "/avatars/sufficius.png",
     },
   ],
 }
@@ -30,14 +30,14 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const userRole = getAllDataInCookies().userRole;
   return (
-    <Sidebar collapsible="icon" {...props} className="max-w-[220px] bg-akin-turquoise border-r-akin-turquoise">
-      <SidebarHeader className="bg-akin-turquoise text-white">
+    <Sidebar collapsible="icon" {...props} className="max-w-[220px] bg-red-700 border-r-[#D4AF37]">
+      <SidebarHeader className="bg-[#D4AF37] text-white">
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
-      <SidebarContent className="bg-akin-turquoise text-white " >
+      <SidebarContent className="bg-[#D4AF37] text-white " >
         <NavMain items={APP_CONFIG.ROUTES.MENU} userRole={userRole} />
       </SidebarContent>
-      <SidebarFooter className="bg-akin-turquoise text-white">
+      <SidebarFooter className="bg-[#D4AF37] text-white">
         <NavUser />
       </SidebarFooter>
       <SidebarRail />

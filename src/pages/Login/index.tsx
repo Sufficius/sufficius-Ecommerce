@@ -63,14 +63,11 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-full border rounded-xl p-11">
-        <h1 className="text-2xl font-semibold text-center mb-6">Login</h1>
+        <h1 className="text-2xl font-semibold text-center mb-6">Entrar</h1>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="relative w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg z-10"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="email"
@@ -131,7 +128,7 @@ const Login = () => {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2 rounded-lg hover:bg-[#f0d270] bg-[#D4AF37] text-white font-medium  transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-6 p-5 rounded-lg hover:bg-[#f0d270] bg-[#D4AF37] text-white font-medium  transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "A entrar..." : "Entrar"}
             </Button>
