@@ -1,4 +1,5 @@
 import Dashboard from "@/pages/Dashboard";
+import Landing from "@/pages/Landing";
 import { HomeLayout } from "@/pages/layout/homeLayout";
 import { NotFound } from "@/pages/not-found";
 
@@ -9,14 +10,14 @@ export const HomesRoutes: IRouteProps = {
   children: [
     {
       path: "/",
+      element: Landing,
+      visibility: "auth",
+    },
+    {
+      path: "/dashboard",
       element: Dashboard,
       visibility: "auth",
     },
-    // {
-    //   path: "/venda",
-    //   element: Vendas,
-    //   visibility: "private",
-    // },
     // {
     //     path: "/clientes",
     //   element: Clientes,

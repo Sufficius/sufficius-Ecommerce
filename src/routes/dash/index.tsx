@@ -1,4 +1,5 @@
 import Dashboard from "@/pages/Dashboard";
+import Landing from "@/pages/Landing";
 import { DashLayout } from "@/pages/layout/dashLayout";
 
 export const DashRoutes: IRouteProps = {
@@ -8,6 +9,11 @@ export const DashRoutes: IRouteProps = {
   children: [
     {
       path: "/",
+      element: Landing,
+      visibility: "auth",
+    },
+     {
+      path: "/dashboard",
       element: Dashboard,
       visibility: "auth",
     },

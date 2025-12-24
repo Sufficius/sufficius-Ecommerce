@@ -31,7 +31,7 @@ export const APP_CONFIG = {
       {
         label: "Painel Geral",
         icon: LayoutDashboard,
-        path: "/",
+        path: "/dashboard",
         access: [""]
       },
       {
@@ -103,12 +103,6 @@ export const APP_CONFIG = {
         access: ["CHEFE", "TECNICO"],
 
       },
-      // {
-      //   label: "Pagamentos",
-      //   icon: CreditCard,
-      //   path: "/akin/payment",
-      //   access: [""]
-      // },
       {
         label: "Mensagens",
         icon: MessageSquareMore,
