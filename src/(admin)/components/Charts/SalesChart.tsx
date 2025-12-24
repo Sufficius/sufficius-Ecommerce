@@ -43,7 +43,7 @@ export default function SalesChart() {
     <div className="h-64">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <div className="text-2xl font-bold">R$ {totalVendas.toLocaleString()}</div>
+          <div className="text-2xl font-bold">KZ {totalVendas.toLocaleString()}</div>
           <div className="flex items-center text-sm">
             {crescimento > 0 ? (
               <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
@@ -98,11 +98,11 @@ export default function SalesChart() {
                   <div 
                     className="w-3/4 bg-gradient-to-t from-[#D4AF37] to-yellow-300 rounded-t-lg transition-all duration-300 hover:opacity-80 cursor-pointer"
                     style={{ height: `${alturaReal}%` }}
-                    title={`R$ ${valor.toLocaleString()}`}
+                    title={`KZ ${valor.toLocaleString()}`}
                   >
                     {/* Tooltip na hover */}
                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                      R$ {valor.toLocaleString()}
+                      KZ {valor.toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -129,15 +129,15 @@ export default function SalesChart() {
       <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t">
         <div className="text-center">
           <div className="text-sm text-gray-500">Média</div>
-          <div className="font-bold">R$ {mediaVendas.toLocaleString()}</div>
+          <div className="font-bold">KZ {mediaVendas.toLocaleString()}</div>
         </div>
         <div className="text-center">
           <div className="text-sm text-gray-500">Máxima</div>
-          <div className="font-bold">R$ {maxValor.toLocaleString()}</div>
+          <div className="font-bold">KZ {maxValor.toLocaleString()}</div>
         </div>
         <div className="text-center">
           <div className="text-sm text-gray-500">Mínima</div>
-          <div className="font-bold">R$ {minValor.toLocaleString()}</div>
+          <div className="font-bold">KZ {minValor.toLocaleString()}</div>
         </div>
       </div>
     </div>

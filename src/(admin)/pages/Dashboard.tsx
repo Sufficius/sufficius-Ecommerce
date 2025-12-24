@@ -28,7 +28,7 @@ export default function AdminDashboard() {
       resumo: [
         { 
           titulo: "Vendas Hoje", 
-          valor: "R$ 12.458,90", 
+          valor: "KZ 12.458,90", 
           variacao: "+12.5%", 
           positivo: true,
           icone: <DollarSign className="h-6 w-6" />,
@@ -208,7 +208,7 @@ export default function AdminDashboard() {
                   <tr key={pedido.id} className="border-b hover:bg-gray-50">
                     <td className="p-4 font-medium">{pedido.id}</td>
                     <td className="p-4">{pedido.cliente}</td>
-                    <td className="p-4 font-medium">R$ {pedido.valor.toLocaleString()}</td>
+                    <td className="p-4 font-medium">KZ {pedido.valor.toLocaleString()}</td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(pedido.status)}`}>
                         {pedido.status.charAt(0).toUpperCase() + pedido.status.slice(1)}
