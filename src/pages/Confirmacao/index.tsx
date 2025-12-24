@@ -29,7 +29,6 @@ export default function ConfirmacaoCompra() {
   const [pedido, setPedido] = useState<any>(null);
   const [etapaEntrega, setEtapaEntrega] = useState(0); // 0: processando, 1: preparando, 2: enviado, 3: entregue
 
-  // Simular dados do pedido
   useEffect(() => {
     const dadosPedido = {
       numero: "SC20241125001",
