@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
@@ -12,10 +12,11 @@ export default function AdminLayout() {
   // Verificar autenticação
   const isAuthenticated = localStorage.getItem("adminToken");
 
-  if (!isAuthenticated) {
-    navigate("/admin/login");
-    return null;
-  }
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/admin/login");
+    }
+  }, [isAuthenticated]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -27,7 +28,10 @@ export default function AdminLayout() {
       {/* Sidebar mobile */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
+          <div
+            className="fixed inset-0 bg-gray-600 bg-opacity-75"
+            onClick={() => setSidebarOpen(false)}
+          />
           <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white">
             <Sidebar isOpen={sidebarOpen} />
           </div>
@@ -35,9 +39,13 @@ export default function AdminLayout() {
       )}
 
       {/* Conteúdo principal */}
-      <div className={`lg:pl-56 flex flex-col flex-1 ${sidebarOpen ? 'lg:ml-0' : ''}`}>
+      <div
+        className={`lg:pl-56 flex flex-col flex-1 ${
+          sidebarOpen ? "lg:ml-0" : ""
+        }`}
+      >
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        
+
         <main className="flex-1 pb-8 overflow-x-hidden">
           <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4">
             <Outlet />

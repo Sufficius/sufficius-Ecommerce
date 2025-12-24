@@ -16,13 +16,13 @@ import {
   Shield,
   Home,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface SidebarProps {
   isOpen: boolean;
 }
 
 export default function Sidebar({ isOpen }: SidebarProps) {
-  console.log("Sidebar isOpen:", isOpen);
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("dashboard");
 
@@ -84,16 +84,17 @@ export default function Sidebar({ isOpen }: SidebarProps) {
   ];
 
   const handleLogout = () => {
-    if (confirm("Deseja realmente sair do painel administrativo?")) {
-      localStorage.removeItem("adminToken");
-      localStorage.removeItem("adminRole");
-      localStorage.removeItem("adminName");
-      navigate("/admin/login");
-    }
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminRole");
+    localStorage.removeItem("adminName");
+    localStorage.removeItem("token");
+    toast.success("Logout efetuado!");
+    // window.location.reload();
+    navigate("/admin/login");
   };
 
   return (
-    <div className="flex flex-col h-full bg-white border-r">
+    <div className="flex flex-col h-full bg-white border-r" itemScope={isOpen}>
       {/* Logo */}
       <div className="flex items-center justify-between p-6 border-b">
         <div className="flex items-center">
