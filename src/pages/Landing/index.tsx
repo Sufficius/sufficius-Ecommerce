@@ -22,7 +22,8 @@ import {
 import { CgClose, CgProfile } from "react-icons/cg";
 import { FiShoppingCart } from "react-icons/fi";
 import { BsEye } from "react-icons/bs";
-import { toast, Toaster } from "sonner";
+import { toast} from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const ProductImage = ({ index }: { index: number }) => (
   <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
@@ -33,7 +34,10 @@ const ProductImage = ({ index }: { index: number }) => (
   </div>
 );
 
-const HeroSection = () => (
+const HeroSection = () => {
+  const navigate = useNavigate();
+
+  return(
   <section className="relative px-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white overflow-hidden">
     <div className="absolute inset-0 bg-black/50 z-0" />
     <div className="relative max-w-7xl mx-auto px-4 py-24 md:py-32">
@@ -53,7 +57,9 @@ const HeroSection = () => (
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4">
-            <button className="bg-[#D4AF37] text-gray-900 font-semibold px-8 py-3 rounded-lg hover:bg-[#c19b2c] transition-all transform hover:scale-105">
+            <button 
+            onClick={()=>navigate("/checkout")}
+            className="bg-[#D4AF37] text-gray-900 font-semibold px-8 py-3 rounded-lg hover:bg-[#c19b2c] transition-all transform hover:scale-105">
               Comprar Agora
             </button>
             <button className="border-2 border-white text-white font-semibold px-8 py-3 rounded-lg hover:bg-white/10 transition">
@@ -86,7 +92,7 @@ const HeroSection = () => (
       </div>
     </div>
   </section>
-);
+  )};
 
 const Features = () => (
   <section className="py-16 bg-white">
@@ -518,14 +524,6 @@ const Header = () => {
     });
   };
 
-  // const adicionarAoCarrinho = (id: number) => {
-  //   if (!carrinho.includes(id)) {
-  //     setCarrinho([...carrinho, id]);
-  //     setQuantidades(prev => ({ ...prev, [id]: 1 }));
-  //     toast.success("Produto adicionado ao carrinho!");
-  //   }
-  // };
-
   const removerDoCarrinho = (id: number) => {
     setCarrinho(carrinho.filter(item => item !== id));
     toast.info("Produto removido do carrinho");
@@ -561,7 +559,6 @@ const Header = () => {
 
   return (
     <>
-      <Toaster position="top-right" />
       <header className="w-full border-b bg-white sticky top-0 z-40">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex h-16 items-center justify-between">
