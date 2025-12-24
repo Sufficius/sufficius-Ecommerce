@@ -35,11 +35,11 @@ export default function AdminLayout() {
       )}
 
       {/* Conteúdo principal */}
-      <div className={`lg:pl-64 flex flex-col flex-1 ${sidebarOpen ? 'lg:ml-0' : ''}`}>
+      <div className={`lg:pl-56 flex flex-col flex-1 ${sidebarOpen ? 'lg:ml-0' : ''}`}>
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         
-        <main className="flex-1 pb-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <main className="flex-1 pb-8 overflow-x-hidden">
+          <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4">
             <Outlet />
           </div>
         </main>

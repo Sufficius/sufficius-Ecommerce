@@ -1,67 +1,66 @@
-import Dashboard from "@/pages/Dashboard";
-import Landing from "@/pages/Landing";
-import { HomeLayout } from "@/pages/layout/homeLayout";
+import AdminLayout from "@/(admin)/components/Layout/Layout";
+import AdminCupons from "@/(admin)/pages/Cupons";
+import AdminDashboard from "@/(admin)/pages/Dashboard";
+import AdminEstoque from "@/(admin)/pages/Estoque";
+import AdminPedidos from "@/(admin)/pages/Pedidos";
+import AdminProdutos from "@/(admin)/pages/Produtos";
+import AdminUsuarios from "@/(admin)/pages/Usuarios";
 import { NotFound } from "@/pages/not-found";
 
 export const HomesRoutes: IRouteProps = {
-  path: "/",
-  element: HomeLayout,
+  path: "/admin",
+  element: AdminLayout,
   visibility: "auth",
   children: [
     {
-      path: "/",
-      element: Landing,
+      path: "/admin/dashboard",
+      element: AdminDashboard,
       visibility: "auth",
     },
     {
-      path: "/dashboard",
-      element: Dashboard,
+      path: "/admin/produtos",
+      element: AdminProdutos,
+      visibility: "auth",
+    },
+    {
+      path: "/admin/pedidos",
+      element: AdminPedidos,
+      visibility: "auth",
+    },
+    {
+      path: "/admin/usuarios",
+      element: AdminUsuarios,
+      visibility: "auth",
+    },
+    {
+      path: "/admin/cupons",
+      element: AdminCupons,
+      visibility: "auth",
+    },
+    {
+      path: "/admin/estoque",
+      element: AdminEstoque,
       visibility: "auth",
     },
     // {
-    //     path: "/clientes",
-    //   element: Clientes,
-    //   visibility: "private",
+    //   path: "/admin/pagamentos",
+    //   element: AdminPagamentos,
+    //   visibility: "auth",
     // },
     // {
-    //   path: "/produtos",
-    //   element: Produtos,
-    //   visibility: "private",
-    // },
-    // {
-    //   path: "/usuarios",
-    //   element: Usuarios,
-    //   visibility: "private",
-    // },
-    // {
-    //   path: "/estoque",
-    //   element: Estoque,
-    //   visibility: "private",
-    // },
-    // {
-    //   path: "/relatorios",
-    //   element: Relatorios,
-    //   visibility: "private",
-    // },
-    // {
-    //   path: "/logs",
-    //   element: Logs,
-    //   visibility: "private",
-    // },
-    // {
-    //   path: "/backups",
-    //   element: Backups,
-    //   visibility: "private",
+    //   path: "/admin/relatorios",
+    //   element: AdminRelatorios,
+    //   visibility: "auth",
     // },
     // {
     //   path: "/permissoes",
     //   element: Permissoes,
-    //   visibility: "private",
+    //   visibility: "auth",
     // },
     // {
-    //   path: "/settings",
-    //   element: Configuracoes,
-    //   visibility: "private",
+    //   path: "/admin/configuracoes",
+    //   element: ConfiguracoesPage,
+    //   visibility: "auth",
     // },
     {
       path: "*",

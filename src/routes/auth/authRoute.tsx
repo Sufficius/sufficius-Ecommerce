@@ -1,16 +1,16 @@
+import AdminLogin from "@/(admin)/pages/Login";
 import { AuthLayout } from "@/pages/layout/authLayout";
-import Login from "@/pages/Login";
 import { NotFound } from "@/pages/not-found";
 
 
 export const AuthRoutes: IRouteProps = {
-  path: "/auth",
+  path: "/admin",
   element: AuthLayout,
   visibility: "auth",
   children: [
     {
-      path: "/auth/login",
-      element: Login,
+      path: "/admin/login",
+      element: AdminLogin,
       visibility: "auth",
     },
     // {

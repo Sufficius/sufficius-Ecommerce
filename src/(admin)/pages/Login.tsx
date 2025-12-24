@@ -163,13 +163,13 @@ export default function AdminLogin() {
           </div>
 
           {/* Info de acesso de teste */}
-          <div className="mt-6 text-center">
+          {/* <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
               Credenciais de teste: <br />
               <span className="text-gray-700">admin@sufficius.com</span> / 
               <span className="text-gray-700"> admin123</span>
             </p>
-          </div>
+          </div> */}
         </div>
 
         {/* Footer */}
