@@ -492,7 +492,7 @@ const ProductsSection = () => {
 const Header = () => {
   const [open, setOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [profileOpen, setProfileOpen] = useState(false);
   const [quantidades, setQuantidades] = useState<Record<number, number>>({});
   const [carrinho, setCarrinho] = useState<number[]>([]);
@@ -518,13 +518,13 @@ const Header = () => {
     });
   };
 
-  const adicionarAoCarrinho = (id: number) => {
-    if (!carrinho.includes(id)) {
-      setCarrinho([...carrinho, id]);
-      setQuantidades(prev => ({ ...prev, [id]: 1 }));
-      toast.success("Produto adicionado ao carrinho!");
-    }
-  };
+  // const adicionarAoCarrinho = (id: number) => {
+  //   if (!carrinho.includes(id)) {
+  //     setCarrinho([...carrinho, id]);
+  //     setQuantidades(prev => ({ ...prev, [id]: 1 }));
+  //     toast.success("Produto adicionado ao carrinho!");
+  //   }
+  // };
 
   const removerDoCarrinho = (id: number) => {
     setCarrinho(carrinho.filter(item => item !== id));

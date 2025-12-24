@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { View } from "@/components/view";
-import { AppLayout } from "../layout";
+// import { AppLayout } from "../layout";
 import { Button } from "@/components/button";
 import { Switch } from "@/components/ui/switch";
 
@@ -11,7 +11,7 @@ export default function Setting({}: ISetting) {
   return (
     <View.Vertical>
       {/* Header */}
-      <AppLayout.ContainerHeader label="Configurações" />
+      {/* <AppLayout.ContainerHeader label="Configurações" /> */}
 
       <div className="p-6 space-y-6">
         {/* Seção 1: Configurações Gerais */}

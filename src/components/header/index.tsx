@@ -13,7 +13,7 @@ const Header = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const [, setQuantidades] = useState<Record<number, number>>({}); // id -> quantidade
+  // const [, setQuantidades] = useState<Record<number, number>>({}); // id -> quantidade
 
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -46,14 +46,14 @@ const Header = () => {
     };
   }, []);
 
-  const handleQuantidade = (id: number, action: "increment" | "decrement") => {
-    setQuantidades((prev) => {
-      const atual = prev[id] || 1;
-      const nova =
-        action === "increment" ? atual + 1 : atual > 1 ? atual - 1 : 1;
-      return { ...prev, [id]: nova };
-    });
-  };
+  // const handleQuantidade = (id: number, action: "increment" | "decrement") => {
+  //   setQuantidades((prev) => {
+  //     const atual = prev[id] || 1;
+  //     const nova =
+  //       action === "increment" ? atual + 1 : atual > 1 ? atual - 1 : 1;
+  //     return { ...prev, [id]: nova };
+  //   });
+  // };
 
   // const total = carrinho.reduce((acc:number, id:any) => {
   //   const produto = produtos.find((p:any) => p.id === id);

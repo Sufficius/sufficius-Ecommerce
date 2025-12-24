@@ -16,7 +16,7 @@ export function TeamSwitcher({
     image?: string
   }[]
 }) {
-  const unit_health = getAllDataInCookies().userdata.health_unit_ref;
+  // const unit_health = getAllDataInCookies().userdata.health_unit_ref;
   const akinRole = getAllDataInCookies().userRole;
   const { data: allDataUsers } = useQuery({
       queryKey: ["all-users"],

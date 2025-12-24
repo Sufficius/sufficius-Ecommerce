@@ -114,8 +114,6 @@ interface ExpandableAppSidebarProps extends React.ComponentProps<typeof Sidebar>
 
 export function ExpandableAppSidebar({ 
   collapsed = false,
-  onCollapsedChange,
-  ...props 
 }: ExpandableAppSidebarProps) {
   const userRole = getAllDataInCookies().userRole
   const location = useLocation()
@@ -188,7 +186,7 @@ export function ExpandableAppSidebar({
     }
   }, [collapsed, expandedMenu])
 
-  const handleMenuClick = (menuId: string, hasSubItems: boolean, path: string) => {
+  const handleMenuClick = (menuId: string, hasSubItems: boolean) => {
     // Se a sidebar está colapsada, não expande menus
     if (collapsed) {
       if (hasSubItems) {
@@ -348,7 +346,7 @@ export function ExpandableAppSidebar({
                           onClick={hasSubItems ? (e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            handleMenuClick(item.id, hasSubItems, item.path)
+                            handleMenuClick(item.id, hasSubItems)
                           } : undefined}
                           tooltip={item.title}
                           className={cn(
@@ -380,7 +378,7 @@ export function ExpandableAppSidebar({
                                 "flex items-center",
                                 collapsed ? "justify-center" : "w-full justify-between"
                               )}
-                              onClick={() => handleMenuClick(item.id, hasSubItems, item.path)}
+                              onClick={() => handleMenuClick(item.id, hasSubItems)}
                             >
                               <div className={cn(
                                 "flex items-center",

@@ -15,7 +15,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { CgClose } from "react-icons/cg";
 import { BiDollar } from "react-icons/bi";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 // import { useCart } from "@/context/CartContext";
 
 interface Produto {
@@ -92,14 +92,14 @@ const Begin = () => {
     null
   );
 
-  const handleAdicionarAoCarrinho = (produto: Produto) => {
-    // if (!carrinho.includes(produto.id)) {
-    //   // adicionarAoCarrinho(produto.id);
-    //   toast.success(`${produto.nome} adicionado ao carrinho!`);
-    // } else {
-    //   toast.warning(`${produto.nome} já está no carrinho.`);
-    // }
-  };
+  // const handleAdicionarAoCarrinho = () => {
+  //   // if (!carrinho.includes(produto.id)) {
+  //   //   // adicionarAoCarrinho(produto.id);
+  //   //   toast.success(`${produto.nome} adicionado ao carrinho!`);
+  //   // } else {
+  //   //   toast.warning(`${produto.nome} já está no carrinho.`);
+  //   // }
+  // };
 
   // Corrigido: envia um array de items para o Pagamento
   const handlePagar = (produto: Produto, quantidade: number) => {
@@ -168,7 +168,7 @@ const Begin = () => {
                   <BsEye size={20} /> Detalhes
                 </button>
                 <button
-                  onClick={() => handleAdicionarAoCarrinho(produto)}
+                  // onClick={() => handleAdicionarAoCarrinho(produto)}
                   className="flex items-center justify-center gap-2 flex-1 h-10 bg-gray-600 text-white rounded hover:bg-gray-800 transition text-sm"
                 >
                   <FiShoppingCart size={20} /> Carrinho
@@ -239,7 +239,7 @@ const Begin = () => {
                 <div className="mt-6 flex flex-col gap-3">
                   <button
                     onClick={() => {
-                      handleAdicionarAoCarrinho(produtoSelecionado);
+                      // handleAdicionarAoCarrinho(produtoSelecionado);
                       setProdutoSelecionado(null);
                     }}
                     className="flex items-center justify-center gap-3 h-12 bg-[#D4AF37] text-white rounded-lg hover:bg-[#dfae0e] transition font-medium"

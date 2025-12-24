@@ -7,8 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell, BellRing, ExternalLink, Clock } from "lucide-react";
-import { NotificationData, PrioridadeNotificacao } from "@/Api/types/notification.d";
-import { useRouter } from "next/navigation";
+import { NotificationData, PrioridadeNotificacao } from "@/api/notification";
+// import { useRouter } from "next/navigation";
 
 interface NotificationPreviewProps {
   notifications: NotificationData[];
@@ -19,7 +19,7 @@ interface NotificationPreviewProps {
 
 export function NotificationPreview({ notifications, unreadCount, onMarkAsRead, className = "" }: NotificationPreviewProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
+  // const router = useRouter();
 
   // 🔥 Garante que criado_aos é Date válido
   const recentNotifications = [...notifications].sort((a, b) => new Date(b.criado_aos).getTime() - new Date(a.criado_aos).getTime()).slice(0, 5);
@@ -52,14 +52,14 @@ export function NotificationPreview({ notifications, unreadCount, onMarkAsRead, 
     }
 
     if (notification.acao_url) {
-      router.push(notification.acao_url);
+      // router.push(notification.acao_url);
     }
 
     setIsOpen(false);
   };
 
   const handleViewAll = () => {
-    router.push("/akin/notifications");
+    // router.push("/akin/notifications");
     setIsOpen(false);
   };
 
