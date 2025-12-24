@@ -31,7 +31,10 @@ import {
   FileText,
   HelpCircle,
   Info,
-  Settings
+  Settings,
+  Map,
+  Copy,
+  Share2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -180,15 +183,17 @@ export default function ConfiguracoesPage() {
     frete: `# Política de Frete\n\nFrete grátis para compras acima de 50.000 Kz.`
   });
 
-  // Manipular mudanças
-  const handleChange = (secao: string, campo: string, valor: any) => {
+  // Tipagem para handleChange
+  type SecaoConfig = keyof typeof configuracoes;
+  
+  const handleChange = (secao: SecaoConfig, campo: string, valor: any) => {
     setConfiguracoes(prev => ({
       ...prev,
       [secao]: {
-        ...prev[secao as keyof typeof prev],
+        ...prev[secao],
         [campo]: valor
       }
-    }));
+    } as typeof configuracoes));
   };
 
   // Salvar configurações
@@ -1988,9 +1993,6 @@ export default function ConfiguracoesPage() {
       </div>
     );
   }
-
-  // Import necessário para o ícone Map
-  const { Map, Copy, Share2 } = require("lucide-react");
 
   return (
     <div className="py-8">

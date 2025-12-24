@@ -1,9 +1,12 @@
 import AdminLayout from "@/(admin)/components/Layout/Layout";
+import ConfiguracoesPage from "@/(admin)/pages/Configuracoes";
 import AdminCupons from "@/(admin)/pages/Cupons";
 import AdminDashboard from "@/(admin)/pages/Dashboard";
 import AdminEstoque from "@/(admin)/pages/Estoque";
+import PagamentosPage from "@/(admin)/pages/Pagamentos";
 import AdminPedidos from "@/(admin)/pages/Pedidos";
 import AdminProdutos from "@/(admin)/pages/Produtos";
+import RelatoriosPage from "@/(admin)/pages/Relatorios";
 import AdminUsuarios from "@/(admin)/pages/Usuarios";
 import { NotFound } from "@/pages/not-found";
 
@@ -42,26 +45,26 @@ export const HomesRoutes: IRouteProps = {
       element: AdminEstoque,
       visibility: "auth",
     },
-    // {
-    //   path: "/admin/pagamentos",
-    //   element: AdminPagamentos,
-    //   visibility: "auth",
-    // },
-    // {
-    //   path: "/admin/relatorios",
-    //   element: AdminRelatorios,
-    //   visibility: "auth",
-    // },
+    {
+      path: "/admin/pagamentos",
+      element: PagamentosPage,
+      visibility: "auth",
+    },
+    {
+      path: "/admin/relatorios",
+      element: RelatoriosPage,
+      visibility: "auth",
+    },
     // {
     //   path: "/permissoes",
     //   element: Permissoes,
     //   visibility: "auth",
     // },
-    // {
-    //   path: "/admin/configuracoes",
-    //   element: ConfiguracoesPage,
-    //   visibility: "auth",
-    // },
+    {
+      path: "/admin/configuracoes",
+      element: ConfiguracoesPage,
+      visibility: "auth",
+    },
     {
       path: "*",
       element: NotFound,
