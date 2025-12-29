@@ -1,15 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LoginSchema, loginSchema } from "@/modules/validation/login";
+import { LoginData } from "@/modules/validation/login";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { authRoute } from "@/modules/services/api/auth";
 import Cookies from "js-cookie";
 import { useAuthStore } from "@/modules/services/store/auth-store";
-import { mapUser } from "@/lib/mapUser";
 import {
   Form,
   FormControl,
@@ -27,15 +25,14 @@ const Login = () => {
   const [, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const form = useForm<LoginSchema>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm({
     defaultValues: {
       email: "",
       password: "",
     },
   });
 
-  const onSubmit = async (values: LoginSchema) => {
+  const onSubmit = async (values: LoginData) => {
     setIsLoading(true);
     setError("");
 
@@ -48,7 +45,7 @@ const Login = () => {
       Cookies.set("Sufficius-role", user.role);
       Cookies.set("Sufficius-token", token, { expires: expirationDate });
       toast.success("Sessão iniciada com sucesso");
-      login(mapUser(user), token);
+      login(user, token);
 
       let rota = user.role === "ADMINISTRADOR" ? "/" : "/auth/login";
       navigate(rota, { replace: true });

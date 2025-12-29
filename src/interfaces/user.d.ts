@@ -5,7 +5,7 @@ interface User {
     telefone: string;
     avatar: string | null;
     data_nascimento: string;
-    role: "ADMINISTRADOR" | "OPERADOR";
+    role: string;
 }
 
 interface IUser {
@@ -28,7 +28,8 @@ interface UserAuth {
         phone_number: string,
         avatar: string | null,
         born: string,
-        role: "ADMINISTRADOR" | "OPERADOR",
+        role: string,
+        BI:string,
     }
 }
 

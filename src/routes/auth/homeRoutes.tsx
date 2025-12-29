@@ -9,61 +9,55 @@ import AdminProdutos from "@/(admin)/pages/Produtos";
 import RelatoriosPage from "@/(admin)/pages/Relatorios";
 import AdminUsuarios from "@/(admin)/pages/Usuarios";
 import { NotFound } from "@/pages/not-found";
-
 export const HomesRoutes: IRouteProps = {
   path: "/admin",
   element: AdminLayout,
-  visibility: "auth",
+  visibility: "private", // Mude de "auth" para "private"
   children: [
     {
       path: "/admin/dashboard",
       element: AdminDashboard,
-      visibility: "auth",
+      visibility: "private", // Mude para "private"
     },
     {
       path: "/admin/produtos",
       element: AdminProdutos,
-      visibility: "auth",
+      visibility: "private", // Mude para "private"
     },
     {
       path: "/admin/pedidos",
       element: AdminPedidos,
-      visibility: "auth",
+      visibility: "private", // Mude para "private"
     },
     {
       path: "/admin/usuarios",
       element: AdminUsuarios,
-      visibility: "auth",
+      visibility: "private", // Mude para "private"
     },
     {
       path: "/admin/cupons",
       element: AdminCupons,
-      visibility: "auth",
+      visibility: "private", // Mude para "private"
     },
     {
       path: "/admin/estoque",
       element: AdminEstoque,
-      visibility: "auth",
+      visibility: "private", // Mude para "private"
     },
     {
       path: "/admin/pagamentos",
       element: PagamentosPage,
-      visibility: "auth",
+      visibility: "private", // Mude para "private"
     },
     {
       path: "/admin/relatorios",
       element: RelatoriosPage,
-      visibility: "auth",
+      visibility: "private", // Mude para "private"
     },
-    // {
-    //   path: "/permissoes",
-    //   element: Permissoes,
-    //   visibility: "auth",
-    // },
     {
       path: "/admin/configuracoes",
       element: ConfiguracoesPage,
-      visibility: "auth",
+      visibility: "private", // Mude para "private"
     },
     {
       path: "*",

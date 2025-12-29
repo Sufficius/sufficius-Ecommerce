@@ -21,6 +21,20 @@ class AuthClass {
         })
         return data;
     }
+
+    async googleLogin(tokenId: string) {
+
+        const { data } = await api.post<UserAuth>('/auth/google', {
+            token: tokenId
+        }, {
+            method: 'POST',
+            withCredentials: true,
+            headers: {
+                'Content-Type': 'application/json' // ← IMPORTANTE!
+            }
+        });
+        return data;
+    }
 }
 
 export const authRoute = new AuthClass();

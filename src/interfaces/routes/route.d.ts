@@ -1,8 +1,9 @@
 interface IRouteProps {
-    path: string;
+    path?: string;
     element: FC;
     visibility: "public" | "private" | "auth";
     children?: IRouteProps[];
+    index?: boolean; 
 }
 
 interface IRouteWrapperProps {

@@ -1,5 +1,24 @@
 import Cookies from "js-cookie";
+import { toast } from "sonner";
 import { create } from "zustand";
+
+interface User {
+    id_user: string;
+    name: string;
+    email: string;
+    role: string;
+    BI: string;
+    avatar?: string | null;
+    googleId?: string;
+}
+
+interface AuthState {
+    user: User | null;
+    token: string | null;
+    isAuthenticated: boolean;
+    login: (user: User, token: string) => void;
+    logout: () => void;
+}
 
 export const useAuthStore = create<AuthState>()(
     (set) => ({
@@ -18,16 +37,28 @@ export const useAuthStore = create<AuthState>()(
                 isAuthenticated: true,
             });
         },
-        logout: () => {
+        logout: async () => {
+            toast.loading("Terminando a sessão...");
+
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            toast.dismiss();
+
+            toast.success("Sessão terminada com sucesso!");
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             Cookies.remove("Sufficius-role");
             Cookies.remove("Sufficius-token");
             Cookies.remove("authSufficius-token");
             Cookies.remove("authSufficius-user");
+
             set({
                 user: null,
                 token: null,
                 isAuthenticated: false,
             });
+
+            window.location.href = "/admin/login";
         },
-    })
-);
+    }));

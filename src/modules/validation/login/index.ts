@@ -20,4 +20,4 @@ export const loginSchema = z.object({
         .transform((val) => val.trim()),
 });
 
-export type LoginSchema = z.infer<typeof loginSchema>; 
+export type LoginData = z.infer<typeof loginSchema>; 
