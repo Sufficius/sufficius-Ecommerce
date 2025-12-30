@@ -239,7 +239,7 @@ export default function PedidosTable({
             <div className="bg-gray-50 p-3 rounded-lg">
               <div className="text-sm text-gray-600">Valor Total</div>
               <div className="text-2xl font-bold text-[#D4AF37]">
-                R$ {totalValor.toLocaleString()}
+                KZ {totalValor.toLocaleString()}
               </div>
             </div>
             <div className="bg-gray-50 p-3 rounded-lg">
@@ -392,7 +392,7 @@ export default function PedidosTable({
                   </div>
                 </td>
                 <td className="p-4">
-                  <div className="font-bold text-lg">R$ {pedido.valor.toLocaleString()}</div>
+                  <div className="font-bold text-lg">KZ {pedido.valor.toLocaleString()}</div>
                 </td>
                 <td className="p-4">
                   <div className="relative">

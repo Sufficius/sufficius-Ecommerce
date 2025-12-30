@@ -161,7 +161,7 @@ export default function AdminPedidos() {
   const pedidosPagina = pedidosFiltrados.slice(inicio, fim);
 
   const handleVisualizarPedido = (id: string) => {
-    navigate(`/admin/pedidos/${id}`);
+    navigate(`/pedidos/${id}`);
   };
 
 //   const handleAlterarStatus = (id: string, novoStatus: string) => {
@@ -348,7 +348,7 @@ export default function AdminPedidos() {
                     </div>
                   </td>
                   <td className="p-4">
-                    <div className="font-bold">R$ {pedido.valor.toLocaleString()}</div>
+                    <div className="font-bold">KZ {pedido.valor.toLocaleString()}</div>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center">

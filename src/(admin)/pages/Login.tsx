@@ -43,12 +43,10 @@ export default function AdminLogin() {
       setGoogleClientId(clientId);
       
       if (!googleScriptLoaded.current) {
-        loadGoogleScript(() => {
-          console.log("✅ Script do Google carregado na inicialização");
-        });
+        loadGoogleScript(() => {});
       }
     } else {
-      console.warn("⚠️  Google Client ID não configurado ou está com valor padrão");
+      // console.warn("⚠️  Google Client ID não configurado ou está com valor padrão");
       setGoogleClientId(null);
     }
   }, []);
@@ -71,14 +69,10 @@ export default function AdminLogin() {
         
         // CORREÇÃO: Verifique tanto 'role' quanto 'tipo'
         const userRole = user.role || user.role;
-        console.log(userRole);
         if (userRole === "ADMIN") {
-          navigate("/admin/dashboard");
+          navigate("/dashboard");
           toast.success("Login realizado com sucesso!");
-        } else {
-          navigate("/proposta");
-          toast.success("Bem-vindo de volta!");
-        }
+        } 
       } else {
         toast.error("Autenticação falhou: resposta inválida");
       }
@@ -120,7 +114,6 @@ export default function AdminLogin() {
     }
 
     if (document.querySelector('script[src="https://accounts.google.com/gsi/client"]')) {
-      console.log("ℹ️  Script do Google já existe no DOM");
       googleScriptLoaded.current = true;
       callback();
       return;
@@ -132,7 +125,6 @@ export default function AdminLogin() {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      console.log("✅ Script do Google carregado com sucesso");
       googleScriptLoaded.current = true;
       setTimeout(() => callback(), 100);
     };
@@ -178,7 +170,7 @@ export default function AdminLogin() {
       return;
     }
 
-    console.log("🔄 Iniciando login com Google...");
+    // console.log("🔄 Iniciando login com Google...");
     
     loadGoogleScript(() => {
       console.log("🔧 Tentando inicializar Google Sign-In...");
@@ -186,13 +178,13 @@ export default function AdminLogin() {
       const checkGoogleReady = () => {
         // @ts-ignore
         if (window.google && window.google.accounts && window.google.accounts.id) {
-          console.log("✅ Google Identity Services está pronto");
+          // console.log("✅ Google Identity Services está pronto");
           
           if (initGoogleSignInOnce()) {
             renderGoogleButton();
           }
         } else {
-          console.warn("⚠️  Google ainda não está pronto, tentando novamente...");
+          // console.warn("⚠️  Google ainda não está pronto, tentando novamente...");
           
           if (googleInitAttempted.current) {
             setTimeout(checkGoogleReady, 100);
@@ -214,7 +206,7 @@ export default function AdminLogin() {
 
   const initializeGoogleSignIn = () => {
     try {
-      console.log("🔐 Inicializando Google Identity Services...");
+      // console.log("🔐 Inicializando Google Identity Services...");
       
       // @ts-ignore
       if (!window.google || !window.google.accounts) {
@@ -231,7 +223,7 @@ export default function AdminLogin() {
         itp_support: true,
       });
 
-      console.log("✅ Google Identity Services inicializado");
+      // console.log("✅ Google Identity Services inicializado");
       googleInitialized.current = true;
       
       renderGoogleButton();
@@ -240,13 +232,13 @@ export default function AdminLogin() {
         // @ts-ignore
         window.google.accounts.id.prompt((notification: any) => {
           if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            console.log("ℹ️  One Tap não mostrado (pode ser bloqueado por popup blocker)");
+            // console.log("ℹ️  One Tap não mostrado (pode ser bloqueado por popup blocker)");
           } else {
-            console.log("✅ One Tap mostrado ao usuário");
+            // console.log("✅ One Tap mostrado ao usuário");
           }
         });
       } catch (promptError) {
-        console.warn("⚠️  Não foi possível mostrar One Tap:", promptError);
+        // console.warn("⚠️  Não foi possível mostrar One Tap:", promptError);
       }
       
       return true;
@@ -589,8 +581,8 @@ export default function AdminLogin() {
             </div>
           </div>
 
-          {/* Info de acesso de teste */}
-          <div className="mt-6 text-center">
+          {/* {/* Info de acesso de teste */}
+          {/* <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
               Para teste, use:
             </p>
@@ -598,8 +590,8 @@ export default function AdminLogin() {
               Email: admin@test.com<br />
               Senha: admin123
             </p>
-          </div>
-        </div>
+          </div> */}
+        </div> 
 
         {/* Footer */}
         <div className="mt-8 text-center">

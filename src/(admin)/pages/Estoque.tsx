@@ -260,7 +260,7 @@ export default function AdminEstoque() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Valor Total</p>
-              <p className="text-2xl font-bold">R$ {valorTotalEstoque.toLocaleString()}</p>
+              <p className="text-2xl font-bold">KZ {valorTotalEstoque.toLocaleString()}</p>
             </div>
             <TrendingUp className="h-8 w-8 text-green-500" />
           </div>

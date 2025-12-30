@@ -151,15 +151,15 @@ export default function AdminProdutos() {
   const produtosPagina = produtosFiltrados.slice(inicio, fim);
 
   const handleNovoProduto = () => {
-    navigate("/admin/produtos/novo");
+    navigate("/produtos/novo");
   };
 
   const handleEditarProduto = (id: number) => {
-    navigate(`/admin/produtos/editar/${id}`);
+    navigate(`/produtos/editar/${id}`);
   };
 
   const handleVisualizarProduto = (id: number) => {
-    navigate(`/admin/produtos/${id}`);
+    navigate(`/produtos/${id}`);
   };
 
   const handleExcluirProduto = (id: number) => {
@@ -315,10 +315,10 @@ export default function AdminProdutos() {
                   </td>
                   <td className="p-4">
                     <div>
-                      <div className="font-bold">R$ {produto.preco.toLocaleString()}</div>
+                      <div className="font-bold">KZ {produto.preco.toLocaleString()}</div>
                       {produto.precoPromo > 0 && (
                         <div className="text-sm text-green-600">
-                          R$ {produto.precoPromo.toLocaleString()}
+                          KZ {produto.precoPromo.toLocaleString()}
                         </div>
                       )}
                     </div>

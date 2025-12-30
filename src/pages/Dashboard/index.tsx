@@ -8,7 +8,7 @@ export default function Dashboard() {
   const stats = [
     { 
       title: 'Vendas Hoje', 
-      value: 'R$ 4,892', 
+      value: 'KZ 4,892', 
       change: '+12.5%', 
       icon: <DollarSign className="h-6 w-6" />,
       color: 'bg-green-500'
@@ -131,7 +131,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-gray-900">R$ {product.price.toLocaleString()}</p>
+                    <p className="font-bold text-gray-900">KZ {product.price.toLocaleString()}</p>
                     <p className="text-sm text-green-500">+{Math.floor(Math.random() * 20) + 5}%</p>
                   </div>
                 </div>

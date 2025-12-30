@@ -509,7 +509,7 @@ export default function ConfirmacaoCompra() {
                   </div>
                   <div className="flex-1">
                     <div className="font-medium">Smartwatch Pro</div>
-                    <div className="text-sm text-gray-600">R$ 1.599,00</div>
+                    <div className="text-sm text-gray-600">KZ 1.599,00</div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-gray-400" />
                 </div>
@@ -520,7 +520,7 @@ export default function ConfirmacaoCompra() {
                   </div>
                   <div className="flex-1">
                     <div className="font-medium">Controle Gamer</div>
-                    <div className="text-sm text-gray-600">R$ 399,00</div>
+                    <div className="text-sm text-gray-600">KZ 399,00</div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-gray-400" />
                 </div>

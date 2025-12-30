@@ -501,7 +501,7 @@ export default function CheckoutPage() {
                               </div>
                             </div>
                             <div className="font-bold">
-                              R$ {(item.preco * item.quantidade).toLocaleString()}
+                              KZ {(item.preco * item.quantidade).toLocaleString()}
                             </div>
                           </div>
                         ))}
@@ -639,7 +639,7 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                     <div className="font-bold">
-                      R$ {(item.preco * item.quantidade).toLocaleString()}
+                      KZ {(item.preco * item.quantidade).toLocaleString()}
                     </div>
                   </div>
                 ))}
@@ -649,22 +649,22 @@ export default function CheckoutPage() {
               <div className="space-y-3 border-t pt-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>R$ {subtotal.toLocaleString()}</span>
+                  <span>KZ {subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Frete</span>
-                  <span>{frete === 0 ? "Grátis" : `R$ ${frete.toLocaleString()}`}</span>
+                  <span>{frete === 0 ? "Grátis" : `KZ ${frete.toLocaleString()}`}</span>
                 </div>
                 {metodoPagamento === "pix" && (
                   <div className="flex justify-between text-green-600">
                     <span>Desconto PIX (5%)</span>
-                    <span>- R$ {(subtotal * 0.05).toLocaleString()}</span>
+                    <span>- KZ {(subtotal * 0.05).toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-lg font-bold border-t pt-3">
                   <span>Total</span>
                   <span className="text-[#D4AF37]">
-                    R$ {metodoPagamento === "pix" 
+                    KZ {metodoPagamento === "pix" 
                       ? (total - (subtotal * 0.05)).toLocaleString() 
                       : total.toLocaleString()}
                   </span>

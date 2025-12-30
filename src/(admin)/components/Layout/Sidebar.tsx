@@ -16,7 +16,7 @@ import {
   Shield,
   Home,
 } from "lucide-react";
-import { toast } from "sonner";
+import { useAuthStore } from "@/modules/services/store/auth-store";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -30,67 +30,62 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     {
       icon: <LayoutDashboard className="h-5 w-5" />,
       label: "Dashboard",
-      path: "/admin/dashboard",
+      path: "/dashboard",
       section: "dashboard",
     },
     {
       icon: <Package className="h-5 w-5" />,
       label: "Produtos",
-      path: "/admin/produtos",
+      path: "/produtos",
       section: "produtos",
     },
     {
       icon: <ShoppingBag className="h-5 w-5" />,
       label: "Pedidos",
-      path: "/admin/pedidos",
+      path: "/pedidos",
       section: "pedidos",
     },
     {
       icon: <Users className="h-5 w-5" />,
       label: "Usuários",
-      path: "/admin/usuarios",
+      path: "/usuarios",
       section: "usuarios",
     },
     {
       icon: <Tag className="h-5 w-5" />,
       label: "Cupons",
-      path: "/admin/cupons",
+      path: "/cupons",
       section: "cupons",
     },
     {
       icon: <TrendingUp className="h-5 w-5" />,
       label: "Estoque",
-      path: "/admin/estoque",
+      path: "/estoque",
       section: "estoque",
     },
     {
       icon: <CreditCard className="h-5 w-5" />,
       label: "Pagamentos",
-      path: "/admin/pagamentos",
+      path: "/pagamentos",
       section: "pagamentos",
     },
     {
       icon: <BarChart3 className="h-5 w-5" />,
       label: "Relatórios",
-      path: "/admin/relatorios",
+      path: "/relatorios",
       section: "relatorios",
     },
     {
       icon: <Settings className="h-5 w-5" />,
       label: "Configurações",
-      path: "/admin/configuracoes",
+      path: "/configuracoes",
       section: "configuracoes",
     },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("adminRole");
-    localStorage.removeItem("adminName");
-    localStorage.removeItem("token");
-    toast.success("Logout efetuado!");
-    // window.location.reload();
-    navigate("/admin/login");
+  const logout = useAuthStore((state) => state.logout);
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (

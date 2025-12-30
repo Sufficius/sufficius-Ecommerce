@@ -371,10 +371,10 @@ export default function ProdutosTable({
                 </td>
                 <td className="p-4">
                   <div>
-                    <div className="font-bold">R$ {produto.preco.toLocaleString()}</div>
+                    <div className="font-bold">KZ {produto.preco.toLocaleString()}</div>
                     {produto.precoPromo > 0 && (
                       <div className="text-sm text-green-600">
-                        R$ {produto.precoPromo.toLocaleString()}
+                        KZ {produto.precoPromo.toLocaleString()}
                       </div>
                     )}
                   </div>

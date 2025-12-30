@@ -4,17 +4,18 @@ import { useEffect, useState } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import { useAuthStore } from "@/modules/services/store/auth-store";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
 
   // Verificar autenticação
-  const isAuthenticated = localStorage.getItem("adminToken");
+  const isAuthenticated = useAuthStore((state)=> state.isAuthenticated);
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("/admin/login");
+      navigate("/");
     }
   }, [isAuthenticated]);
 

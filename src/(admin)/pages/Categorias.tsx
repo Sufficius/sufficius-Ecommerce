@@ -57,7 +57,7 @@ export default function CategoryChart() {
     <div className="h-96">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <div className="text-2xl font-bold">R$ {total.toLocaleString()}</div>
+          <div className="text-2xl font-bold">KZ {total.toLocaleString()}</div>
           <div className="flex items-center text-sm">
             <Tag className="h-4 w-4 text-[#D4AF37] mr-1" />
             <span className="text-gray-600">Vendas por categoria</span>
@@ -151,7 +151,7 @@ export default function CategoryChart() {
                 </div>
                 
                 <div className="text-right">
-                  <div className="font-bold">R$ {cat.valor.toLocaleString()}</div>
+                  <div className="font-bold">KZ {cat.valor.toLocaleString()}</div>
                   <div className="text-sm text-gray-500">
                     {periodo === "hoje" ? "hoje" : periodo === "mes" ? "este mês" : "este ano"}
                   </div>

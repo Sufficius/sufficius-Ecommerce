@@ -1,3 +1,4 @@
+import { IRouteProps } from "@/interfaces/routes/route";
 import CheckoutPage from "@/pages/Checkout";
 import ConfirmacaoCompra from "@/pages/Confirmacao";
 import Dashboard from "@/pages/Dashboard";

@@ -47,7 +47,7 @@ const Login = () => {
       toast.success("Sessão iniciada com sucesso");
       login(user, token);
 
-      let rota = user.role === "ADMINISTRADOR" ? "/" : "/auth/login";
+      let rota = user.role === "ADMIN" ? "/" : "/login";
       navigate(rota, { replace: true });
     } catch (error: any) {
       if (error || error.response?.data?.error === "User not found") {

@@ -214,7 +214,7 @@ export default function UsuariosTable({
             <div className="bg-gray-50 p-3 rounded-lg">
               <div className="text-sm text-gray-600">Valor Total</div>
               <div className="text-2xl font-bold text-blue-600">
-                R$ {totalGasto.toLocaleString()}
+                KZ {totalGasto.toLocaleString()}
               </div>
             </div>
           </div>
@@ -399,7 +399,7 @@ export default function UsuariosTable({
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium">R$ {usuario.totalGasto.toLocaleString()}</span>
+                      <span className="font-medium">KZ {usuario.totalGasto.toLocaleString()}</span>
                     </div>
                   </td>
                   <td className="p-4">
@@ -534,7 +534,7 @@ export default function UsuariosTable({
                   <div className="text-center">
                     <div className="text-sm text-gray-600">Valor</div>
                     <div className="font-bold text-lg text-[#D4AF37]">
-                      R$ {usuario.totalGasto.toLocaleString()}
+                      KZ {usuario.totalGasto.toLocaleString()}
                     </div>
                   </div>
                 </div>

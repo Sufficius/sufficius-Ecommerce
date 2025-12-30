@@ -4,7 +4,7 @@ import { create } from "zustand";
 
 interface User {
     id_user: string;
-    name: string;
+    nome: string;
     email: string;
     role: string;
     BI: string;
@@ -59,6 +59,6 @@ export const useAuthStore = create<AuthState>()(
                 isAuthenticated: false,
             });
 
-            window.location.href = "/admin/login";
+            window.location.href = "/login";
         },
     }));

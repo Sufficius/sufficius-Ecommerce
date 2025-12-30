@@ -1,46 +1,44 @@
-import { LogOut, Settings, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { LogOut, Settings, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useNavigate } from "react-router-dom"
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/modules/services/store/auth-store";
 
 export function NavUser() {
-  const navigate = useNavigate()
-  
+  const navigate = useNavigate();
+
   // Função para pegar dados do usuário dos cookies
   const getUserData = () => {
     const userCookie = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('user='))
-    
+      .split("; ")
+      .find((row) => row.startsWith("user="));
+
     if (userCookie) {
       try {
-        const userData = JSON.parse(decodeURIComponent(userCookie.split('=')[1]))
-        return userData
+        const userData = JSON.parse(
+          decodeURIComponent(userCookie.split("=")[1])
+        );
+        return userData;
       } catch {
-        return null
+        return null;
       }
     }
-    return null
-  }
+    return null;
+  };
 
-  const userData = getUserData()
+  const userData = getUserData();
+  const logout = useAuthStore((state) => state.logout);
 
-  const handleLogout = () => {
-    // Limpar cookies
-    document.cookie = "akin-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-    document.cookie = "akin-role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-    document.cookie = "user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-    
-    // Redirecionar para login
-    navigate("/")
-  }
+  const handleLogout =  async () => {
+    await logout();
+  };
 
   return (
     <DropdownMenu>
@@ -82,5 +80,5 @@ export function NavUser() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

@@ -16,11 +16,13 @@ import {
 import SalesChart from "../components/Charts/SalesChart";
 import RevenueChart from "../components/Charts/RevenueChart";
 import TopProductsChart from "../components/Charts/TopProductChart";
+import { useAuthStore } from "@/modules/services/store/auth-store";
 
 
 export default function AdminDashboard() {
   const [periodo, setPeriodo] = useState("hoje");
   const [dados, setDados] = useState<any>(null);
+  const user = useAuthStore(state => state.user);
 
   useEffect(() => {
     // Simular dados do dashboard
@@ -102,7 +104,7 @@ export default function AdminDashboard() {
       {/* Header do Dashboard */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Bem-vindo de volta, Administrador!</p>
+        <p className="text-gray-600">Bem-vindo de volta, {user?.nome}!</p>
       </div>
 
       {/* Filtros */}

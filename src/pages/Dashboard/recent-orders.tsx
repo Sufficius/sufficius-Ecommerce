@@ -23,7 +23,7 @@ export default function RecentOrders() {
             <tr key={order.id} className="border-t hover:bg-gray-50">
               <td className="py-3 font-medium">{order.id}</td>
               <td className="py-3">{order.customer}</td>
-              <td className="py-3 font-medium">R$ {order.amount.toLocaleString()}</td>
+              <td className="py-3 font-medium">KZ {order.amount.toLocaleString()}</td>
               <td className="py-3">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                   order.status === 'Entregue' 

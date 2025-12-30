@@ -157,7 +157,7 @@ export default function AdminCupons() {
     } else if (cupom.tipo === "frete_gratis") {
       return "Frete Grátis";
     } else {
-      return `R$ ${cupom.valor}`;
+      return `KZ ${cupom.valor}`;
     }
   };
 
@@ -292,7 +292,7 @@ export default function AdminCupons() {
                       <div className="font-bold text-lg">{cupom.codigo}</div>
                       <div className="text-sm text-gray-600">{cupom.descricao}</div>
                       <div className="text-xs text-gray-500 mt-1">
-                        Mínimo: R$ {cupom.minimoCompra}
+                        Mínimo: KZ {cupom.minimoCompra}
                       </div>
                     </div>
                   </td>
@@ -306,7 +306,7 @@ export default function AdminCupons() {
                     <div className="font-bold text-lg">{formatarValorCupom(cupom)}</div>
                     {cupom.maximoDesconto > 0 && cupom.tipo === "percentual" && (
                       <div className="text-sm text-gray-600">
-                        Máx: R$ {cupom.maximoDesconto}
+                        Máx: KZ {cupom.maximoDesconto}
                       </div>
                     )}
                   </td>

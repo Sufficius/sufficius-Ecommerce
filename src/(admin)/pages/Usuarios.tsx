@@ -348,7 +348,7 @@ export default function AdminUsuarios() {
                   <td className="p-4">
                     <div>
                       <div className="font-medium">{usuario.totalCompras} pedidos</div>
-                      <div className="text-sm text-gray-500">R$ {usuario.totalGasto.toLocaleString()}</div>
+                      <div className="text-sm text-gray-500">KZ {usuario.totalGasto.toLocaleString()}</div>
                     </div>
                   </td>
                   <td className="p-4">

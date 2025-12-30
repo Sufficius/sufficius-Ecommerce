@@ -1,17 +1,23 @@
 import AdminLogin from "@/(admin)/pages/Login";
+import { IRouteProps } from "@/interfaces/routes/route";
+import Landing from "@/pages/Landing";
 import { AuthLayout } from "@/pages/layout/authLayout";
 import { NotFound } from "@/pages/not-found";
 
-
 export const AuthRoutes: IRouteProps = {
-  path: "/admin",
+  path: "/",
   element: AuthLayout,
-  visibility: "auth",
+  visibility: "public",
   children: [
+      {
+      path: "/",
+      element: Landing,
+      visibility: "public", // Mude para "private"
+    },
     {
-      path: "/admin/login",
+      path: "/login",
       element: AdminLogin,
-      visibility: "auth",
+      visibility: "public",
     },
     // {
     //   path: "/auth/register",
@@ -21,7 +27,7 @@ export const AuthRoutes: IRouteProps = {
     {
       path: "*",
       element: NotFound,
-      visibility: "auth",
+      visibility: "public",
     },
   ],
 };

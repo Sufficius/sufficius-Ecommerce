@@ -17,13 +17,16 @@ import {
   Instagram,
   Linkedin,
   ChevronRight,
-  Heart
+  Heart,
+  LogOut,
 } from "lucide-react";
 import { CgClose, CgProfile } from "react-icons/cg";
 import { FiShoppingCart } from "react-icons/fi";
 import { BsEye } from "react-icons/bs";
-import { toast} from "sonner";
-import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/modules/services/store/auth-store";
+import { Button } from "@/components/ui/button";
 
 const ProductImage = ({ index }: { index: number }) => (
   <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
@@ -36,75 +39,107 @@ const ProductImage = ({ index }: { index: number }) => (
 
 const HeroSection = () => {
   const navigate = useNavigate();
+  const logged = useAuthStore((state) => state.isAuthenticated);
 
-  return(
-  <section className="relative px-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white overflow-hidden">
-    <div className="absolute inset-0 bg-black/50 z-0" />
-    <div className="relative max-w-7xl mx-auto px-4 py-24 md:py-32">
-      <div className="grid md:grid-cols-2 gap-12 items-center">
-        <div className="space-y-6">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-            <span className="text-[#D4AF37]">🔥</span>
-            <span className="text-sm">Oferta Especial Limitada</span>
-          </div>
-          
-          <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-            Descubra a Nova Coleção <span className="text-[#D4AF37]">{new Date().getFullYear()}</span>
-          </h1>
-          
-          <p className="text-gray-300 text-lg">
-            Qualidade premium, preços imbatíveis. Encontre tudo o que precisa em um só lugar.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button 
-            onClick={()=>navigate("/checkout")}
-            className="bg-[#D4AF37] text-gray-900 font-semibold px-8 py-3 rounded-lg hover:bg-[#c19b2c] transition-all transform hover:scale-105">
-              Comprar Agora
-            </button>
-            <button className="border-2 border-white text-white font-semibold px-8 py-3 rounded-lg hover:bg-white/10 transition">
-              Ver Coleção
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-6 pt-8">
-            <div>
-              <div className="text-2xl font-bold">10K+</div>
-              <div className="text-gray-400">Clientes Satisfeitos</div>
+  const handleCompra = () => {
+    if (logged) {
+      navigate("/checkout");
+    } else {
+      navigate("/login");
+    }
+  };
+
+  return (
+    <section className="relative px-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white overflow-hidden">
+      <div className="absolute inset-0 bg-black/50 z-0" />
+      <div className="relative max-w-7xl mx-auto px-4 py-24 md:py-32">
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+              <span className="text-[#D4AF37]">🔥</span>
+              <span className="text-sm">Oferta Especial Limitada</span>
             </div>
-            <div>
-              <div className="text-2xl font-bold">5K+</div>
-              <div className="text-gray-400">Produtos Premium</div>
+
+            <h1 className="text-5xl md:text-6xl font-bold leading-tight">
+              Descubra a Nova Coleção{" "}
+              <span className="text-[#D4AF37]">{new Date().getFullYear()}</span>
+            </h1>
+
+            <p className="text-gray-300 text-lg">
+              Qualidade premium, preços imbatíveis. Encontre tudo o que precisa
+              em um só lugar.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={handleCompra}
+                className="bg-[#D4AF37] text-gray-900 font-semibold px-8 py-3 rounded-lg hover:bg-[#c19b2c] transition-all transform hover:scale-105"
+              >
+                Comprar Agora
+              </button>
+              <button className="border-2 border-white text-white font-semibold px-8 py-3 rounded-lg hover:bg-white/10 transition">
+                Ver Coleção
+              </button>
             </div>
-            <div>
-              <div className="text-2xl font-bold">24/7</div>
-              <div className="text-gray-400">Suporte Online</div>
+
+            <div className="grid grid-cols-3 gap-6 pt-8">
+              <div>
+                <div className="text-2xl font-bold">10K+</div>
+                <div className="text-gray-400">Clientes Satisfeitos</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold">5K+</div>
+                <div className="text-gray-400">Produtos Premium</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold">24/7</div>
+                <div className="text-gray-400">Suporte Online</div>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <div className="relative">
-          <div className="relative h-[400px] rounded-2xl overflow-hidden shadow-2xl">
-            <ProductImage index={1} />
+
+          <div className="relative">
+            <div className="relative h-[400px] rounded-2xl overflow-hidden shadow-2xl">
+              <ProductImage index={1} />
+            </div>
+            <div className="absolute -bottom-6 -left-6 w-64 h-64 bg-gradient-to-r from-[#D4AF37] to-yellow-500 rounded-2xl -z-10" />
           </div>
-          <div className="absolute -bottom-6 -left-6 w-64 h-64 bg-gradient-to-r from-[#D4AF37] to-yellow-500 rounded-2xl -z-10" />
         </div>
       </div>
-    </div>
-  </section>
-  )};
+    </section>
+  );
+};
 
 const Features = () => (
   <section className="py-16 bg-white">
     <div className="max-w-7xl mx-auto px-4">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
         {[
-          { icon: <Truck className="h-8 w-8" />, title: "Entrega Rápida", desc: "Entrega em 24-48h" },
-          { icon: <Shield className="h-8 w-8" />, title: "Garantia", desc: "30 dias para devolução" },
-          { icon: <CreditCard className="h-8 w-8" />, title: "Pagamento Seguro", desc: "100% protegido" },
-          { icon: <Users className="h-8 w-8" />, title: "Suporte 24/7", desc: "Atendimento especializado" }
+          {
+            icon: <Truck className="h-8 w-8" />,
+            title: "Entrega Rápida",
+            desc: "Entrega em 24-48h",
+          },
+          {
+            icon: <Shield className="h-8 w-8" />,
+            title: "Garantia",
+            desc: "30 dias para devolução",
+          },
+          {
+            icon: <CreditCard className="h-8 w-8" />,
+            title: "Pagamento Seguro",
+            desc: "100% protegido",
+          },
+          {
+            icon: <Users className="h-8 w-8" />,
+            title: "Suporte 24/7",
+            desc: "Atendimento especializado",
+          },
         ].map((feature, idx) => (
-          <div key={idx} className="flex flex-col items-center text-center p-6 border rounded-xl hover:shadow-lg transition">
+          <div
+            key={idx}
+            className="flex flex-col items-center text-center p-6 border rounded-xl hover:shadow-lg transition"
+          >
             <div className="p-3 bg-[#D4AF37]/10 rounded-full mb-4">
               {feature.icon}
             </div>
@@ -132,13 +167,17 @@ const FeaturedCategories = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">Categorias em Destaque</h2>
-          <p className="text-gray-600">Navegue por nossas principais categorias</p>
+          <p className="text-gray-600">
+            Navegue por nossas principais categorias
+          </p>
         </div>
-        
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {categories.map((cat, idx) => (
             <div key={idx} className="group cursor-pointer">
-              <div className={`${cat.color} h-32 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition`}>
+              <div
+                className={`${cat.color} h-32 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition`}
+              >
                 <Package className="h-12 w-12 text-white" />
               </div>
               <div className="text-center">
@@ -158,19 +197,28 @@ const Testimonials = () => (
     <div className="max-w-7xl mx-auto px-4">
       <div className="text-center mb-12">
         <h2 className="text-3xl font-bold mb-4">O que nossos clientes dizem</h2>
-        <p className="text-gray-600">Avaliações verificadas de compradores reais</p>
+        <p className="text-gray-600">
+          Avaliações verificadas de compradores reais
+        </p>
       </div>
-      
+
       <div className="grid md:grid-cols-3 gap-8">
         {[1, 2, 3].map((_, idx) => (
-          <div key={idx} className="border rounded-xl p-6 hover:shadow-lg transition">
+          <div
+            key={idx}
+            className="border rounded-xl p-6 hover:shadow-lg transition"
+          >
             <div className="flex items-center mb-4">
               {[1, 2, 3, 4, 5].map((star) => (
-                <Star key={star} className="h-4 w-4 text-[#D4AF37] fill-current" />
+                <Star
+                  key={star}
+                  className="h-4 w-4 text-[#D4AF37] fill-current"
+                />
               ))}
             </div>
             <p className="text-gray-600 mb-4 italic">
-              "Produto de excelente qualidade! Entrega super rápida e atendimento impecável."
+              "Produto de excelente qualidade! Entrega super rápida e
+              atendimento impecável."
             </p>
             <div className="flex items-center">
               <div className="h-10 w-10 bg-gray-200 rounded-full mr-3"></div>
@@ -189,11 +237,13 @@ const Testimonials = () => (
 const Newsletter = () => (
   <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
     <div className="max-w-3xl mx-auto px-4 text-center">
-      <h2 className="text-3xl font-bold mb-4">Fique por dentro das novidades</h2>
+      <h2 className="text-3xl font-bold mb-4">
+        Fique por dentro das novidades
+      </h2>
       <p className="text-gray-300 mb-8">
         Inscreva-se para receber ofertas exclusivas e lançamentos
       </p>
-      
+
       <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
         <input
           type="email"
@@ -204,7 +254,7 @@ const Newsletter = () => (
           Inscrever-se
         </button>
       </div>
-      
+
       <p className="text-sm text-gray-400 mt-4">
         Ao se inscrever, você concorda com nossa Política de Privacidade
       </p>
@@ -233,27 +283,30 @@ const Footer = () => (
             <Linkedin className="h-5 w-5 cursor-pointer hover:text-[#D4AF37]" />
           </div>
         </div>
-        
+
         {[
           {
             title: "Loja",
-            links: ["Produtos", "Categorias", "Ofertas", "Novidades"]
+            links: ["Produtos", "Categorias", "Ofertas", "Novidades"],
           },
           {
             title: "Empresa",
-            links: ["Sobre nós", "Contato", "Carreiras", "Blog"]
+            links: ["Sobre nós", "Contato", "Carreiras", "Blog"],
           },
           {
             title: "Suporte",
-            links: ["FAQ", "Trocas", "Entregas", "Pagamentos"]
-          }
+            links: ["FAQ", "Trocas", "Entregas", "Pagamentos"],
+          },
         ].map((section, idx) => (
           <div key={idx}>
             <h3 className="font-bold text-lg mb-4">{section.title}</h3>
             <ul className="space-y-2">
               {section.links.map((link, linkIdx) => (
                 <li key={linkIdx}>
-                  <a href="#" className="text-gray-400 hover:text-[#D4AF37] transition">
+                  <a
+                    href="#"
+                    className="text-gray-400 hover:text-[#D4AF37] transition"
+                  >
                     {link}
                   </a>
                 </li>
@@ -262,9 +315,12 @@ const Footer = () => (
           </div>
         ))}
       </div>
-      
+
       <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-        <p>© {new Date().getFullYear()} Sufficius Commerce. Todos os direitos reservados.</p>
+        <p>
+          © {new Date().getFullYear()} Sufficius Commerce. Todos os direitos
+          reservados.
+        </p>
       </div>
     </div>
   </footer>
@@ -274,16 +330,16 @@ const Footer = () => (
 const ProductsSection = () => {
   const [quantidade, setQuantidade] = useState(1);
   const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null);
-  
+
   const produtos = [
     {
       id: 1,
       nome: "Smartphone Premium",
-      descricao: "128GB, Tela 6.7\", Câmera Tripla",
+      descricao: '128GB, Tela 6.7", Câmera Tripla',
       preco: 8999,
       categoria: "Eletrônicos",
       rating: 4.5,
-      vendas: 234
+      vendas: 234,
     },
     {
       id: 2,
@@ -292,7 +348,7 @@ const ProductsSection = () => {
       preco: 12599,
       categoria: "Eletrônicos",
       rating: 4.8,
-      vendas: 189
+      vendas: 189,
     },
     {
       id: 3,
@@ -301,7 +357,7 @@ const ProductsSection = () => {
       preco: 1999,
       categoria: "Áudio",
       rating: 4.3,
-      vendas: 456
+      vendas: 456,
     },
     {
       id: 4,
@@ -310,7 +366,7 @@ const ProductsSection = () => {
       preco: 3299,
       categoria: "TV & Vídeo",
       rating: 4.6,
-      vendas: 123
+      vendas: 123,
     },
     {
       id: 5,
@@ -319,7 +375,7 @@ const ProductsSection = () => {
       preco: 4599,
       categoria: "Games",
       rating: 4.7,
-      vendas: 312
+      vendas: 312,
     },
     {
       id: 6,
@@ -328,12 +384,12 @@ const ProductsSection = () => {
       preco: 1599,
       categoria: "Wearables",
       rating: 4.4,
-      vendas: 278
+      vendas: 278,
     },
   ];
 
   const handleQuantidade = (action: "increment" | "decrement") => {
-    setQuantidade(prev =>
+    setQuantidade((prev) =>
       action === "increment" ? prev + 1 : prev > 1 ? prev - 1 : 1
     );
   };
@@ -354,10 +410,13 @@ const ProductsSection = () => {
             Ver todos <ChevronRight className="ml-1 h-4 w-4" />
           </button>
         </div>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {produtos.map((produto) => (
-            <div key={produto.id} className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300">
+            <div
+              key={produto.id}
+              className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
+            >
               <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                 <ProductImage index={produto.id} />
                 <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white">
@@ -367,7 +426,7 @@ const ProductsSection = () => {
                   -20%
                 </div>
               </div>
-              
+
               <div className="p-4">
                 <div className="flex justify-between items-start mb-2">
                   <div>
@@ -379,15 +438,17 @@ const ProductsSection = () => {
                     <span className="ml-1 text-sm">{produto.rating}</span>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-between items-center mt-4">
                   <div>
                     <p className="text-2xl font-bold text-[#D4AF37]">
-                      R$ {produto.preco.toLocaleString()}
+                      KZ {produto.preco.toLocaleString()}
                     </p>
-                    <p className="text-sm text-gray-500">{produto.vendas} vendas</p>
+                    <p className="text-sm text-gray-500">
+                      {produto.vendas} vendas
+                    </p>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
@@ -411,7 +472,7 @@ const ProductsSection = () => {
           ))}
         </div>
       </div>
-      
+
       {/* Modal de Detalhes do Produto */}
       {produtoSelecionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -422,29 +483,38 @@ const ProductsSection = () => {
                   <ProductImage index={produtoSelecionado.id} />
                 </div>
               </div>
-              
+
               <div className="md:w-1/2">
-                <h2 className="text-3xl font-bold mb-2">{produtoSelecionado.nome}</h2>
+                <h2 className="text-3xl font-bold mb-2">
+                  {produtoSelecionado.nome}
+                </h2>
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex">
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} className="h-4 w-4 text-[#D4AF37] fill-current" />
+                      <Star
+                        key={star}
+                        className="h-4 w-4 text-[#D4AF37] fill-current"
+                      />
                     ))}
                   </div>
-                  <span className="text-gray-600">({produtoSelecionado.vendas} vendas)</span>
+                  <span className="text-gray-600">
+                    ({produtoSelecionado.vendas} vendas)
+                  </span>
                 </div>
-                
-                <p className="text-gray-600 mb-6">{produtoSelecionado.descricao}</p>
-                
+
+                <p className="text-gray-600 mb-6">
+                  {produtoSelecionado.descricao}
+                </p>
+
                 <div className="mb-6">
                   <div className="text-4xl font-bold text-[#D4AF37] mb-2">
-                    R$ {produtoSelecionado.preco.toLocaleString()}
+                    KZ {produtoSelecionado.preco.toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-500">
-                    ou 12x de R$ {(produtoSelecionado.preco / 12).toFixed(2)}
+                    ou 12x de KZ {(produtoSelecionado.preco / 12).toFixed(2)}
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center border rounded-lg">
@@ -466,7 +536,7 @@ const ProductsSection = () => {
                       {20 - quantidade} unidades disponíveis
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-3">
                     <button
                       onClick={() => {
@@ -503,12 +573,17 @@ const Header = () => {
   const [quantidades, setQuantidades] = useState<Record<number, number>>({});
   const [carrinho, setCarrinho] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const user = useAuthStore((state) => state.user);
+  const logged = useAuthStore((state) => state.isAuthenticated);
 
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
         setProfileOpen(false);
       }
     };
@@ -517,15 +592,16 @@ const Header = () => {
   }, []);
 
   const handleQuantidade = (id: number, action: "increment" | "decrement") => {
-    setQuantidades(prev => {
+    setQuantidades((prev) => {
       const atual = prev[id] || 1;
-      const nova = action === "increment" ? atual + 1 : atual > 1 ? atual - 1 : 1;
+      const nova =
+        action === "increment" ? atual + 1 : atual > 1 ? atual - 1 : 1;
       return { ...prev, [id]: nova };
     });
   };
 
   const removerDoCarrinho = (id: number) => {
-    setCarrinho(carrinho.filter(item => item !== id));
+    setCarrinho(carrinho.filter((item) => item !== id));
     toast.info("Produto removido do carrinho");
   };
 
@@ -539,10 +615,10 @@ const Header = () => {
     setCartOpen(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    toast.success("Logout efetuado!");
-    window.location.reload();
+  const logout = useAuthStore((state) => state.logout);
+
+  const handleLogout = async () => {
+    await logout();
   };
 
   const produtosExemplo = [
@@ -552,7 +628,7 @@ const Header = () => {
   ];
 
   const total = carrinho.reduce((acc, id) => {
-    const produto = produtosExemplo.find(p => p.id === id);
+    const produto = produtosExemplo.find((p) => p.id === id);
     const qtd = quantidades[id] || 1;
     return produto ? acc + produto.preco * qtd : acc;
   }, 0);
@@ -567,7 +643,9 @@ const Header = () => {
                 <span className="font-bold text-white text-lg">S</span>
               </div>
               <div className="flex flex-col">
-                <span className="font-bold text-gray-900 text-xl">Sufficius</span>
+                <span className="font-bold text-gray-900 text-xl">
+                  Sufficius
+                </span>
                 <p className="text-xs text-gray-500">Commerce</p>
               </div>
             </div>
@@ -586,28 +664,44 @@ const Header = () => {
 
             {/* NAV */}
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-700">
-              <a href="#inicio" className="hover:text-[#D4AF37] transition">Início</a>
-              <a href="#produtos" className="hover:text-[#D4AF37] transition">Produtos</a>
-              <a href="#categorias" className="hover:text-[#D4AF37] transition">Categorias</a>
-              <a href="#ofertas" className="hover:text-[#D4AF37] transition">Ofertas</a>
-              <a href="#contato" className="hover:text-[#D4AF37] transition">Contato</a>
+              <a href="#inicio" className="hover:text-[#D4AF37] transition">
+                Início
+              </a>
+              <a href="#produtos" className="hover:text-[#D4AF37] transition">
+                Produtos
+              </a>
+              <a href="#categorias" className="hover:text-[#D4AF37] transition">
+                Categorias
+              </a>
+              <a href="#contato" className="hover:text-[#D4AF37] transition">
+                Contato
+              </a>
             </nav>
 
             {/* ACTIONS */}
             <div className="flex items-center gap-4">
               <div className="relative" ref={profileRef}>
-                <button
-                  onClick={() => setProfileOpen(!profileOpen)}
-                  className="p-2 rounded-full hover:bg-gray-100"
-                >
-                  <CgProfile size={24} />
-                </button>
-                
-                {profileOpen && (
+                {logged && (
+                  <div className="flex gap-2 items-center">
+                    <button
+                      onClick={() => setProfileOpen(!profileOpen)}
+                      className="p-2 rounded-full hover:bg-gray-100"
+                    >
+                      <CgProfile size={24} />
+                    </button>
+                    <Link to={"/dashboard"}>
+                      <Button>Voltar</Button>
+                    </Link>
+                  </div>
+                )}
+
+                {profileOpen && logged && (
                   <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-50">
                     <div className="p-3 border-b">
                       <p className="font-medium">Bem-vindo!</p>
-                      <p className="text-sm text-gray-600">usuário@exemplo.com</p>
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {user?.email}
+                      </p>
                     </div>
                     <button className="w-full text-left px-4 py-2 hover:bg-gray-100">
                       Minha Conta
@@ -617,10 +711,19 @@ const Header = () => {
                     </button>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 border-t"
+                      className="w-full text-left flex gap-2 px-4 py-2 text-red-600 hover:bg-gray-100 border-t"
                     >
-                      Sair
+                      <LogOut size={20} />
+                      Terminar Sessão
                     </button>
+                  </div>
+                ) || (
+                  <div className="">
+                    {!logged && (
+                      <Link to={"/login"}>
+                        <Button>Entrar</Button>
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
@@ -654,11 +757,18 @@ const Header = () => {
                 className="w-full border rounded-lg px-4 py-2 mb-4"
               />
               <div className="space-y-3">
-                <a href="#inicio" className="block py-2">Início</a>
-                <a href="#produtos" className="block py-2">Produtos</a>
-                <a href="#categorias" className="block py-2">Categorias</a>
-                <a href="#ofertas" className="block py-2">Ofertas</a>
-                <a href="#contato" className="block py-2">Contato</a>
+                <a href="#inicio" className="block py-2">
+                  Início
+                </a>
+                <a href="#produtos" className="block py-2">
+                  Produtos
+                </a>
+                <a href="#categorias" className="block py-2">
+                  Categorias
+                </a>
+                <a href="#contato" className="block py-2">
+                  Contato
+                </a>
               </div>
             </div>
           </div>
@@ -670,7 +780,9 @@ const Header = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-6 max-h-[80vh] flex flex-col">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Meu Carrinho ({carrinho.length})</h2>
+              <h2 className="text-xl font-bold">
+                Meu Carrinho ({carrinho.length})
+              </h2>
               <button onClick={() => setCartOpen(false)} className="p-1">
                 <X size={24} />
               </button>
@@ -690,11 +802,11 @@ const Header = () => {
             ) : (
               <>
                 <div className="flex-1 overflow-y-auto">
-                  {carrinho.map(id => {
-                    const produto = produtosExemplo.find(p => p.id === id);
+                  {carrinho.map((id) => {
+                    const produto = produtosExemplo.find((p) => p.id === id);
                     if (!produto) return null;
                     const qtd = quantidades[id] || 1;
-                    
+
                     return (
                       <div key={id} className="flex items-center border-b py-4">
                         <div className="h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
@@ -703,7 +815,7 @@ const Header = () => {
                         <div className="ml-4 flex-1">
                           <h3 className="font-medium">{produto.nome}</h3>
                           <p className="text-[#D4AF37] font-semibold">
-                            R$ {produto.preco.toLocaleString()}
+                            KZ {produto.preco.toLocaleString()}
                           </p>
                           <div className="flex items-center gap-2 mt-2">
                             <button
@@ -735,7 +847,7 @@ const Header = () => {
                 <div className="mt-4 pt-4 border-t">
                   <div className="flex justify-between text-lg font-bold mb-4">
                     <span>Total:</span>
-                    <span>R$ {total.toLocaleString()}</span>
+                    <span>KZ {total.toLocaleString()}</span>
                   </div>
                   <button
                     onClick={finalizarCompra}
@@ -757,16 +869,24 @@ const Header = () => {
 export default function Landing() {
   return (
     <div className="min-h-screen bg-white">
-      <Header />
+      <div id="inicio">
+        <Header />
+      </div>
+
       <HeroSection />
       <Features />
       <div id="produtos">
         <ProductsSection />
       </div>
-      <FeaturedCategories />
+      <div id="categorias">
+        <FeaturedCategories />
+      </div>
+
       <Testimonials />
       <Newsletter />
-      <Footer />
+      <div id="contato">
+        <Footer />
+      </div>
     </div>
   );
 }
