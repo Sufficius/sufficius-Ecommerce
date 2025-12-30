@@ -18,11 +18,9 @@ export default function AdminLogin() {
   const [googleClientId, setGoogleClientId] = useState<string | null>(null);
   const googleScriptLoaded = useRef(false);
   const googleInitialized = useRef(false);
-  const googleInitAttempted = useRef(false);
 
   const login = useAuthStore((state) => state.login);
 
-  // CORREÇÃO: Use apenas react-hook-form
   const {
     register,
     handleSubmit,
@@ -42,16 +40,21 @@ export default function AdminLogin() {
     if (clientId && !clientId.includes("your-google-client-id")) {
       setGoogleClientId(clientId);
       
-      if (!googleScriptLoaded.current) {
-        loadGoogleScript(() => {});
-      }
+      // Pré-carregar o script do Google
+      loadGoogleScript();
     } else {
-      // console.warn("⚠️  Google Client ID não configurado ou está com valor padrão");
+      console.warn("⚠️ Google Client ID não configurado no .env");
       setGoogleClientId(null);
     }
   }, []);
 
-  // CORREÇÃO: Função onSubmit simplificada e correta
+  // Inicializar o Google quando o script carregar
+  useEffect(() => {
+    if (googleClientId && googleScriptLoaded.current && !googleInitialized.current) {
+      initializeGoogleSignIn();
+    }
+  }, [googleClientId]);
+
   const onSubmit = async (data: LoginData) => {
     setLoading(true);
     setLoginError("");
@@ -62,13 +65,11 @@ export default function AdminLogin() {
         password: data.password
       });
 
-
       const { user, token } = response;
       if (user && token) {
         login(user, token);
         
-        // CORREÇÃO: Verifique tanto 'role' quanto 'tipo'
-        const userRole = user.role || user.role;
+        const userRole = user.role || user.tipo;
         if (userRole === "ADMIN") {
           navigate("/dashboard");
           toast.success("Login realizado com sucesso!");
@@ -78,9 +79,7 @@ export default function AdminLogin() {
       }
     } catch (error: any) {
       console.error("❌ Erro completo no login:", error);
-      console.error("📊 Status:", error.response?.status);
-      console.error("📄 Dados do erro:", error.response?.data);
-
+      
       let errorMessage = "Erro ao fazer login. Tente novamente.";
       
       if (error.response?.status === 401) {
@@ -94,7 +93,6 @@ export default function AdminLogin() {
       setLoginError(errorMessage);
       toast.error(errorMessage);
       
-      // Configurar erro no formulário
       if (error.response?.data?.field === "email") {
         setError("email", { type: "manual", message: errorMessage });
       } else if (error.response?.data?.field === "password") {
@@ -105,56 +103,81 @@ export default function AdminLogin() {
     }
   };
 
-  // Função para carregar script do Google
-  const loadGoogleScript = (callback: () => void) => {
+  // Função simplificada para carregar script do Google
+  const loadGoogleScript = () => {
     if (googleScriptLoaded.current) {
-      console.log("ℹ️  Script do Google já carregado");
-      callback();
       return;
     }
 
     if (document.querySelector('script[src="https://accounts.google.com/gsi/client"]')) {
       googleScriptLoaded.current = true;
-      callback();
       return;
     }
 
-    console.log("📥 Carregando script do Google Identity Services...");
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
     script.onload = () => {
       googleScriptLoaded.current = true;
-      setTimeout(() => callback(), 100);
+      console.log("✅ Google Identity Services carregado");
     };
     script.onerror = () => {
       console.error("❌ Falha ao carregar script do Google");
-      toast.error("Erro ao carregar serviço do Google. Usando modo desenvolvimento.");
-      callback();
     };
     document.head.appendChild(script);
   };
 
-  // NOVA FUNÇÃO: Inicializar o Google Sign-In uma única vez
-  const initGoogleSignInOnce = () => {
-    if (googleInitialized.current) {
-      console.log("ℹ️  Google já inicializado, mostrando prompt");
+  // Inicializar o Google Sign-In
+  const initializeGoogleSignIn = () => {
+    if (googleInitialized.current || !googleClientId) return;
+    
+    try {
       // @ts-ignore
-      if (window.google?.accounts?.id?.prompt) {
-        // @ts-ignore
-        window.google.accounts.id.prompt();
+      if (!window.google || !window.google.accounts) {
+        console.warn("Google Identity Services não carregado ainda");
+        return;
       }
-      return true;
+
+      // @ts-ignore
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleCredentialResponse,
+        auto_select: false,
+        context: "signin",
+        ux_mode: "popup",
+        itp_support: true,
+        // Configurações para evitar o warning do FedCM
+        use_fedcm_for_prompt: true,
+      });
+
+      googleInitialized.current = true;
+      console.log("✅ Google Identity Services inicializado");
+      
+    } catch (error: any) {
+      console.error("❌ Erro ao inicializar Google Sign-In:", error.message);
+      
+      if (error.message.includes("origin") || error.message.includes("not allowed")) {
+        toast.error(
+          <div className="text-sm">
+            <p className="font-semibold">Google OAuth não configurado corretamente</p>
+            <p className="mt-1">
+              Você precisa configurar o Google Cloud Console:<br/>
+              1. Acesse <a href="https://console.cloud.google.com" target="_blank" className="underline">Google Cloud Console</a><br/>
+              2. Vá para "APIs & Services" → "Credentials"<br/>
+              3. Clique no seu OAuth 2.0 Client ID<br/>
+              4. Em "Authorized JavaScript origins" adicione:<br/>
+              • <code>http://localhost:5173</code><br/>
+              • <code>http://localhost:3000</code><br/>
+              5. Em "Authorized redirect URIs" adicione:<br/>
+              • <code>http://localhost:5173</code><br/>
+              • <code>http://localhost:3000</code>
+            </p>
+          </div>,
+          { duration: 10000 }
+        );
+      }
     }
-    
-    if (googleInitAttempted.current) {
-      console.log("ℹ️  Inicialização do Google já tentada, aguardando...");
-      return false;
-    }
-    
-    googleInitAttempted.current = true;
-    return initializeGoogleSignIn();
   };
 
   // Função para login com Google
@@ -170,133 +193,67 @@ export default function AdminLogin() {
       return;
     }
 
-    // console.log("🔄 Iniciando login com Google...");
-    
-    loadGoogleScript(() => {
-      console.log("🔧 Tentando inicializar Google Sign-In...");
+    // Verifica se o Google já está inicializado
+    if (!googleInitialized.current) {
+      loadGoogleScript();
       
-      const checkGoogleReady = () => {
-        // @ts-ignore
-        if (window.google && window.google.accounts && window.google.accounts.id) {
-          // console.log("✅ Google Identity Services está pronto");
-          
-          if (initGoogleSignInOnce()) {
-            renderGoogleButton();
-          }
-        } else {
-          // console.warn("⚠️  Google ainda não está pronto, tentando novamente...");
-          
-          if (googleInitAttempted.current) {
-            setTimeout(checkGoogleReady, 100);
-          } else {
-            setTimeout(() => {
-              if (!googleInitialized.current) {
-                console.error("❌ Timeout ao aguardar Google");
-                toast.error("Serviço do Google não respondeu. Usando modo desenvolvimento.");
-                handleGoogleDevLogin();
-              }
-            }, 1000);
-          }
-        }
-      };
+      // Tenta inicializar se o script já carregou
+      if (googleScriptLoaded.current) {
+        initializeGoogleSignIn();
+      }
       
-      checkGoogleReady();
-    });
+      // Aguarda um pouco para garantir a inicialização
+      setTimeout(() => {
+        triggerGoogleLogin();
+      }, 500);
+    } else {
+      triggerGoogleLogin();
+    }
   };
 
-  const initializeGoogleSignIn = () => {
+  // Função para acionar o popup do Google
+  const triggerGoogleLogin = () => {
     try {
-      // console.log("🔐 Inicializando Google Identity Services...");
-      
       // @ts-ignore
-      if (!window.google || !window.google.accounts) {
-        throw new Error("Google Identity Services não carregado");
-      }
-
-      // @ts-ignore
-      window.google.accounts.id.initialize({
-        client_id: googleClientId,
-        callback: handleGoogleCredentialResponse,
-        auto_select: false,
-        context: "signin",
-        ux_mode: "popup",
-        itp_support: true,
-      });
-
-      // console.log("✅ Google Identity Services inicializado");
-      googleInitialized.current = true;
-      
-      renderGoogleButton();
-      
-      try {
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        // Método direto para acionar o popup do Google
         // @ts-ignore
-        window.google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // console.log("ℹ️  One Tap não mostrado (pode ser bloqueado por popup blocker)");
-          } else {
-            // console.log("✅ One Tap mostrado ao usuário");
-          }
+        window.google.accounts.id.prompt();
+        
+        // Alternativa: usar o método renderButton para criar um botão temporário
+        const tempContainer = document.createElement('div');
+        // @ts-ignore
+        window.google.accounts.id.renderButton(tempContainer, {
+          type: "standard",
+          theme: "outline",
+          size: "large",
+          text: "signin_with",
+          shape: "rectangular",
+          logo_alignment: "left",
+          width: 240,
+          locale: "pt_BR"
         });
-      } catch (promptError) {
-        // console.warn("⚠️  Não foi possível mostrar One Tap:", promptError);
+        
+        // Simula clique no botão
+        const button = tempContainer.querySelector('div[role="button"]');
+        if (button) {
+          (button as HTMLElement).click();
+        }
+        
+      } else {
+        console.error("Google Identity Services não disponível");
+        toast.error("Serviço do Google não está disponível. Verifique sua conexão.");
+        setIsGoogleLoading(false);
       }
-      
-      return true;
-      
-    } catch (error: any) {
-      console.error("❌ Erro ao inicializar Google Sign-In:", error.message);
-      googleInitAttempted.current = false;
-      
-      if (error.message.includes("origin") || error.message.includes("not allowed")) {
-        toast.error(
-          <div className="text-sm">
-            <p className="font-semibold">Google OAuth não configurado corretamente</p>
-            <p className="mt-1">Adicione <code>http://localhost:5173</code> às "Authorized JavaScript origins"</p>
-          </div>,
-          { duration: 5000 }
-        );
-      }
-      
-      handleGoogleDevLogin();
-      return false;
-    } finally {
+    } catch (error) {
+      console.error("Erro ao acionar Google Login:", error);
+      toast.error("Erro ao abrir login do Google");
       setIsGoogleLoading(false);
     }
   };
 
-  // Função para renderizar o botão do Google
-  const renderGoogleButton = () => {
-    const buttonContainer = document.getElementById("googleSignInButton");
-    if (!buttonContainer) {
-      console.warn("⚠️  Container do botão Google não encontrado");
-      return;
-    }
-
-    buttonContainer.innerHTML = "";
-    
-    try {
-      // @ts-ignore
-      window.google.accounts.id.renderButton(buttonContainer, {
-        type: "standard",
-        theme: "outline",
-        size: "large",
-        text: "continue_with",
-        shape: "rectangular",
-        logo_alignment: "left",
-        width: 300,
-        locale: "pt_BR"
-      });
-      
-      console.log("✅ Botão Google renderizado");
-    } catch (error) {
-      console.error("❌ Erro ao renderizar botão Google:", error);
-    }
-  };
-
   const handleGoogleCredentialResponse = async (response: any) => {
-    try {
-      console.log("🔑 Resposta do Google recebida");
-      
+    try {      
       const backendResponse = await authRoute.googleLogin(response.credential);
       
       if (backendResponse.token && backendResponse.user) {
@@ -305,11 +262,11 @@ export default function AdminLogin() {
         login(user, token);
         toast.success("Login com Google realizado com sucesso!");
         
-        const userRole = user.role || user;
+        const userRole = user.role || user.tipo;
         if (userRole === "ADMIN") {
           navigate("/dashboard");
         } else {
-          navigate("/proposta");
+          navigate("/checkout");
         }
       } else {
         throw new Error("Falha na autenticação");
@@ -325,6 +282,8 @@ export default function AdminLogin() {
         errorMsg = "Erro de conexão com o servidor";
       } else if (error.response?.status === 403) {
         errorMsg = "Acesso não autorizado";
+      } else if (error.response?.status === 400 && error.response?.data?.message?.includes("origin")) {
+        errorMsg = "Domínio não autorizado. Configure corretamente no Google Cloud Console.";
       }
       
       toast.error(errorMsg);
@@ -362,7 +321,7 @@ export default function AdminLogin() {
       toast.success("Login de desenvolvimento realizado!");
       
       setTimeout(() => {
-        navigate("/proposta");
+        navigate("/dashboard");
       }, 500);
 
     } catch (error) {
@@ -372,16 +331,6 @@ export default function AdminLogin() {
       setIsGoogleLoading(false);
     }
   };
-
-  // Efeito para pré-carregar o Google
-  useEffect(() => {
-    if (googleClientId && !googleScriptLoaded.current) {
-      console.log("🚀 Pré-carregando Google Identity Services...");
-      loadGoogleScript(() => {
-        console.log("✅ Google pré-carregado para uso futuro");
-      });
-    }
-  }, [googleClientId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">
@@ -410,14 +359,12 @@ export default function AdminLogin() {
             Apenas administradores autorizados
           </p>
 
-          {/* CORREÇÃO: Mensagem de erro */}
           {loginError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600 text-sm">{loginError}</p>
             </div>
           )}
 
-          {/* CORREÇÃO: Formulário usando react-hook-form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -513,7 +460,7 @@ export default function AdminLogin() {
             </button>
           </form>
 
-          {/* Seção Google Login (opcional) */}
+          {/* Seção Google Login */}
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -528,7 +475,7 @@ export default function AdminLogin() {
               <button
                 onClick={handleGoogleLogin}
                 disabled={isGoogleLoading}
-                className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 w-full max-w-xs"
               >
                 {isGoogleLoading ? (
                   <>
@@ -560,10 +507,19 @@ export default function AdminLogin() {
                 )}
               </button>
             </div>
-          </div>
 
-          {/* Container para botão Google dinâmico (opcional) */}
-          <div id="googleSignInButton" className="mt-4 flex justify-center"></div>
+            {/* Instruções de configuração (apenas se houver erro) */}
+            {!googleClientId && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-yellow-800 text-sm">
+                  <strong>Google OAuth não configurado:</strong> Adicione no seu arquivo <code>.env</code>:
+                </p>
+                <pre className="text-xs mt-1 bg-black/10 p-2 rounded">
+                  VITE_GOOGLE_CLIENT_ID=seu-client-id-aqui
+                </pre>
+              </div>
+            )}
+          </div>
 
           {/* Aviso de segurança */}
           <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -580,17 +536,6 @@ export default function AdminLogin() {
               </div>
             </div>
           </div>
-
-          {/* {/* Info de acesso de teste */}
-          {/* <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              Para teste, use:
-            </p>
-            <p className="text-sm text-gray-700 mt-1">
-              Email: admin@test.com<br />
-              Senha: admin123
-            </p>
-          </div> */}
         </div> 
 
         {/* Footer */}

@@ -29,6 +29,7 @@ interface UserAuth {
         avatar: string | null,
         born: string,
         role: string,
+        tipo:string,
         BI:string,
     }
 }
