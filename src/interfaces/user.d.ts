@@ -23,7 +23,7 @@ interface UserAuth {
     token: string;
     user: {
         id_user: string,
-        name: string,
+        nome: string,
         email: string,
         phone_number: string,
         avatar: string | null,

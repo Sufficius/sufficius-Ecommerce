@@ -349,7 +349,7 @@ export default function AdminLogin() {
 
       const mockUser = {
         id_user: Date.now().toString(),
-        name: "Usuário Google Teste",
+        nome: "Usuário Google Teste",
         email: `google_test_${Date.now()}@example.com`,
         BI: `GOOGLE_DEV_${Date.now()}`,
         role: "ADMIN" as const,
