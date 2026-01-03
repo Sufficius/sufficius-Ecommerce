@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -12,120 +12,87 @@ import {
   Package,
   Tag,
   DollarSign,
-  ShoppingBag,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  Filter,
+  AlertTriangle
 } from "lucide-react";
+import { api } from "@/modules/services/api/axios";
+import { useAuthStore } from "@/modules/services/store/auth-store";
+import { formatCurrency } from "@/lib/utils";
+
+interface Produto {
+  id: string;
+  nome: string;
+  descricao?: string;
+  preco: number;
+  precoDesconto?: number;
+  percentualDesconto?: number;
+  estoque: number;
+  sku: string;
+  ativo: boolean;
+  emDestaque: boolean;
+  criadoEm: string;
+  categoria: string;
+  categoriaId?: string;
+  imagem?: string;
+  imagemAlt?: string;
+  status: string;
+}
+
+interface Paginacao {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+interface Estatisticas {
+  totalProdutos: number;
+  totalAtivos: number;
+  totalEmPromocao: number;
+  baixoEstoque: number;
+  totalCategorias: number;
+}
+
+interface Categoria {
+  id: string;
+  nome: string;
+  slug: string;
+}
 
 export default function AdminProdutos() {
   const navigate = useNavigate();
+  const token = useAuthStore((state) => state.token);
+  
   const [busca, setBusca] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [ordenar, setOrdenar] = useState("criadoEm_desc");
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const itensPorPagina = 10;
-
-  // Dados de exemplo
-  const produtos = [
-    {
-      id: 1,
-      nome: "iPhone 15 Pro",
-      categoria: "Smartphones",
-      preco: 8999,
-      precoPromo: 8599,
-      estoque: 45,
-      vendas: 234,
-      status: "ativo",
-      imagem: "📱",
-      sku: "SC-PH-001"
-    },
-    {
-      id: 2,
-      nome: "Notebook Dell XPS 15",
-      categoria: "Notebooks",
-      preco: 12599,
-      precoPromo: 0,
-      estoque: 12,
-      vendas: 89,
-      status: "ativo",
-      imagem: "💻",
-      sku: "SC-NB-002"
-    },
-    {
-      id: 3,
-      nome: "AirPods Pro 2",
-      categoria: "Áudio",
-      preco: 1999,
-      precoPromo: 1799,
-      estoque: 89,
-      vendas: 456,
-      status: "ativo",
-      imagem: "🎧",
-      sku: "SC-AP-003"
-    },
-    {
-      id: 4,
-      nome: "Monitor Samsung 4K",
-      categoria: "Monitores",
-      preco: 3299,
-      precoPromo: 2999,
-      estoque: 23,
-      vendas: 123,
-      status: "ativo",
-      imagem: "🖥️",
-      sku: "SC-MN-004"
-    },
-    {
-      id: 5,
-      nome: "Console PlayStation 5",
-      categoria: "Games",
-      preco: 4599,
-      precoPromo: 0,
-      estoque: 8,
-      vendas: 156,
-      status: "baixo_estoque",
-      imagem: "🎮",
-      sku: "SC-GM-005"
-    },
-    {
-      id: 6,
-      nome: "Smartwatch Apple",
-      categoria: "Wearables",
-      preco: 2599,
-      precoPromo: 2299,
-      estoque: 34,
-      vendas: 278,
-      status: "ativo",
-      imagem: "⌚",
-      sku: "SC-SW-006"
-    },
-    {
-      id: 7,
-      nome: "Teclado Mecânico RGB",
-      categoria: "Periféricos",
-      preco: 599,
-      precoPromo: 499,
-      estoque: 67,
-      vendas: 312,
-      status: "ativo",
-      imagem: "⌨️",
-      sku: "SC-TC-007"
-    },
-    {
-      id: 8,
-      nome: "Mouse Gamer Pro",
-      categoria: "Periféricos",
-      preco: 399,
-      precoPromo: 349,
-      estoque: 0,
-      vendas: 189,
-      status: "sem_estoque",
-      imagem: "🖱️",
-      sku: "SC-MS-008"
-    }
-  ];
-
-  const categorias = ["todos", "Smartphones", "Notebooks", "Áudio", "Monitores", "Games", "Wearables", "Periféricos"];
+  const [itensPorPagina] = useState(10);
+  
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [paginacao, setPaginacao] = useState<Paginacao>({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1
+  });
+  const [estatisticas, setEstatisticas] = useState<Estatisticas>({
+    totalProdutos: 0,
+    totalAtivos: 0,
+    totalEmPromocao: 0,
+    baixoEstoque: 0,
+    totalCategorias: 0
+  });
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [loadingEstatisticas, setLoadingEstatisticas] = useState(false);
 
   const statusProdutos = {
     ativo: { label: "Ativo", cor: "bg-green-100 text-green-800" },
@@ -134,40 +101,172 @@ export default function AdminProdutos() {
     sem_estoque: { label: "Sem Estoque", cor: "bg-red-100 text-red-800" }
   };
 
-  // Filtrar produtos
-  const produtosFiltrados = produtos.filter(produto => {
-    const buscaMatch = produto.nome.toLowerCase().includes(busca.toLowerCase()) ||
-                      produto.sku.toLowerCase().includes(busca.toLowerCase());
-    const categoriaMatch = filtroCategoria === "todos" || produto.categoria === filtroCategoria;
-    const statusMatch = filtroStatus === "todos" || produto.status === filtroStatus;
-    
-    return buscaMatch && categoriaMatch && statusMatch;
-  });
+  // Função para buscar produtos
+  const fetchProdutos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  // Paginação
-  const totalPaginas = Math.ceil(produtosFiltrados.length / itensPorPagina);
-  const inicio = (paginaAtual - 1) * itensPorPagina;
-  const fim = inicio + itensPorPagina;
-  const produtosPagina = produtosFiltrados.slice(inicio, fim);
+      const params = new URLSearchParams({
+        page: paginaAtual.toString(),
+        limit: itensPorPagina.toString(),
+        ordenar
+      });
 
-  const handleNovoProduto = () => {
-    navigate("/produtos/novo");
-  };
+      if (busca) params.append('busca', busca);
+      if (filtroCategoria !== 'todos') params.append('categoria', filtroCategoria);
+      if (filtroStatus !== 'todos') params.append('status', filtroStatus);
 
-  const handleEditarProduto = (id: number) => {
-    navigate(`/produtos/editar/${id}`);
-  };
+      const response = await api.get(`/produtos?${params.toString()}`);
 
-  const handleVisualizarProduto = (id: number) => {
-    navigate(`/produtos/${id}`);
-  };
-
-  const handleExcluirProduto = (id: number) => {
-    if (confirm("Tem certeza que deseja excluir este produto?")) {
-      // Lógica de exclusão
-      console.log(`Excluir produto ${id}`);
+      if (response.data.success) {
+        setProdutos(response.data.data.produtos);
+        setPaginacao(response.data.data.paginacao);
+        // Atualiza estatísticas básicas da resposta
+        if (response.data.data.estatisticas) {
+          setEstatisticas(prev => ({
+            ...prev,
+            totalProdutos: response.data.data.estatisticas.totalProdutos,
+            totalAtivos: response.data.data.estatisticas.totalAtivos,
+            totalEmPromocao: response.data.data.estatisticas.totalEmPromocao,
+            baixoEstoque: response.data.data.estatisticas.baixoEstoque,
+            totalCategorias: response.data.data.estatisticas.totalCategorias
+          }));
+        }
+      } else {
+        throw new Error('Erro ao carregar produtos');
+      }
+    } catch (err: any) {
+      console.error('Erro ao buscar produtos:', err);
+      setError(err.message || 'Erro ao carregar produtos');
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Função para buscar categorias
+  const fetchCategorias = async () => {
+    try {
+      const response = await api.get('/categorias');
+      if (response.data.success) {
+        setCategorias(response.data.data);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar categorias:', err);
+    }
+  };
+
+  // Função para buscar estatísticas (separada, opcional)
+  const fetchEstatisticas = async () => {
+    try {
+      setLoadingEstatisticas(true);
+      const response = await api.get('/produtos/estatisticas');
+      if (response.data.success) {
+        setEstatisticas(prev => ({
+          ...prev,
+          ...response.data.data
+        }));
+      }
+    } catch (err: any) {
+      console.error('Erro ao buscar estatísticas:', err);
+      // Se a rota específica falhar, não mostra erro, usa os dados da listagem
+    } finally {
+      setLoadingEstatisticas(false);
+    }
+  };
+
+  // Efeito para buscar dados
+  useEffect(() => {
+    const loadData = async () => {
+      await Promise.all([
+        fetchProdutos(),
+        fetchCategorias()
+      ]);
+      // Busca estatísticas separadamente (se falhar, não afeta a listagem)
+      fetchEstatisticas();
+    };
+    
+    loadData();
+  }, [paginaAtual, busca, filtroCategoria, filtroStatus, ordenar]);
+
+  // Funções de navegação
+  const handleNovoProduto = () => {
+    navigate("/admin/produtos/novo");
+  };
+
+  const handleEditarProduto = (id: string) => {
+    navigate(`/admin/produtos/editar/${id}`);
+  };
+
+  const handleVisualizarProduto = (id: string) => {
+    navigate(`/admin/produtos/${id}`);
+  };
+
+  const handleExcluirProduto = async (id: string, nome: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o produto "${nome}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await api.delete(`/produtos/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        alert('Produto excluído com sucesso!');
+        fetchProdutos(); // Recarregar lista
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erro ao excluir produto');
+    }
+  };
+
+  // Função para obter ícone baseado na categoria
+  const getCategoriaIcon = (categoria: string) => {
+    const icons: Record<string, string> = {
+      'Eletrônicos': '📱',
+      'Smartphones': '📱',
+      'Notebooks': '💻',
+      'Áudio': '🎧',
+      'Monitores': '🖥️',
+      'Games': '🎮',
+      'Wearables': '⌚',
+      'Periféricos': '⌨️',
+      'Eletrodomésticos': '🏠',
+      'Moda': '👕',
+      'Casa': '🛋️',
+      'Beleza': '💄',
+      'Livros': '📚',
+      'Brinquedos': '🧸',
+      'Sem categoria': '📦'
+    };
+    return icons[categoria] || '📦';
+  };
+
+  // Calcular estatísticas locais como fallback
+  const calcularEstatisticasLocais = () => {
+    return {
+      totalProdutosLocais: produtos.length,
+      totalEmPromocaoLocais: produtos.filter(p => p.precoDesconto && p.precoDesconto > 0).length,
+      baixoEstoqueLocais: produtos.filter(p => p.estoque <= 10 && p.estoque > 0).length,
+      semEstoqueLocais: produtos.filter(p => p.estoque === 0).length
+    };
+  };
+
+  const estatisticasLocais = calcularEstatisticasLocais();
+
+  if (loading && produtos.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-[#D4AF37] mx-auto mb-4" />
+          <p className="text-gray-600">Carregando produtos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-8">
@@ -187,6 +286,16 @@ export default function AdminProdutos() {
         </button>
       </div>
 
+      {/* Aviso de erro */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+            <p className="text-red-700">{error}</p>
+          </div>
+        </div>
+      )}
+
       {/* Filtros e Busca */}
       <div className="bg-white rounded-xl shadow p-6 mb-6">
         <div className="grid md:grid-cols-4 gap-4">
@@ -197,8 +306,11 @@ export default function AdminProdutos() {
               <input
                 type="text"
                 value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar por nome ou SKU..."
+                onChange={(e) => {
+                  setBusca(e.target.value);
+                  setPaginaAtual(1); // Resetar para primeira página
+                }}
+                placeholder="Buscar por nome, descrição ou SKU..."
                 className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
               />
             </div>
@@ -206,33 +318,65 @@ export default function AdminProdutos() {
 
           {/* Filtro Categoria */}
           <div>
-            <select
-              value={filtroCategoria}
-              onChange={(e) => setFiltroCategoria(e.target.value)}
-              className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-            >
-              {categorias.map(categoria => (
-                <option key={categoria} value={categoria}>
-                  {categoria === "todos" ? "Todas categorias" : categoria}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <select
+                value={filtroCategoria}
+                onChange={(e) => {
+                  setFiltroCategoria(e.target.value);
+                  setPaginaAtual(1);
+                }}
+                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              >
+                <option value="todos">Todas categorias</option>
+                {categorias.map(categoria => (
+                  <option key={categoria.id} value={categoria.id}>
+                    {categoria.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Filtro Status */}
           <div>
-            <select
-              value={filtroStatus}
-              onChange={(e) => setFiltroStatus(e.target.value)}
-              className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-            >
-              <option value="todos">Todos status</option>
-              <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
-              <option value="baixo_estoque">Baixo estoque</option>
-              <option value="sem_estoque">Sem estoque</option>
-            </select>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <select
+                value={filtroStatus}
+                onChange={(e) => {
+                  setFiltroStatus(e.target.value);
+                  setPaginaAtual(1);
+                }}
+                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              >
+                <option value="todos">Todos status</option>
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+                <option value="baixo_estoque">Baixo estoque</option>
+                <option value="sem_estoque">Sem estoque</option>
+              </select>
+            </div>
           </div>
+        </div>
+
+        {/* Ordenação */}
+        <div className="mt-4">
+          <select
+            value={ordenar}
+            onChange={(e) => {
+              setOrdenar(e.target.value);
+              setPaginaAtual(1);
+            }}
+            className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+          >
+            <option value="criadoEm_desc">Mais recentes</option>
+            <option value="criadoEm_asc">Mais antigos</option>
+            <option value="nome_asc">Nome (A-Z)</option>
+            <option value="nome_desc">Nome (Z-A)</option>
+            <option value="preco_asc">Preço (menor)</option>
+            <option value="preco_desc">Preço (maior)</option>
+          </select>
         </div>
       </div>
 
@@ -242,7 +386,13 @@ export default function AdminProdutos() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Produtos</p>
-              <p className="text-2xl font-bold">{produtos.length}</p>
+              <p className="text-2xl font-bold">
+                {loadingEstatisticas ? (
+                  <Loader2 className="h-6 w-6 animate-spin inline" />
+                ) : (
+                  estatisticas.totalProdutos || estatisticasLocais.totalProdutosLocais
+                )}
+              </p>
             </div>
             <Package className="h-8 w-8 text-[#D4AF37]" />
           </div>
@@ -252,7 +402,13 @@ export default function AdminProdutos() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Categorias</p>
-              <p className="text-2xl font-bold">{categorias.length - 1}</p>
+              <p className="text-2xl font-bold">
+                {loadingEstatisticas ? (
+                  <Loader2 className="h-6 w-6 animate-spin inline" />
+                ) : (
+                  estatisticas.totalCategorias || categorias.length
+                )}
+              </p>
             </div>
             <Tag className="h-8 w-8 text-blue-500" />
           </div>
@@ -262,7 +418,13 @@ export default function AdminProdutos() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Em Promoção</p>
-              <p className="text-2xl font-bold">{produtos.filter(p => p.precoPromo > 0).length}</p>
+              <p className="text-2xl font-bold">
+                {loadingEstatisticas ? (
+                  <Loader2 className="h-6 w-6 animate-spin inline" />
+                ) : (
+                  estatisticas.totalEmPromocao || estatisticasLocais.totalEmPromocaoLocais
+                )}
+              </p>
             </div>
             <DollarSign className="h-8 w-8 text-green-500" />
           </div>
@@ -271,143 +433,198 @@ export default function AdminProdutos() {
         <div className="bg-white rounded-xl shadow p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Vendas</p>
-              <p className="text-2xl font-bold">{produtos.reduce((acc, p) => acc + p.vendas, 0)}</p>
+              <p className="text-sm text-gray-600">Baixo Estoque</p>
+              <p className="text-2xl font-bold">
+                {loadingEstatisticas ? (
+                  <Loader2 className="h-6 w-6 animate-spin inline" />
+                ) : (
+                  estatisticas.baixoEstoque || estatisticasLocais.baixoEstoqueLocais
+                )}
+              </p>
             </div>
-            <ShoppingBag className="h-8 w-8 text-purple-500" />
+            <AlertTriangle className="h-8 w-8 text-yellow-500" />
           </div>
         </div>
       </div>
 
       {/* Tabela de Produtos */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Produto</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Categoria</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Preço</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Estoque</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Vendas</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Status</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {produtosPagina.map(produto => (
-                <tr key={produto.id} className="border-b hover:bg-gray-50">
-                  <td className="p-4">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center text-lg mr-3">
-                        {produto.imagem}
-                      </div>
-                      <div>
-                        <div className="font-medium">{produto.nome}</div>
-                        <div className="text-sm text-gray-500">SKU: {produto.sku}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className="px-2 py-1 bg-gray-100 rounded text-sm">
-                      {produto.categoria}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div>
-                      <div className="font-bold">KZ {produto.preco.toLocaleString()}</div>
-                      {produto.precoPromo > 0 && (
-                        <div className="text-sm text-green-600">
-                          KZ {produto.precoPromo.toLocaleString()}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className={`font-medium ${produto.estoque === 0 ? 'text-red-600' : produto.estoque < 10 ? 'text-yellow-600' : 'text-green-600'}`}>
-                      {produto.estoque} unidades
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="font-medium">{produto.vendas}</div>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusProdutos[produto.status as keyof typeof statusProdutos].cor}`}>
-                      {statusProdutos[produto.status as keyof typeof statusProdutos].label}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleVisualizarProduto(produto.id)}
-                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                        title="Visualizar"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleEditarProduto(produto.id)}
-                        className="p-1 text-green-600 hover:bg-green-50 rounded"
-                        title="Editar"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleExcluirProduto(produto.id)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
-                        title="Excluir"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-100 rounded">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Paginação */}
-        {totalPaginas > 1 && (
-          <div className="flex items-center justify-between p-4 border-t">
-            <div className="text-sm text-gray-600">
-              Mostrando {inicio + 1}-{Math.min(fim, produtosFiltrados.length)} de {produtosFiltrados.length} produtos
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
-                disabled={paginaAtual === 1}
-                className="p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              
-              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
-                <button
-                  key={num}
-                  onClick={() => setPaginaAtual(num)}
-                  className={`w-8 h-8 flex items-center justify-center rounded ${
-                    paginaAtual === num
-                      ? 'bg-[#D4AF37] text-white'
-                      : 'border hover:bg-gray-50'
-                  }`}
-                >
-                  {num}
-                </button>
-              ))}
-              
-              <button
-                onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))}
-                disabled={paginaAtual === totalPaginas}
-                className="p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+        {loading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37] mr-2" />
+            <span>Carregando produtos...</span>
           </div>
+        ) : produtos.length === 0 ? (
+          <div className="text-center p-8">
+            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum produto encontrado</h3>
+            <p className="text-gray-600 mb-4">
+              {busca || filtroCategoria !== 'todos' || filtroStatus !== 'todos'
+                ? 'Tente ajustar seus filtros de busca'
+                : 'Comece adicionando seu primeiro produto!'}
+            </p>
+            <button
+              onClick={handleNovoProduto}
+              className="bg-[#D4AF37] text-white px-4 py-2 rounded-lg hover:bg-[#c19b2c]"
+            >
+              Adicionar Primeiro Produto
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Produto</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Categoria</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Preço</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Estoque</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Status</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {produtos.map(produto => (
+                    <tr key={produto.id} className="border-b hover:bg-gray-50">
+                      <td className="p-4">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center text-lg mr-3 overflow-hidden">
+                            {produto.imagem ? (
+                              <img
+                                src={produto.imagem}
+                                alt={produto.imagemAlt || produto.nome}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <span>{getCategoriaIcon(produto.categoria)}</span>
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium">{produto.nome}</div>
+                            <div className="text-sm text-gray-500">SKU: {produto.sku}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span className="px-2 py-1 bg-gray-100 rounded text-sm">
+                          {produto.categoria}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div>
+                          <div className="font-bold">{formatCurrency(produto.preco)}</div>
+                          {produto.precoDesconto && produto.precoDesconto > 0 && (
+                            <>
+                              <div className="text-sm text-green-600">
+                                {formatCurrency(produto.precoDesconto)}
+                              </div>
+                              {produto.percentualDesconto && (
+                                <div className="text-xs text-red-600">
+                                  -{produto.percentualDesconto.toFixed(1)}%
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className={`font-medium ${produto.estoque === 0 ? 'text-red-600' : produto.estoque < 10 ? 'text-yellow-600' : 'text-green-600'}`}>
+                          {produto.estoque} unidades
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusProdutos[produto.status as keyof typeof statusProdutos]?.cor || 'bg-gray-100 text-gray-800'}`}>
+                          {statusProdutos[produto.status as keyof typeof statusProdutos]?.label || produto.status}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleVisualizarProduto(produto.id)}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                            title="Visualizar"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEditarProduto(produto.id)}
+                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                            title="Editar"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleExcluirProduto(produto.id, produto.nome)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            title="Excluir"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                          <button className="p-1 text-gray-600 hover:bg-gray-100 rounded">
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Paginação */}
+            {paginacao.totalPages > 1 && (
+              <div className="flex items-center justify-between p-4 border-t">
+                <div className="text-sm text-gray-600">
+                  Mostrando {((paginacao.page - 1) * paginacao.limit) + 1}-{Math.min(paginacao.page * paginacao.limit, paginacao.total)} de {paginacao.total} produtos
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
+                    disabled={paginacao.page === 1}
+                    className="p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  
+                  {Array.from({ length: Math.min(5, paginacao.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (paginacao.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (paginacao.page <= 3) {
+                      pageNum = i + 1;
+                    } else if (paginacao.page >= paginacao.totalPages - 2) {
+                      pageNum = paginacao.totalPages - 4 + i;
+                    } else {
+                      pageNum = paginacao.page - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPaginaAtual(pageNum)}
+                        className={`w-8 h-8 flex items-center justify-center rounded ${
+                          paginacao.page === pageNum
+                            ? 'bg-[#D4AF37] text-white'
+                            : 'border hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
+                  <button
+                    onClick={() => setPaginaAtual(p => Math.min(paginacao.totalPages, p + 1))}
+                    disabled={paginacao.page === paginacao.totalPages}
+                    className="p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

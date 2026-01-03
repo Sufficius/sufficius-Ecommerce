@@ -100,7 +100,6 @@ export default function AdminDashboard() {
         },
       });
 
-      console.log("Resposta da API (/vendas/hoje):", response.data);
 
       if (response.data && response.data.data) {
         const dadosApi = response.data.data;
@@ -170,7 +169,6 @@ export default function AdminDashboard() {
         params,
       });
 
-      console.log("Resposta da API (/vendas/periodo):", response.data);
 
       if (response.data && response.data.success && response.data.data) {
         const dadosApi = response.data.data;
