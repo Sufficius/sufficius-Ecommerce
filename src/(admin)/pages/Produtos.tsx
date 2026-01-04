@@ -18,19 +18,13 @@ import {
   AlertTriangle,
   X,
   Image as ImageIcon,
-  AlertOctagon,
+  AlertOctagon
 } from "lucide-react";
 import { api } from "@/modules/services/api/axios";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 
-interface NovoProdutoModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  categorias: Categoria[];
-}
 interface Produto {
   id: string;
   nome: string;
@@ -71,14 +65,21 @@ interface Categoria {
   slug: string;
 }
 
-// Modal de Visualizar Produto
-const VisualizarProdutoModal = ({
-  isOpen,
-  onClose,
-  produto,
-}: {
+interface NovoProdutoModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess: () => void;
+  categorias: Categoria[];
+}
+
+// Modal de Visualizar Produto
+const VisualizarProdutoModal = ({ 
+  isOpen, 
+  onClose, 
+  produto 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
   produto: Produto | null;
 }) => {
   if (!isOpen || !produto) return null;
@@ -86,32 +87,24 @@ const VisualizarProdutoModal = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-          onClick={onClose}
-        ></div>
-
+        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
+        
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-900">
-                Detalhes do Produto
-              </h3>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-500"
-              >
+              <h3 className="text-xl font-bold text-gray-900">Detalhes do Produto</h3>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
                 <X className="h-6 w-6" />
               </button>
             </div>
-
+            
             <div className="grid md:grid-cols-2 gap-6">
               {/* Imagem */}
               <div>
                 <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center overflow-hidden">
                   {produto.imagem ? (
-                    <img
-                      src={produto.imagem}
+                    <img 
+                      src={produto.imagem} 
                       alt={produto.imagemAlt || produto.nome}
                       className="h-full w-full object-cover"
                     />
@@ -119,61 +112,39 @@ const VisualizarProdutoModal = ({
                     <Package className="h-32 w-32 text-gray-400" />
                   )}
                 </div>
-
+                
                 {/* Status */}
                 <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div
-                    className={`p-3 rounded-lg ${
-                      produto.ativo
-                        ? "bg-green-50 text-green-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
+                  <div className={`p-3 rounded-lg ${produto.ativo ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                     <div className="text-sm font-medium">Status</div>
-                    <div className="font-bold">
-                      {produto.ativo ? "Ativo" : "Inativo"}
-                    </div>
+                    <div className="font-bold">{produto.ativo ? 'Ativo' : 'Inativo'}</div>
                   </div>
-                  <div
-                    className={`p-3 rounded-lg ${
-                      produto.emDestaque
-                        ? "bg-yellow-50 text-yellow-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
+                  <div className={`p-3 rounded-lg ${produto.emDestaque ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>
                     <div className="text-sm font-medium">Destaque</div>
-                    <div className="font-bold">
-                      {produto.emDestaque ? "Sim" : "Não"}
-                    </div>
+                    <div className="font-bold">{produto.emDestaque ? 'Sim' : 'Não'}</div>
                   </div>
                 </div>
               </div>
-
+              
               {/* Informações */}
               <div>
                 <h4 className="text-lg font-semibold mb-4">{produto.nome}</h4>
-
+                
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm text-gray-600">SKU</label>
                     <p className="font-medium">{produto.sku}</p>
                   </div>
-
+                  
                   <div>
                     <label className="text-sm text-gray-600">Categoria</label>
                     <p className="font-medium">{produto.categoria}</p>
                   </div>
-
+                  
                   <div>
                     <label className="text-sm text-gray-600">Preço</label>
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`font-bold ${
-                          produto.precoDesconto
-                            ? "text-gray-400 line-through"
-                            : "text-gray-900"
-                        }`}
-                      >
+                      <span className={`font-bold ${produto.precoDesconto ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                         {formatCurrency(produto.preco)}
                       </span>
                       {produto.precoDesconto && produto.precoDesconto > 0 && (
@@ -190,47 +161,37 @@ const VisualizarProdutoModal = ({
                       )}
                     </div>
                   </div>
-
+                  
                   <div>
                     <label className="text-sm text-gray-600">Estoque</label>
-                    <p
-                      className={`font-medium ${
-                        produto.estoque === 0
-                          ? "text-red-600"
-                          : produto.estoque < 10
-                          ? "text-yellow-600"
-                          : "text-green-600"
-                      }`}
-                    >
+                    <p className={`font-medium ${produto.estoque === 0 ? 'text-red-600' : produto.estoque < 10 ? 'text-yellow-600' : 'text-green-600'}`}>
                       {produto.estoque} unidades
                     </p>
                   </div>
-
+                  
                   <div>
                     <label className="text-sm text-gray-600">Descrição</label>
                     <p className="text-gray-700 mt-1 whitespace-pre-line">
-                      {produto.descricao || "Sem descrição"}
+                      {produto.descricao || 'Sem descrição'}
                     </p>
                   </div>
-
+                  
                   <div>
-                    <label className="text-sm text-gray-600">
-                      Data de Criação
-                    </label>
+                    <label className="text-sm text-gray-600">Data de Criação</label>
                     <p className="font-medium">
-                      {new Date(produto.criadoEm).toLocaleDateString("pt-BR", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
+                      {new Date(produto.criadoEm).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
                       })}
                     </p>
                   </div>
                 </div>
               </div>
             </div>
-
+            
             <div className="mt-6 flex justify-end">
               <button
                 onClick={onClose}
@@ -247,14 +208,14 @@ const VisualizarProdutoModal = ({
 };
 
 // Modal de Confirmação de Exclusão
-const ConfirmarExclusaoModal = ({
-  isOpen,
-  onClose,
+const ConfirmarExclusaoModal = ({ 
+  isOpen, 
+  onClose, 
   onConfirm,
-  produto,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
+  produto
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
   onConfirm: () => void;
   produto: Produto | null;
 }) => {
@@ -263,11 +224,8 @@ const ConfirmarExclusaoModal = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-          onClick={onClose}
-        ></div>
-
+        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
+        
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="sm:flex sm:items-start">
@@ -280,8 +238,7 @@ const ConfirmarExclusaoModal = ({
                 </h3>
                 <div className="mt-2">
                   <p className="text-sm text-gray-500">
-                    Tem certeza que deseja excluir o produto{" "}
-                    <strong>{produto.nome}</strong>?
+                    Tem certeza que deseja excluir o produto <strong>{produto.nome}</strong>?
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
                     Esta ação não pode ser desfeita.
@@ -312,16 +269,16 @@ const ConfirmarExclusaoModal = ({
   );
 };
 
-// Modal de Editar Produto (simplificado - você pode expandir conforme necessário)
-const EditarProdutoModal = ({
-  isOpen,
-  onClose,
+// Modal de Editar Produto
+const EditarProdutoModal = ({ 
+  isOpen, 
+  onClose, 
   produto,
   categorias,
-  onSuccess,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
+  onSuccess
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
   produto: Produto | null;
   categorias: Categoria[];
   onSuccess: () => void;
@@ -329,54 +286,48 @@ const EditarProdutoModal = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const token = useAuthStore((state) => state.token);
-
+  
   const [formData, setFormData] = useState({
-    nome: "",
-    descricao: "",
-    preco: "",
-    precoDesconto: "",
-    percentualDesconto: "",
-    estoque: "",
-    sku: "",
-    categoriaId: "",
+    nome: '',
+    descricao: '',
+    preco: '',
+    precoDesconto: '',
+    percentualDesconto: '',
+    estoque: '',
+    sku: '',
+    categoriaId: '',
     ativo: true,
-    emDestaque: false,
+    emDestaque: false
   });
 
   const [imagem, setImagem] = useState<File | null>(null);
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
 
-  // Preencher formulário quando o produto mudar
   useEffect(() => {
     if (produto) {
       setFormData({
         nome: produto.nome,
-        descricao: produto.descricao || "",
+        descricao: produto.descricao || '',
         preco: produto.preco.toString(),
-        precoDesconto: produto.precoDesconto?.toString() || "",
-        percentualDesconto: produto.percentualDesconto?.toString() || "",
+        precoDesconto: produto.precoDesconto?.toString() || '',
+        percentualDesconto: produto.percentualDesconto?.toString() || '',
         estoque: produto.estoque.toString(),
         sku: produto.sku,
-        categoriaId: produto.categoriaId || "",
+        categoriaId: produto.categoriaId || '',
         ativo: produto.ativo,
-        emDestaque: produto.emDestaque,
+        emDestaque: produto.emDestaque
       });
       setImagemPreview(produto.imagem || null);
     }
   }, [produto]);
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      [name]:
-        name === "ativo" || name === "emDestaque"
-          ? (e.target as HTMLInputElement).checked
-          : value,
+      [name]: name === 'ativo' || name === 'emDestaque' 
+        ? (e.target as HTMLInputElement).checked 
+        : value
     }));
   };
 
@@ -395,44 +346,63 @@ const EditarProdutoModal = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!produto) return;
-
+    
     setLoading(true);
     setError(null);
 
     try {
-      const formDataToSend = new FormData();
+      // Criar objeto JSON com os dados
+      const produtoData = {
+        nome: formData.nome,
+        descricao: formData.descricao || null,
+        preco: parseFloat(formData.preco),
+        precoDesconto: formData.precoDesconto ? parseFloat(formData.precoDesconto) : null,
+        percentualDesconto: formData.percentualDesconto ? parseFloat(formData.percentualDesconto) : null,
+        estoque: parseInt(formData.estoque),
+        sku: formData.sku,
+        categoriaId: formData.categoriaId,
+        ativo: formData.ativo,
+        emDestaque: formData.emDestaque
+      };
 
-      // Adicionar campos do produto
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== "" && value !== null) {
-          formDataToSend.append(key, value.toString());
-        }
-      });
-
-      // Adicionar imagem se existir
+      // Se tiver imagem, usar FormData
       if (imagem) {
-        formDataToSend.append("imagem", imagem);
-      }
+        const formDataToSend = new FormData();
+        formDataToSend.append('data', JSON.stringify(produtoData));
+        formDataToSend.append('imagem', imagem);
 
-      const response = await api.put(
-        `/produtos/${produto.id}`,
-        formDataToSend,
-        {
+        const response = await api.put(`/produtos/${produto.id}`, formDataToSend, {
           headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
 
-      if (response.data.success) {
-        toast.success("Produto atualizado com sucesso!");
-        onSuccess();
-        onClose();
+        if (response.data.success) {
+          toast.success('Produto atualizado com sucesso!');
+          onSuccess();
+          onClose();
+        }
+      } else {
+        // Se não tiver imagem, enviar apenas JSON
+        const response = await api.put(`/produtos/${produto.id}`, produtoData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.data.success) {
+          toast.success('Produto atualizado com sucesso!');
+          onSuccess();
+          onClose();
+        }
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Erro ao atualizar produto");
-      console.error("Erro ao atualizar produto:", err);
+      const errorMessage = err.response?.data?.message || 'Erro ao atualizar produto';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      console.error('Erro ao atualizar produto:', err);
     } finally {
       setLoading(false);
     }
@@ -443,21 +413,13 @@ const EditarProdutoModal = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-          onClick={onClose}
-        ></div>
+        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
 
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
-                Editar Produto
-              </h3>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-500"
-              >
+              <h3 className="text-lg font-medium text-gray-900">Editar Produto</h3>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
                 <X className="h-6 w-6" />
               </button>
             </div>
@@ -510,10 +472,8 @@ const EditarProdutoModal = ({
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                   >
                     <option value="">Selecione uma categoria</option>
-                    {categorias.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.nome}
-                      </option>
+                    {categorias.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.nome}</option>
                     ))}
                   </select>
                 </div>
@@ -632,9 +592,7 @@ const EditarProdutoModal = ({
                             />
                           </label>
                         </div>
-                        <p className="text-xs text-gray-500">
-                          PNG, JPG, GIF até 10MB
-                        </p>
+                        <p className="text-xs text-gray-500">PNG, JPG, GIF até 10MB</p>
                       </>
                     )}
                   </div>
@@ -676,7 +634,7 @@ const EditarProdutoModal = ({
                       Salvando...
                     </>
                   ) : (
-                    "Salvar Alterações"
+                    'Salvar Alterações'
                   )}
                 </button>
               </div>
@@ -688,43 +646,33 @@ const EditarProdutoModal = ({
   );
 };
 
-// Modal de Novo Produto (mantido do seu código)
-const NovoProdutoModal = ({
-  isOpen,
-  onClose,
-  onSuccess,
-  categorias,
-}: NovoProdutoModalProps) => {
+// Modal de Novo Produto
+const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdutoModalProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const token = useAuthStore((state) => state.token);
-
+  
   const [formData, setFormData] = useState({
-    nome: "",
-    descricao: "",
-    preco: "",
-    precoDesconto: "",
-    percentualDesconto: "",
-    estoque: "0",
-    sku: "",
-    categoriaId: "",
+    nome: '',
+    descricao: '',
+    preco: '',
+    precoDesconto: '',
+    percentualDesconto: '',
+    estoque: '0',
+    sku: '',
+    categoriaId: '',
     ativo: true,
-    emDestaque: false,
+    emDestaque: false
   });
 
   const [imagem, setImagem] = useState<File | null>(null);
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      [name]:
-        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
   };
 
@@ -746,34 +694,60 @@ const NovoProdutoModal = ({
     setError(null);
 
     try {
-      const formDataToSend = new FormData();
+      // Criar objeto JSON
+      const produtoData = {
+        nome: formData.nome,
+        descricao: formData.descricao || null,
+        preco: parseFloat(formData.preco),
+        precoDesconto: formData.precoDesconto ? parseFloat(formData.precoDesconto) : null,
+        percentualDesconto: formData.percentualDesconto ? parseFloat(formData.percentualDesconto) : null,
+        estoque: parseInt(formData.estoque),
+        sku: formData.sku,
+        categoriaId: formData.categoriaId,
+        ativo: formData.ativo,
+        emDestaque: formData.emDestaque
+      };
 
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== "" && value !== null) {
-          formDataToSend.append(key, value.toString());
-        }
-      });
-
+      // Se tiver imagem, usar FormData
       if (imagem) {
-        formDataToSend.append("imagem", imagem);
-      }
+        const formDataToSend = new FormData();
+        formDataToSend.append('data', JSON.stringify(produtoData));
+        formDataToSend.append('imagem', imagem);
 
-      const response = await api.post("/produtos", formDataToSend, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+        const response = await api.post('/produtos', formDataToSend, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
 
-      if (response.data.success) {
-        toast.success("Produto criado com sucesso!");
-        onSuccess();
-        onClose();
-        resetForm();
+        if (response.data.success) {
+          toast.success('Produto criado com sucesso!');
+          onSuccess();
+          onClose();
+          resetForm();
+        }
+      } else {
+        // Se não tiver imagem, enviar apenas JSON
+        const response = await api.post('/produtos', produtoData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.data.success) {
+          toast.success('Produto criado com sucesso!');
+          onSuccess();
+          onClose();
+          resetForm();
+        }
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Erro ao criar produto");
-      console.error("Erro ao criar produto:", err);
+      const errorMessage = err.response?.data?.message || 'Erro ao criar produto';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      console.error('Erro ao criar produto:', err);
     } finally {
       setLoading(false);
     }
@@ -781,16 +755,16 @@ const NovoProdutoModal = ({
 
   const resetForm = () => {
     setFormData({
-      nome: "",
-      descricao: "",
-      preco: "",
-      precoDesconto: "",
-      percentualDesconto: "",
-      estoque: "0",
-      sku: "",
-      categoriaId: "",
+      nome: '',
+      descricao: '',
+      preco: '',
+      precoDesconto: '',
+      percentualDesconto: '',
+      estoque: '0',
+      sku: '',
+      categoriaId: '',
       ativo: true,
-      emDestaque: false,
+      emDestaque: false
     });
     setImagem(null);
     setImagemPreview(null);
@@ -802,21 +776,13 @@ const NovoProdutoModal = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-          onClick={onClose}
-        ></div>
+        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
 
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
-                Adicionar Novo Produto
-              </h3>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-500"
-              >
+              <h3 className="text-lg font-medium text-gray-900">Adicionar Novo Produto</h3>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
                 <X className="h-6 w-6" />
               </button>
             </div>
@@ -871,10 +837,8 @@ const NovoProdutoModal = ({
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                   >
                     <option value="">Selecione uma categoria</option>
-                    {categorias.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.nome}
-                      </option>
+                    {categorias.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.nome}</option>
                     ))}
                   </select>
                 </div>
@@ -938,12 +902,7 @@ const NovoProdutoModal = ({
                         type="checkbox"
                         name="ativo"
                         checked={formData.ativo}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            ativo: e.target.checked,
-                          }))
-                        }
+                        onChange={(e) => setFormData(prev => ({ ...prev, ativo: e.target.checked }))}
                         className="h-4 w-4 text-[#D4AF37] rounded"
                       />
                       <span className="ml-2 text-sm">Ativo</span>
@@ -953,12 +912,7 @@ const NovoProdutoModal = ({
                         type="checkbox"
                         name="emDestaque"
                         checked={formData.emDestaque}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            emDestaque: e.target.checked,
-                          }))
-                        }
+                        onChange={(e) => setFormData(prev => ({ ...prev, emDestaque: e.target.checked }))}
                         className="h-4 w-4 text-[#D4AF37] rounded"
                       />
                       <span className="ml-2 text-sm">Em Destaque</span>
@@ -1005,9 +959,7 @@ const NovoProdutoModal = ({
                             />
                           </label>
                         </div>
-                        <p className="text-xs text-gray-500">
-                          PNG, JPG, GIF até 10MB
-                        </p>
+                        <p className="text-xs text-gray-500">PNG, JPG, GIF até 10MB</p>
                       </>
                     )}
                   </div>
@@ -1048,7 +1000,7 @@ const NovoProdutoModal = ({
                       Criando...
                     </>
                   ) : (
-                    "Criar Produto"
+                    'Criar Produto'
                   )}
                 </button>
               </div>
@@ -1063,54 +1015,48 @@ const NovoProdutoModal = ({
 // Componente Principal
 export default function AdminProdutos() {
   const token = useAuthStore((state) => state.token);
-
+  
   const [busca, setBusca] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [ordenar, setOrdenar] = useState("criadoEm_desc");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [itensPorPagina] = useState(10);
-
+  
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [paginacao, setPaginacao] = useState<Paginacao>({
     total: 0,
     page: 1,
     limit: 10,
-    totalPages: 1,
+    totalPages: 1
   });
   const [estatisticas, setEstatisticas] = useState<Estatisticas>({
     totalProdutos: 0,
     totalAtivos: 0,
     totalEmPromocao: 0,
     baixoEstoque: 0,
-    totalCategorias: 0,
+    totalCategorias: 0
   });
-
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadingEstatisticas, setLoadingEstatisticas] = useState(false);
-
+  
   // Estados para modais
   const [modalNovoProduto, setModalNovoProduto] = useState(false);
   const [modalVisualizar, setModalVisualizar] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [modalExcluir, setModalExcluir] = useState(false);
-  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(
-    null
-  );
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
 
   const statusProdutos = {
     ativo: { label: "Ativo", cor: "bg-green-100 text-green-800" },
     inativo: { label: "Inativo", cor: "bg-gray-100 text-gray-800" },
-    baixo_estoque: {
-      label: "Baixo Estoque",
-      cor: "bg-yellow-100 text-yellow-800",
-    },
-    sem_estoque: { label: "Sem Estoque", cor: "bg-red-100 text-red-800" },
+    baixo_estoque: { label: "Baixo Estoque", cor: "bg-yellow-100 text-yellow-800" },
+    sem_estoque: { label: "Sem Estoque", cor: "bg-red-100 text-red-800" }
   };
 
-  // Função para buscar produtos
   const fetchProdutos = async () => {
     try {
       setLoading(true);
@@ -1119,13 +1065,12 @@ export default function AdminProdutos() {
       const params = new URLSearchParams({
         page: paginaAtual.toString(),
         limit: itensPorPagina.toString(),
-        ordenar,
+        ordenar
       });
 
-      if (busca) params.append("busca", busca);
-      if (filtroCategoria !== "todos")
-        params.append("categoria", filtroCategoria);
-      if (filtroStatus !== "todos") params.append("status", filtroStatus);
+      if (busca) params.append('busca', busca);
+      if (filtroCategoria !== 'todos') params.append('categoria', filtroCategoria);
+      if (filtroStatus !== 'todos') params.append('status', filtroStatus);
 
       const response = await api.get(`/produtos?${params.toString()}`);
 
@@ -1133,21 +1078,21 @@ export default function AdminProdutos() {
         setProdutos(response.data.data.produtos);
         setPaginacao(response.data.data.paginacao);
         if (response.data.data.estatisticas) {
-          setEstatisticas((prev) => ({
+          setEstatisticas(prev => ({
             ...prev,
             totalProdutos: response.data.data.estatisticas.totalProdutos,
             totalAtivos: response.data.data.estatisticas.totalAtivos,
             totalEmPromocao: response.data.data.estatisticas.totalEmPromocao,
             baixoEstoque: response.data.data.estatisticas.baixoEstoque,
-            totalCategorias: response.data.data.estatisticas.totalCategorias,
+            totalCategorias: response.data.data.estatisticas.totalCategorias
           }));
         }
       } else {
-        throw new Error("Erro ao carregar produtos");
+        throw new Error('Erro ao carregar produtos');
       }
     } catch (err: any) {
-      console.error("Erro ao buscar produtos:", err);
-      setError(err.message || "Erro ao carregar produtos");
+      console.error('Erro ao buscar produtos:', err);
+      setError(err.message || 'Erro ao carregar produtos');
     } finally {
       setLoading(false);
     }
@@ -1155,27 +1100,27 @@ export default function AdminProdutos() {
 
   const fetchCategorias = async () => {
     try {
-      const response = await api.get("/categorias");
+      const response = await api.get('/categorias');
       if (response.data.success) {
         setCategorias(response.data.data);
       }
     } catch (err) {
-      console.error("Erro ao buscar categorias:", err);
+      console.error('Erro ao buscar categorias:', err);
     }
   };
 
   const fetchEstatisticas = async () => {
     try {
       setLoadingEstatisticas(true);
-      const response = await api.get("/produtos/estatisticas");
+      const response = await api.get('/produtos/estatisticas');
       if (response.data.success) {
-        setEstatisticas((prev) => ({
+        setEstatisticas(prev => ({
           ...prev,
-          ...response.data.data,
+          ...response.data.data
         }));
       }
     } catch (err: any) {
-      console.error("Erro ao buscar estatísticas:", err);
+      console.error('Erro ao buscar estatísticas:', err);
     } finally {
       setLoadingEstatisticas(false);
     }
@@ -1183,10 +1128,13 @@ export default function AdminProdutos() {
 
   useEffect(() => {
     const loadData = async () => {
-      await Promise.all([fetchProdutos(), fetchCategorias()]);
+      await Promise.all([
+        fetchProdutos(),
+        fetchCategorias()
+      ]);
       fetchEstatisticas();
     };
-
+    
     loadData();
   }, [paginaAtual, busca, filtroCategoria, filtroStatus, ordenar]);
 
@@ -1200,7 +1148,6 @@ export default function AdminProdutos() {
     fetchEstatisticas();
   };
 
-  // Handlers para abrir modais
   const handleVisualizarProduto = (produto: Produto) => {
     setProdutoSelecionado(produto);
     setModalVisualizar(true);
@@ -1222,53 +1169,49 @@ export default function AdminProdutos() {
     try {
       const response = await api.delete(`/produtos/${produtoSelecionado.id}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
-        },
+          Authorization: `Bearer ${token}`
+        }
       });
 
       if (response.data.success) {
-        toast.success("Produto excluído com sucesso!");
+        toast.success('Produto excluído com sucesso!');
         fetchProdutos();
         fetchEstatisticas();
         setModalExcluir(false);
         setProdutoSelecionado(null);
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Erro ao excluir produto");
+      toast.error(err.response?.data?.message || 'Erro ao excluir produto');
     }
   };
 
   const getCategoriaIcon = (categoria: string) => {
     const icons: Record<string, string> = {
-      Eletrônicos: "📱",
-      Smartphones: "📱",
-      Notebooks: "💻",
-      Áudio: "🎧",
-      Monitores: "🖥️",
-      Games: "🎮",
-      Wearables: "⌚",
-      Periféricos: "⌨️",
-      Eletrodomésticos: "🏠",
-      Moda: "👕",
-      Casa: "🛋️",
-      Beleza: "💄",
-      Livros: "📚",
-      Brinquedos: "🧸",
-      "Sem categoria": "📦",
+      'Eletrônicos': '📱',
+      'Smartphones': '📱',
+      'Notebooks': '💻',
+      'Áudio': '🎧',
+      'Monitores': '🖥️',
+      'Games': '🎮',
+      'Wearables': '⌚',
+      'Periféricos': '⌨️',
+      'Eletrodomésticos': '🏠',
+      'Moda': '👕',
+      'Casa': '🛋️',
+      'Beleza': '💄',
+      'Livros': '📚',
+      'Brinquedos': '🧸',
+      'Sem categoria': '📦'
     };
-    return icons[categoria] || "📦";
+    return icons[categoria] || '📦';
   };
 
   const calcularEstatisticasLocais = () => {
     return {
       totalProdutosLocais: produtos.length,
-      totalEmPromocaoLocais: produtos.filter(
-        (p) => p.precoDesconto && p.precoDesconto > 0
-      ).length,
-      baixoEstoqueLocais: produtos.filter(
-        (p) => p.estoque <= 10 && p.estoque > 0
-      ).length,
-      semEstoqueLocais: produtos.filter((p) => p.estoque === 0).length,
+      totalEmPromocaoLocais: produtos.filter(p => p.precoDesconto && p.precoDesconto > 0).length,
+      baixoEstoqueLocais: produtos.filter(p => p.estoque <= 10 && p.estoque > 0).length,
+      semEstoqueLocais: produtos.filter(p => p.estoque === 0).length
     };
   };
 
@@ -1328,12 +1271,10 @@ export default function AdminProdutos() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Gestão de Produtos
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">Gestão de Produtos</h1>
           <p className="text-gray-600">Gerencie todos os produtos da loja</p>
         </div>
-
+        
         <div className="flex gap-3">
           <button
             onClick={() => setModalNovoProduto(true)}
@@ -1385,7 +1326,7 @@ export default function AdminProdutos() {
                 className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
               >
                 <option value="todos">Todas categorias</option>
-                {categorias.map((categoria) => (
+                {categorias.map(categoria => (
                   <option key={categoria.id} value={categoria.id}>
                     {categoria.nome}
                   </option>
@@ -1444,8 +1385,7 @@ export default function AdminProdutos() {
                 {loadingEstatisticas ? (
                   <Loader2 className="h-6 w-6 animate-spin inline" />
                 ) : (
-                  estatisticas.totalProdutos ||
-                  estatisticasLocais.totalProdutosLocais
+                  estatisticas.totalProdutos || estatisticasLocais.totalProdutosLocais
                 )}
               </p>
             </div>
@@ -1477,8 +1417,7 @@ export default function AdminProdutos() {
                 {loadingEstatisticas ? (
                   <Loader2 className="h-6 w-6 animate-spin inline" />
                 ) : (
-                  estatisticas.totalEmPromocao ||
-                  estatisticasLocais.totalEmPromocaoLocais
+                  estatisticas.totalEmPromocao || estatisticasLocais.totalEmPromocaoLocais
                 )}
               </p>
             </div>
@@ -1494,8 +1433,7 @@ export default function AdminProdutos() {
                 {loadingEstatisticas ? (
                   <Loader2 className="h-6 w-6 animate-spin inline" />
                 ) : (
-                  estatisticas.baixoEstoque ||
-                  estatisticasLocais.baixoEstoqueLocais
+                  estatisticas.baixoEstoque || estatisticasLocais.baixoEstoqueLocais
                 )}
               </p>
             </div>
@@ -1514,13 +1452,11 @@ export default function AdminProdutos() {
         ) : produtos.length === 0 ? (
           <div className="text-center p-8">
             <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Nenhum produto encontrado
-            </h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum produto encontrado</h3>
             <p className="text-gray-600 mb-4">
-              {busca || filtroCategoria !== "todos" || filtroStatus !== "todos"
-                ? "Tente ajustar seus filtros de busca"
-                : "Comece adicionando seu primeiro produto!"}
+              {busca || filtroCategoria !== 'todos' || filtroStatus !== 'todos'
+                ? 'Tente ajustar seus filtros de busca'
+                : 'Comece adicionando seu primeiro produto!'}
             </p>
             <button
               onClick={() => setModalNovoProduto(true)}
@@ -1535,28 +1471,16 @@ export default function AdminProdutos() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">
-                      Produto
-                    </th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">
-                      Categoria
-                    </th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">
-                      Preço
-                    </th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">
-                      Estoque
-                    </th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">
-                      Status
-                    </th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">
-                      Ações
-                    </th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Produto</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Categoria</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Preço</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Estoque</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Status</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {produtos.map((produto) => (
+                  {produtos.map(produto => (
                     <tr key={produto.id} className="border-b hover:bg-gray-50">
                       <td className="p-4">
                         <div className="flex items-center">
@@ -1573,9 +1497,7 @@ export default function AdminProdutos() {
                           </div>
                           <div>
                             <div className="font-medium">{produto.nome}</div>
-                            <div className="text-sm text-gray-500">
-                              SKU: {produto.sku}
-                            </div>
+                            <div className="text-sm text-gray-500">SKU: {produto.sku}</div>
                           </div>
                         </div>
                       </td>
@@ -1586,48 +1508,29 @@ export default function AdminProdutos() {
                       </td>
                       <td className="p-4">
                         <div>
-                          <div className="font-bold">
-                            {formatCurrency(produto.preco)}
-                          </div>
-                          {produto.precoDesconto &&
-                            produto.precoDesconto > 0 && (
-                              <>
-                                <div className="text-sm text-green-600">
-                                  {formatCurrency(produto.precoDesconto)}
+                          <div className="font-bold">{formatCurrency(produto.preco)}</div>
+                          {produto.precoDesconto && produto.precoDesconto > 0 && (
+                            <>
+                              <div className="text-sm text-green-600">
+                                {formatCurrency(produto.precoDesconto)}
+                              </div>
+                              {produto.percentualDesconto && (
+                                <div className="text-xs text-red-600">
+                                  -{produto.percentualDesconto.toFixed(1)}%
                                 </div>
-                                {produto.percentualDesconto && (
-                                  <div className="text-xs text-red-600">
-                                    -{produto.percentualDesconto.toFixed(1)}%
-                                  </div>
-                                )}
-                              </>
-                            )}
+                              )}
+                            </>
+                          )}
                         </div>
                       </td>
                       <td className="p-4">
-                        <div
-                          className={`font-medium ${
-                            produto.estoque === 0
-                              ? "text-red-600"
-                              : produto.estoque < 10
-                              ? "text-yellow-600"
-                              : "text-green-600"
-                          }`}
-                        >
+                        <div className={`font-medium ${produto.estoque === 0 ? 'text-red-600' : produto.estoque < 10 ? 'text-yellow-600' : 'text-green-600'}`}>
                           {produto.estoque} unidades
                         </div>
                       </td>
                       <td className="p-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            statusProdutos[
-                              produto.status as keyof typeof statusProdutos
-                            ]?.cor || "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {statusProdutos[
-                            produto.status as keyof typeof statusProdutos
-                          ]?.label || produto.status}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusProdutos[produto.status as keyof typeof statusProdutos]?.cor || 'bg-gray-100 text-gray-800'}`}>
+                          {statusProdutos[produto.status as keyof typeof statusProdutos]?.label || produto.status}
                         </span>
                       </td>
                       <td className="p-4">
@@ -1665,55 +1568,46 @@ export default function AdminProdutos() {
             {paginacao.totalPages > 1 && (
               <div className="flex items-center justify-between p-4 border-t">
                 <div className="text-sm text-gray-600">
-                  Mostrando {(paginacao.page - 1) * paginacao.limit + 1}-
-                  {Math.min(paginacao.page * paginacao.limit, paginacao.total)}{" "}
-                  de {paginacao.total} produtos
+                  Mostrando {((paginacao.page - 1) * paginacao.limit) + 1}-{Math.min(paginacao.page * paginacao.limit, paginacao.total)} de {paginacao.total} produtos
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
+                    onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
                     disabled={paginacao.page === 1}
                     className="p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-
-                  {Array.from(
-                    { length: Math.min(5, paginacao.totalPages) },
-                    (_, i) => {
-                      let pageNum;
-                      if (paginacao.totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (paginacao.page <= 3) {
-                        pageNum = i + 1;
-                      } else if (paginacao.page >= paginacao.totalPages - 2) {
-                        pageNum = paginacao.totalPages - 4 + i;
-                      } else {
-                        pageNum = paginacao.page - 2 + i;
-                      }
-
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setPaginaAtual(pageNum)}
-                          className={`w-8 h-8 flex items-center justify-center rounded ${
-                            paginacao.page === pageNum
-                              ? "bg-[#D4AF37] text-white"
-                              : "border hover:bg-gray-50"
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
+                  
+                  {Array.from({ length: Math.min(5, paginacao.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (paginacao.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (paginacao.page <= 3) {
+                      pageNum = i + 1;
+                    } else if (paginacao.page >= paginacao.totalPages - 2) {
+                      pageNum = paginacao.totalPages - 4 + i;
+                    } else {
+                      pageNum = paginacao.page - 2 + i;
                     }
-                  )}
-
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPaginaAtual(pageNum)}
+                        className={`w-8 h-8 flex items-center justify-center rounded ${
+                          paginacao.page === pageNum
+                            ? 'bg-[#D4AF37] text-white'
+                            : 'border hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
                   <button
-                    onClick={() =>
-                      setPaginaAtual((p) =>
-                        Math.min(paginacao.totalPages, p + 1)
-                      )
-                    }
+                    onClick={() => setPaginaAtual(p => Math.min(paginacao.totalPages, p + 1))}
                     disabled={paginacao.page === paginacao.totalPages}
                     className="p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   >
