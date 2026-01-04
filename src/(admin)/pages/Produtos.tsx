@@ -17,7 +17,9 @@ import {
   Loader2,
   AlertCircle,
   Filter,
-  AlertTriangle
+  AlertTriangle,
+  X,
+  Image as ImageIcon
 } from "lucide-react";
 import { api } from "@/modules/services/api/axios";
 import { useAuthStore } from "@/modules/services/store/auth-store";
@@ -63,6 +65,367 @@ interface Categoria {
   slug: string;
 }
 
+interface NovoProdutoModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  categorias: Categoria[];
+}
+
+const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdutoModalProps) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const token = useAuthStore((state) => state.token);
+  
+  const [formData, setFormData] = useState({
+    nome: '',
+    descricao: '',
+    preco: '',
+    precoDesconto: '',
+    percentualDesconto: '',
+    estoque: '0',
+    sku: '',
+    categoriaId: '',
+    ativo: true,
+    emDestaque: false
+  });
+
+  const [imagem, setImagem] = useState<File | null>(null);
+  const [imagemPreview, setImagemPreview] = useState<string | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
+  };
+
+  const handleImagemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImagem(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagemPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Criar FormData para enviar imagem
+      const formDataToSend = new FormData();
+      
+      // Adicionar campos do produto
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== '' && value !== null) {
+          formDataToSend.append(key, value.toString());
+        }
+      });
+
+      // Adicionar imagem se existir
+      if (imagem) {
+        formDataToSend.append('imagem', imagem);
+      }
+
+      const response = await api.post('/produtos', formDataToSend, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data.success) {
+        alert('Produto criado com sucesso!');
+        onSuccess();
+        onClose();
+        resetForm();
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erro ao criar produto');
+      console.error('Erro ao criar produto:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      nome: '',
+      descricao: '',
+      preco: '',
+      precoDesconto: '',
+      percentualDesconto: '',
+      estoque: '0',
+      sku: '',
+      categoriaId: '',
+      ativo: true,
+      emDestaque: false
+    });
+    setImagem(null);
+    setImagemPreview(null);
+    setError(null);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        {/* Overlay */}
+        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
+
+        {/* Modal */}
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Adicionar Novo Produto</h3>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Nome do Produto */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Produto *
+                  </label>
+                  <input
+                    type="text"
+                    name="nome"
+                    value={formData.nome}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                    placeholder="Ex: iPhone 15 Pro Max"
+                  />
+                </div>
+
+                {/* SKU */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    SKU *
+                  </label>
+                  <input
+                    type="text"
+                    name="sku"
+                    value={formData.sku}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                    placeholder="Ex: IPHONE-15-PRO-256"
+                  />
+                </div>
+
+                {/* Categoria */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Categoria *
+                  </label>
+                  <select
+                    name="categoriaId"
+                    value={formData.categoriaId}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                  >
+                    <option value="">Selecione uma categoria</option>
+                    {categorias.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Preço */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Preço (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    name="preco"
+                    value={formData.preco}
+                    onChange={handleChange}
+                    required
+                    step="0.01"
+                    min="0"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                {/* Preço com Desconto */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Preço com Desconto (R$)
+                  </label>
+                  <input
+                    type="number"
+                    name="precoDesconto"
+                    value={formData.precoDesconto}
+                    onChange={handleChange}
+                    step="0.01"
+                    min="0"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                    placeholder="Opcional"
+                  />
+                </div>
+
+                {/* Estoque */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Estoque *
+                  </label>
+                  <input
+                    type="number"
+                    name="estoque"
+                    value={formData.estoque}
+                    onChange={handleChange}
+                    required
+                    min="0"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                    placeholder="0"
+                  />
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="ativo"
+                        checked={formData.ativo}
+                        onChange={(e) => setFormData(prev => ({ ...prev, ativo: e.target.checked }))}
+                        className="h-4 w-4 text-[#D4AF37] rounded"
+                      />
+                      <span className="ml-2 text-sm">Ativo</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="emDestaque"
+                        checked={formData.emDestaque}
+                        onChange={(e) => setFormData(prev => ({ ...prev, emDestaque: e.target.checked }))}
+                        className="h-4 w-4 text-[#D4AF37] rounded"
+                      />
+                      <span className="ml-2 text-sm">Em Destaque</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Upload de Imagem */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Imagem do Produto
+                </label>
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-lg">
+                  <div className="space-y-1 text-center">
+                    {imagemPreview ? (
+                      <div className="relative">
+                        <img
+                          src={imagemPreview}
+                          alt="Preview"
+                          className="mx-auto h-32 w-32 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImagem(null);
+                            setImagemPreview(null);
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                        <div className="flex text-sm text-gray-600">
+                          <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#D4AF37] hover:text-[#c19b2c]">
+                            <span>Enviar uma imagem</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImagemChange}
+                              className="sr-only"
+                            />
+                          </label>
+                        </div>
+                        <p className="text-xs text-gray-500">PNG, JPG, GIF até 10MB</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Descrição */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descrição
+                </label>
+                <textarea
+                  name="descricao"
+                  value={formData.descricao}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                  placeholder="Descreva o produto..."
+                />
+              </div>
+
+              {/* Botões */}
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
+                  disabled={loading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] disabled:opacity-50"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                      Criando...
+                    </>
+                  ) : (
+                    'Criar Produto'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function AdminProdutos() {
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
@@ -93,6 +456,7 @@ export default function AdminProdutos() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadingEstatisticas, setLoadingEstatisticas] = useState(false);
+  const [modalAberta, setModalAberta] = useState(false);
 
   const statusProdutos = {
     ativo: { label: "Ativo", cor: "bg-green-100 text-green-800" },
@@ -189,9 +553,15 @@ export default function AdminProdutos() {
     loadData();
   }, [paginaAtual, busca, filtroCategoria, filtroStatus, ordenar]);
 
+  // Função chamada quando o produto é criado com sucesso
+  const handleProdutoCriado = () => {
+    fetchProdutos(); // Recarrega a lista
+    fetchEstatisticas(); // Atualiza estatísticas
+  };
+
   // Funções de navegação
   const handleNovoProduto = () => {
-    navigate("/admin/produtos/novo");
+    setModalAberta(true);
   };
 
   const handleEditarProduto = (id: string) => {
@@ -270,6 +640,14 @@ export default function AdminProdutos() {
 
   return (
     <div className="py-8">
+      {/* Modal de Novo Produto */}
+      <NovoProdutoModal
+        isOpen={modalAberta}
+        onClose={() => setModalAberta(false)}
+        onSuccess={handleProdutoCriado}
+        categorias={categorias}
+      />
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
@@ -277,13 +655,16 @@ export default function AdminProdutos() {
           <p className="text-gray-600">Gerencie todos os produtos da loja</p>
         </div>
         
-        <button
-          onClick={handleNovoProduto}
-          className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-3 rounded-lg hover:bg-[#c19b2c] transition"
-        >
-          <Plus className="h-5 w-5" />
-          Novo Produto
-        </button>
+        <div className="flex gap-3">
+          {/* Botão para modal */}
+          <button
+            onClick={handleNovoProduto}
+            className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-3 rounded-lg hover:bg-[#c19b2c] transition"
+          >
+            <Plus className="h-5 w-5" />
+            Novo Produto
+          </button>
+        </div>
       </div>
 
       {/* Aviso de erro */}
