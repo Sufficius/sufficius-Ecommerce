@@ -19,6 +19,8 @@ export default defineConfig({
     force: true
   },
   build: {
+    outDir:'dist',
+    sourcemap:true,
     rollupOptions: {
       external: ['quill'], // Externalizar quill no build
     },
