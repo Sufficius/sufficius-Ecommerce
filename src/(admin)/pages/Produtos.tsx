@@ -828,7 +828,6 @@ export default function AdminProdutos() {
           </div>
         </div>
       </div>
-
       {/* Tabela de Produtos */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
         {loading ? (
