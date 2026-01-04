@@ -24,6 +24,7 @@ import {
 import { api } from "@/modules/services/api/axios";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Produto {
   id: string;
@@ -142,7 +143,7 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
       });
 
       if (response.data.success) {
-        alert('Produto criado com sucesso!');
+        toast.success('Produto criado com sucesso!');
         onSuccess();
         onClose();
         resetForm();
@@ -585,11 +586,11 @@ export default function AdminProdutos() {
       });
 
       if (response.data.success) {
-        alert('Produto excluído com sucesso!');
+        toast.success('Produto excluído com sucesso!');
         fetchProdutos(); // Recarregar lista
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erro ao excluir produto');
+      toast.error(err.response?.data?.message || 'Erro ao excluir produto');
     }
   };
 
