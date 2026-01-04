@@ -91,7 +91,6 @@ export default function AdminUsuarios() {
           Authorization: `Bearer ${token}`
         }
       });
-        console.log('📦 Resposta da API:', response.data);
 
       if (response.data.success) {
         setUsuarios(response.data.data);
