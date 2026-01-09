@@ -15,9 +15,6 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { CgClose } from "react-icons/cg";
 import { BiDollar } from "react-icons/bi";
-// import { toast } from "sonner";
-// import { useCart } from "@/context/CartContext";
-
 interface Produto {
   id: number;
   imagem: JSX.Element;
@@ -30,7 +27,6 @@ const Begin = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const [quantidade, setQuantidade] = useState(1);
-  // const { carrinho, adicionarAoCarrinho } = useCart();
 
   const query = params.get("q")?.toLowerCase() || "";
 
@@ -92,14 +88,6 @@ const Begin = () => {
     null
   );
 
-  // const handleAdicionarAoCarrinho = () => {
-  //   // if (!carrinho.includes(produto.id)) {
-  //   //   // adicionarAoCarrinho(produto.id);
-  //   //   toast.success(`${produto.nome} adicionado ao carrinho!`);
-  //   // } else {
-  //   //   toast.warning(`${produto.nome} já está no carrinho.`);
-  //   // }
-  // };
 
   // Corrigido: envia um array de items para o Pagamento
   const handlePagar = (produto: Produto, quantidade: number) => {

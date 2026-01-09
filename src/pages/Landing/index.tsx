@@ -27,10 +27,10 @@ import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { Button } from "@/components/ui/button";
+import { PrimeiraImagem, QuartaImagem, QuintaImagem, SegundaImagem, SextaImagem, TerceiraImagem } from "@/components/images";
 
 const ProductImage = ({ index }: { index: number }) => (
   <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-    <Package className="h-24 w-24 text-gray-400" />
     <div className="absolute bottom-2 right-2 bg-[#D4AF37] text-white px-2 py-1 text-xs rounded">
       Produto {index}
     </div>
@@ -340,6 +340,7 @@ const ProductsSection = () => {
       categoria: "Eletrônicos",
       rating: 4.5,
       vendas: 234,
+      img: <PrimeiraImagem />,
     },
     {
       id: 2,
@@ -349,6 +350,8 @@ const ProductsSection = () => {
       categoria: "Eletrônicos",
       rating: 4.8,
       vendas: 189,
+      img: <SegundaImagem />,
+
     },
     {
       id: 3,
@@ -358,6 +361,8 @@ const ProductsSection = () => {
       categoria: "Áudio",
       rating: 4.3,
       vendas: 456,
+      img: <TerceiraImagem />,
+
     },
     {
       id: 4,
@@ -367,6 +372,8 @@ const ProductsSection = () => {
       categoria: "TV & Vídeo",
       rating: 4.6,
       vendas: 123,
+      img: <QuartaImagem />,
+
     },
     {
       id: 5,
@@ -376,6 +383,8 @@ const ProductsSection = () => {
       categoria: "Games",
       rating: 4.7,
       vendas: 312,
+      img: <QuintaImagem />,
+
     },
     {
       id: 6,
@@ -385,6 +394,7 @@ const ProductsSection = () => {
       categoria: "Wearables",
       rating: 4.4,
       vendas: 278,
+      img: <SextaImagem />,
     },
   ];
 
@@ -417,8 +427,8 @@ const ProductsSection = () => {
               key={produto.id}
               className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
             >
-              <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-                <ProductImage index={produto.id} />
+              <div className="relative h-52 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+               {produto.img || ""}
                 <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white">
                   <Heart className="h-5 w-5" />
                 </button>
@@ -480,6 +490,9 @@ const ProductsSection = () => {
             <div className="flex flex-col md:flex-row gap-6 p-6 md:p-8">
               <div className="md:w-1/2">
                 <div className="h-80 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+                  <div className="-mt-10">
+                  {produtoSelecionado.img}
+                  </div>
                   <ProductImage index={produtoSelecionado.id} />
                 </div>
               </div>
