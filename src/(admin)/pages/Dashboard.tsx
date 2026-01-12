@@ -425,8 +425,6 @@ export default function AdminDashboard() {
           break;
       }
 
-      console.log(`📊 Buscando dados para período ${periodo}: ${inicio} - ${fim}`);
-
       // 1. BUSCAR DADOS DE VENDAS (usando endpoint /vendas/hoje ou /vendas/periodo)
       let vendasData = { totalVendas: 0, totalPedidos: 0, totalItens: 0 };
       
@@ -531,7 +529,6 @@ export default function AdminDashboard() {
         console.warn("Erro ao buscar produtos:", produtosError);
       }
 
-      // 4. CALCULAR TICKET MÉDIO
       const ticketMedio = vendasData.totalPedidos > 0 
         ? vendasData.totalVendas / vendasData.totalPedidos 
         : 0;
@@ -550,11 +547,6 @@ export default function AdminDashboard() {
         pedidos: pedidosRecentes.slice(0, 5) // Mostrar apenas 5 mais recentes
       });
 
-      console.log("✅ Dados carregados com sucesso:", {
-        vendas: vendasData.totalVendas,
-        pedidos: vendasData.totalPedidos,
-        ticketMedio
-      });
 
     } catch (err: any) {
       console.error("❌ Erro ao buscar dados do dashboard:", err);
@@ -571,7 +563,6 @@ export default function AdminDashboard() {
       
       setError(mensagemErro);
       
-      // Mostrar alerta temporário
       const alertDiv = document.createElement("div");
       alertDiv.className = "fixed top-4 right-4 bg-yellow-100 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg shadow-lg z-50 max-w-md";
       alertDiv.innerHTML = `
@@ -762,7 +753,6 @@ export default function AdminDashboard() {
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-[#D4AF37] mx-auto mb-4" />
           <p className="text-gray-600">Carregando dados do dashboard...</p>
-          <p className="text-sm text-gray-500 mt-2">Usando endpoints disponíveis</p>
         </div>
       </div>
     );
@@ -799,7 +789,6 @@ export default function AdminDashboard() {
           </div>
           <div className="text-sm text-gray-500">
             <div>Período: {formatDate(dados.periodo.inicio)} - {formatDate(dados.periodo.fim)}</div>
-            <div className="text-xs mt-1">Usando rotas: /vendas e /pedidos</div>
           </div>
         </div>
       </div>
@@ -1018,25 +1007,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-
-      {/* Informações da API */}
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div className="flex items-center gap-2 text-blue-800 mb-2">
-          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-          </svg>
-          <span className="font-medium">Informações da API</span>
-        </div>
-        <div className="text-sm text-blue-700">
-          <p>Dashboard usando endpoints disponíveis:</p>
-          <ul className="list-disc pl-5 mt-1 space-y-1">
-            <li><code className="bg-blue-100 px-1 rounded">GET /vendas/hoje</code> - Dados de vendas de hoje</li>
-            <li><code className="bg-blue-100 px-1 rounded">GET /vendas/periodo</code> - Dados de vendas por período</li>
-            <li><code className="bg-blue-100 px-1 rounded">GET /pedidos</code> - Lista de pedidos</li>
-          </ul>
-          <p className="mt-2 text-xs">Para dados completos, implemente endpoints adicionais no backend.</p>
-        </div>
-      </div>
     </div>
   );
 }
