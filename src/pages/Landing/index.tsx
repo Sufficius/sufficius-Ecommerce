@@ -731,7 +731,7 @@ const Header = () => {
                     </button>
                   </div>
                 ) || (
-                  <div className="">
+                  <div className="ml-3 mx-3">
                     {!logged && (
                       <Link to={"/login"}>
                         <Button>Entrar</Button>

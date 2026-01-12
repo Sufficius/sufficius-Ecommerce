@@ -269,7 +269,7 @@ const ConfirmarExclusaoModal = ({
   );
 };
 
-// Modal de Editar Produto
+// Modal de Editar Produto (ATUALIZADO para multipart)
 const EditarProdutoModal = ({ 
   isOpen, 
   onClose, 
@@ -297,11 +297,13 @@ const EditarProdutoModal = ({
     sku: '',
     categoriaId: '',
     ativo: true,
-    emDestaque: false
+    emDestaque: false,
+    descontoAte: ''
   });
 
   const [imagem, setImagem] = useState<File | null>(null);
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
+  const [deletarImagem, setDeletarImagem] = useState(false);
 
   useEffect(() => {
     if (produto) {
@@ -315,19 +317,19 @@ const EditarProdutoModal = ({
         sku: produto.sku,
         categoriaId: produto.categoriaId || '',
         ativo: produto.ativo,
-        emDestaque: produto.emDestaque
+        emDestaque: produto.emDestaque,
+        descontoAte: ''
       });
       setImagemPreview(produto.imagem || null);
+      setDeletarImagem(false);
     }
   }, [produto]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'ativo' || name === 'emDestaque' 
-        ? (e.target as HTMLInputElement).checked 
-        : value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
   };
 
@@ -335,6 +337,7 @@ const EditarProdutoModal = ({
     const file = e.target.files?.[0];
     if (file) {
       setImagem(file);
+      setDeletarImagem(false);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagemPreview(reader.result as string);
@@ -343,60 +346,61 @@ const EditarProdutoModal = ({
     }
   };
 
+  const handleRemoverImagem = () => {
+    setImagem(null);
+    setImagemPreview(null);
+    setDeletarImagem(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!produto) return;
     
     setLoading(true);
     setError(null);
 
     try {
-      // Criar objeto JSON com os dados
-      const produtoData = {
-        nome: formData.nome,
-        descricao: formData.descricao || null,
-        preco: parseFloat(formData.preco),
-        precoDesconto: formData.precoDesconto ? parseFloat(formData.precoDesconto) : null,
-        percentualDesconto: formData.percentualDesconto ? parseFloat(formData.percentualDesconto) : null,
-        estoque: parseInt(formData.estoque),
-        sku: formData.sku,
-        categoriaId: formData.categoriaId,
-        ativo: formData.ativo,
-        emDestaque: formData.emDestaque
-      };
-
-      // Se tiver imagem, usar FormData
+      // Sempre usar FormData para atualização
+      const formDataToSend = new FormData();
+      
+      // Adicionar campos como strings
+      formDataToSend.append('nome', formData.nome);
+      formDataToSend.append('descricao', formData.descricao);
+      formDataToSend.append('preco', formData.preco);
+      formDataToSend.append('precoDesconto', formData.precoDesconto);
+      formDataToSend.append('percentualDesconto', formData.percentualDesconto);
+      formDataToSend.append('estoque', formData.estoque);
+      formDataToSend.append('sku', formData.sku);
+      formDataToSend.append('categoriaId', formData.categoriaId || '');
+      formDataToSend.append('ativo', formData.ativo.toString());
+      formDataToSend.append('emDestaque', formData.emDestaque.toString());
+      
+      if (formData.descontoAte) {
+        formDataToSend.append('descontoAte', formData.descontoAte);
+      }
+      
+      if (deletarImagem) {
+        formDataToSend.append('deletarImagem', 'true');
+      }
+      
+      // Adicionar imagem se houver
       if (imagem) {
-        const formDataToSend = new FormData();
-        formDataToSend.append('data', JSON.stringify(produtoData));
         formDataToSend.append('imagem', imagem);
+      }
 
-        const response = await api.put(`/produtos/${produto.id}`, formDataToSend, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-
-        if (response.data.success) {
-          toast.success('Produto atualizado com sucesso!');
-          onSuccess();
-          onClose();
+      const response = await api.put(`/produtos/${produto.id}`, formDataToSend, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // NÃO definir Content-Type manualmente para FormData - o browser define automaticamente com boundary
         }
-      } else {
-        // Se não tiver imagem, enviar apenas JSON
-        const response = await api.put(`/produtos/${produto.id}`, produtoData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+      });
 
-        if (response.data.success) {
-          toast.success('Produto atualizado com sucesso!');
-          onSuccess();
-          onClose();
-        }
+      if (response.data.success) {
+        toast.success('Produto atualizado com sucesso!');
+        onSuccess();
+        onClose();
+        resetForm();
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Erro ao atualizar produto';
@@ -406,6 +410,28 @@ const EditarProdutoModal = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    if (produto) {
+      setFormData({
+        nome: produto.nome,
+        descricao: produto.descricao || '',
+        preco: produto.preco.toString(),
+        precoDesconto: produto.precoDesconto?.toString() || '',
+        percentualDesconto: produto.percentualDesconto?.toString() || '',
+        estoque: produto.estoque.toString(),
+        sku: produto.sku,
+        categoriaId: produto.categoriaId || '',
+        ativo: produto.ativo,
+        emDestaque: produto.emDestaque,
+        descontoAte: ''
+      });
+    }
+    setImagem(null);
+    setImagemPreview(produto?.imagem || null);
+    setDeletarImagem(false);
+    setError(null);
   };
 
   if (!isOpen || !produto) return null;
@@ -462,16 +488,15 @@ const EditarProdutoModal = ({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Categoria *
+                    Categoria
                   </label>
                   <select
                     name="categoriaId"
                     value={formData.categoriaId}
                     onChange={handleChange}
-                    required
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                   >
-                    <option value="">Selecione uma categoria</option>
+                    <option value="">Sem categoria</option>
                     {categorias.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.nome}</option>
                     ))}
@@ -526,9 +551,22 @@ const EditarProdutoModal = ({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Data Término Desconto
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="descontoAte"
+                    value={formData.descontoAte}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status
                   </label>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-6">
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -558,44 +596,59 @@ const EditarProdutoModal = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Imagem do Produto
                 </label>
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-lg">
-                  <div className="space-y-1 text-center">
-                    {imagemPreview ? (
-                      <div className="relative">
-                        <img
-                          src={imagemPreview}
-                          alt="Preview"
-                          className="mx-auto h-32 w-32 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setImagem(null);
-                            setImagemPreview(null);
-                          }}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                        <div className="flex text-sm text-gray-600">
-                          <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#D4AF37] hover:text-[#c19b2c]">
-                            <span>Enviar uma imagem</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImagemChange}
-                              className="sr-only"
-                            />
-                          </label>
+                <div className="mt-1">
+                  <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-lg">
+                    <div className="space-y-1 text-center">
+                      {imagemPreview ? (
+                        <div className="relative">
+                          <img
+                            src={imagemPreview}
+                            alt="Preview"
+                            className="mx-auto h-32 w-32 object-cover rounded-lg"
+                          />
+                          <div className="flex justify-center gap-2 mt-2">
+                            <button
+                              type="button"
+                              onClick={handleRemoverImagem}
+                              className="text-sm bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200"
+                            >
+                              Remover Imagem
+                            </button>
+                            <label className="text-sm bg-[#D4AF37] text-white px-3 py-1 rounded hover:bg-[#c19b2c] cursor-pointer">
+                              Alterar Imagem
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImagemChange}
+                                className="sr-only"
+                              />
+                            </label>
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-500">PNG, JPG, GIF até 10MB</p>
-                      </>
-                    )}
+                      ) : (
+                        <>
+                          <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                          <div className="flex text-sm text-gray-600">
+                            <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#D4AF37] hover:text-[#c19b2c]">
+                              <span>Enviar uma imagem</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImagemChange}
+                                className="sr-only"
+                              />
+                            </label>
+                          </div>
+                          <p className="text-xs text-gray-500">PNG, JPG, GIF até 10MB</p>
+                        </>
+                      )}
+                    </div>
                   </div>
+                  {deletarImagem && (
+                    <p className="mt-2 text-sm text-yellow-600">
+                      ⚠️ A imagem atual será removida ao salvar
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -617,7 +670,10 @@ const EditarProdutoModal = ({
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => {
+                    resetForm();
+                    onClose();
+                  }}
                   className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
                   disabled={loading}
                 >
@@ -626,7 +682,7 @@ const EditarProdutoModal = ({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] disabled:opacity-50"
+                  className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
                   {loading ? (
                     <>
@@ -646,7 +702,7 @@ const EditarProdutoModal = ({
   );
 };
 
-// Modal de Novo Produto
+// Modal de Novo Produto (ATUALIZADO para multipart)
 const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdutoModalProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -662,7 +718,8 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
     sku: '',
     categoriaId: '',
     ativo: true,
-    emDestaque: false
+    emDestaque: false,
+    descontoAte: ''
   });
 
   const [imagem, setImagem] = useState<File | null>(null);
@@ -688,60 +745,53 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
     }
   };
 
+  const handleRemoverImagem = () => {
+    setImagem(null);
+    setImagemPreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      // Criar objeto JSON
-      const produtoData = {
-        nome: formData.nome,
-        descricao: formData.descricao || null,
-        preco: parseFloat(formData.preco),
-        precoDesconto: formData.precoDesconto ? parseFloat(formData.precoDesconto) : null,
-        percentualDesconto: formData.percentualDesconto ? parseFloat(formData.percentualDesconto) : null,
-        estoque: parseInt(formData.estoque),
-        sku: formData.sku,
-        categoriaId: formData.categoriaId,
-        ativo: formData.ativo,
-        emDestaque: formData.emDestaque
-      };
-
-      // Se tiver imagem, usar FormData
+      // Sempre usar FormData para criação
+      const formDataToSend = new FormData();
+      
+      // Adicionar campos obrigatórios
+      formDataToSend.append('nome', formData.nome);
+      formDataToSend.append('sku', formData.sku);
+      formDataToSend.append('preco', formData.preco);
+      formDataToSend.append('estoque', formData.estoque);
+      
+      // Adicionar campos opcionais
+      if (formData.descricao) formDataToSend.append('descricao', formData.descricao);
+      if (formData.precoDesconto) formDataToSend.append('precoDesconto', formData.precoDesconto);
+      if (formData.percentualDesconto) formDataToSend.append('percentualDesconto', formData.percentualDesconto);
+      if (formData.categoriaId) formDataToSend.append('categoriaId', formData.categoriaId);
+      if (formData.descontoAte) formDataToSend.append('descontoAte', formData.descontoAte);
+      
+      formDataToSend.append('ativo', formData.ativo.toString());
+      formDataToSend.append('emDestaque', formData.emDestaque.toString());
+      
+      // Adicionar imagem se houver
       if (imagem) {
-        const formDataToSend = new FormData();
-        formDataToSend.append('data', JSON.stringify(produtoData));
         formDataToSend.append('imagem', imagem);
+      }
 
-        const response = await api.post('/produtos', formDataToSend, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-
-        if (response.data.success) {
-          toast.success('Produto criado com sucesso!');
-          onSuccess();
-          onClose();
-          resetForm();
+      const response = await api.post('/produtos', formDataToSend, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // NÃO definir Content-Type manualmente para FormData
         }
-      } else {
-        // Se não tiver imagem, enviar apenas JSON
-        const response = await api.post('/produtos', produtoData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+      });
 
-        if (response.data.success) {
-          toast.success('Produto criado com sucesso!');
-          onSuccess();
-          onClose();
-          resetForm();
-        }
+      if (response.data.success) {
+        toast.success('Produto criado com sucesso!');
+        onSuccess();
+        onClose();
+        resetForm();
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Erro ao criar produto';
@@ -764,7 +814,8 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
       sku: '',
       categoriaId: '',
       ativo: true,
-      emDestaque: false
+      emDestaque: false,
+      descontoAte: ''
     });
     setImagem(null);
     setImagemPreview(null);
@@ -827,16 +878,15 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Categoria *
+                    Categoria
                   </label>
                   <select
                     name="categoriaId"
                     value={formData.categoriaId}
                     onChange={handleChange}
-                    required
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                   >
-                    <option value="">Selecione uma categoria</option>
+                    <option value="">Sem categoria</option>
                     {categorias.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.nome}</option>
                     ))}
@@ -894,9 +944,22 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Data Término Desconto
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="descontoAte"
+                    value={formData.descontoAte}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status
                   </label>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-6">
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -936,10 +999,7 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
                         />
                         <button
                           type="button"
-                          onClick={() => {
-                            setImagem(null);
-                            setImagemPreview(null);
-                          }}
+                          onClick={handleRemoverImagem}
                           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
                         >
                           <X className="h-4 w-4" />
@@ -983,7 +1043,10 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => {
+                    resetForm();
+                    onClose();
+                  }}
                   className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
                   disabled={loading}
                 >
@@ -992,7 +1055,7 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] disabled:opacity-50"
+                  className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
                   {loading ? (
                     <>
