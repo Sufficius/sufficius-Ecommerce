@@ -10,8 +10,6 @@ import {
   TrendingDown,
   Calendar,
   Download,
-  Filter,
-  MoreVertical,
   Loader2,
   AlertCircle,
   FileText,
