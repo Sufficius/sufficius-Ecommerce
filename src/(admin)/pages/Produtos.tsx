@@ -39,7 +39,7 @@ interface Produto {
   criadoEm: string;
   categoria: string;
   categoriaId?: string;
-  imagem?: string;
+  imagem?: string; // URL da imagem vinda do banco
   imagemAlt?: string;
   status: string;
 }
@@ -72,7 +72,76 @@ interface NovoProdutoModalProps {
   categorias: Categoria[];
 }
 
-// Modal de Visualizar Produto
+// Componente para exibir imagens do banco de dados
+interface ImagemProdutoProps {
+  src?: string;
+  alt?: string;
+  className?: string;
+  fallbackIcon?: React.ReactNode;
+}
+
+const ImagemProduto = ({ 
+  src, 
+  alt = "Produto", 
+  className = "", 
+  fallbackIcon = <Package className="h-full w-full text-gray-400" />
+}: ImagemProdutoProps) => {
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Função para garantir que a URL da imagem seja válida
+  const getImageUrl = () => {
+    if (!src) return null;
+    
+    // Se a imagem já é uma URL completa
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      return src;
+    }
+    
+    // Se for um path relativo, adicione o base URL da sua API
+    if (src.startsWith('/uploads/') || src.startsWith('/images/')) {
+      return `${api.defaults.baseURL}${src}`;
+    }
+    
+    // Se for apenas um nome de arquivo, assuma que está em uma pasta padrão
+    return `${api.defaults.baseURL}/uploads/products/${src}`;
+  };
+
+  const imageUrl = getImageUrl();
+
+  if (!imageUrl || error) {
+    return (
+      <div className={`flex items-center justify-center bg-gray-100 ${className}`}>
+        {fallbackIcon}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative overflow-hidden ${className}`}>
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        </div>
+      )}
+      <img
+        src={imageUrl}
+        alt={alt}
+        onLoad={() => setLoading(false)}
+        onError={() => {
+          setError(true);
+          setLoading(false);
+        }}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${
+          loading ? 'opacity-0' : 'opacity-100'
+        }`}
+        loading="lazy"
+      />
+    </div>
+  );
+};
+
+// Modal de Visualizar Produto (ATUALIZADO)
 const VisualizarProdutoModal = ({ 
   isOpen, 
   onClose, 
@@ -101,16 +170,12 @@ const VisualizarProdutoModal = ({
             <div className="grid md:grid-cols-2 gap-6">
               {/* Imagem */}
               <div>
-                <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center overflow-hidden">
-                  {produto.imagem ? (
-                    <img 
-                      src={produto.imagem} 
-                      alt={produto.imagemAlt || produto.nome}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <Package className="h-32 w-32 text-gray-400" />
-                  )}
+                <div className="bg-gray-100 rounded-lg h-64 overflow-hidden">
+                  <ImagemProduto 
+                    src={produto.imagem}
+                    alt={produto.imagemAlt || produto.nome}
+                    className="h-full w-full"
+                  />
                 </div>
                 
                 {/* Status */}
@@ -269,7 +334,7 @@ const ConfirmarExclusaoModal = ({
   );
 };
 
-// Modal de Editar Produto (ATUALIZADO para multipart)
+// Modal de Editar Produto (ATUALIZADO)
 const EditarProdutoModal = ({ 
   isOpen, 
   onClose, 
@@ -336,8 +401,23 @@ const EditarProdutoModal = ({
   const handleImagemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validar tamanho da imagem (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('A imagem deve ter no máximo 10MB');
+        return;
+      }
+      
+      // Validar tipo da imagem
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        setError('Formato de imagem inválido. Use JPEG, PNG, GIF ou WebP');
+        return;
+      }
+      
       setImagem(file);
       setDeletarImagem(false);
+      setError(null);
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagemPreview(reader.result as string);
@@ -361,30 +441,38 @@ const EditarProdutoModal = ({
     setError(null);
 
     try {
-      // Sempre usar FormData para atualização
       const formDataToSend = new FormData();
       
-      // Adicionar campos como strings
+      // Campos obrigatórios
       formDataToSend.append('nome', formData.nome);
       formDataToSend.append('descricao', formData.descricao);
       formDataToSend.append('preco', formData.preco);
-      formDataToSend.append('precoDesconto', formData.precoDesconto);
-      formDataToSend.append('percentualDesconto', formData.percentualDesconto);
       formDataToSend.append('estoque', formData.estoque);
       formDataToSend.append('sku', formData.sku);
-      formDataToSend.append('categoriaId', formData.categoriaId || '');
-      formDataToSend.append('ativo', formData.ativo.toString());
-      formDataToSend.append('emDestaque', formData.emDestaque.toString());
       
+      // Campos opcionais
+      if (formData.precoDesconto) {
+        formDataToSend.append('precoDesconto', formData.precoDesconto);
+      }
+      if (formData.percentualDesconto) {
+        formDataToSend.append('percentualDesconto', formData.percentualDesconto);
+      }
+      if (formData.categoriaId) {
+        formDataToSend.append('categoriaId', formData.categoriaId);
+      }
       if (formData.descontoAte) {
         formDataToSend.append('descontoAte', formData.descontoAte);
       }
       
+      formDataToSend.append('ativo', formData.ativo.toString());
+      formDataToSend.append('emDestaque', formData.emDestaque.toString());
+      
+      // Controle de imagem
       if (deletarImagem) {
         formDataToSend.append('deletarImagem', 'true');
       }
       
-      // Adicionar imagem se houver
+      // Adicionar nova imagem se houver
       if (imagem) {
         formDataToSend.append('imagem', imagem);
       }
@@ -392,7 +480,7 @@ const EditarProdutoModal = ({
       const response = await api.put(`/produtos/${produto.id}`, formDataToSend, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          // NÃO definir Content-Type manualmente para FormData - o browser define automaticamente com boundary
+          // O browser define automaticamente o Content-Type para FormData
         }
       });
 
@@ -505,7 +593,7 @@ const EditarProdutoModal = ({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preço (R$) *
+                    Preço (KZ) *
                   </label>
                   <input
                     type="number"
@@ -521,7 +609,7 @@ const EditarProdutoModal = ({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preço com Desconto (R$)
+                    Preço com Desconto (KZ)
                   </label>
                   <input
                     type="number"
@@ -702,7 +790,7 @@ const EditarProdutoModal = ({
   );
 };
 
-// Modal de Novo Produto (ATUALIZADO para multipart)
+// Modal de Novo Produto (ATUALIZADO)
 const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdutoModalProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -736,7 +824,22 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
   const handleImagemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validar tamanho da imagem (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('A imagem deve ter no máximo 10MB');
+        return;
+      }
+      
+      // Validar tipo da imagem
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        setError('Formato de imagem inválido. Use JPEG, PNG, GIF ou WebP');
+        return;
+      }
+      
       setImagem(file);
+      setError(null);
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagemPreview(reader.result as string);
@@ -756,16 +859,15 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
     setError(null);
 
     try {
-      // Sempre usar FormData para criação
       const formDataToSend = new FormData();
       
-      // Adicionar campos obrigatórios
+      // Campos obrigatórios
       formDataToSend.append('nome', formData.nome);
       formDataToSend.append('sku', formData.sku);
       formDataToSend.append('preco', formData.preco);
       formDataToSend.append('estoque', formData.estoque);
       
-      // Adicionar campos opcionais
+      // Campos opcionais
       if (formData.descricao) formDataToSend.append('descricao', formData.descricao);
       if (formData.precoDesconto) formDataToSend.append('precoDesconto', formData.precoDesconto);
       if (formData.percentualDesconto) formDataToSend.append('percentualDesconto', formData.percentualDesconto);
@@ -783,7 +885,6 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
       const response = await api.post('/produtos', formDataToSend, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          // NÃO definir Content-Type manualmente para FormData
         }
       });
 
@@ -895,7 +996,7 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preço (R$) *
+                    Preço (KZ) *
                   </label>
                   <input
                     type="number"
@@ -912,7 +1013,7 @@ const NovoProdutoModal = ({ isOpen, onClose, onSuccess, categorias }: NovoProdut
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preço com Desconto (R$)
+                    Preço com Desconto (KZ)
                   </label>
                   <input
                     type="number"
@@ -1548,15 +1649,12 @@ export default function AdminProdutos() {
                       <td className="p-4">
                         <div className="flex items-center">
                           <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center text-lg mr-3 overflow-hidden">
-                            {produto.imagem ? (
-                              <img
-                                src={produto.imagem}
-                                alt={produto.imagemAlt || produto.nome}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <span>{getCategoriaIcon(produto.categoria)}</span>
-                            )}
+                            <ImagemProduto 
+                              src={produto.imagem}
+                              alt={produto.imagemAlt || produto.nome}
+                              className="h-full w-full"
+                              fallbackIcon={<span>{getCategoriaIcon(produto.categoria)}</span>}
+                            />
                           </div>
                           <div>
                             <div className="font-medium">{produto.nome}</div>

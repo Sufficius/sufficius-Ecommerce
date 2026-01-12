@@ -27,21 +27,262 @@ import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { Button } from "@/components/ui/button";
-import { PrimeiraImagem, QuartaImagem, QuintaImagem, SegundaImagem, SextaImagem, TerceiraImagem } from "@/components/images";
 
-const ProductImage = ({ index }: { index: number }) => (
-  <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-    <div className="absolute bottom-2 right-2 bg-[#D4AF37] text-white px-2 py-1 text-xs rounded">
-      Produto {index}
+// Componente de imagem otimizado com Cloudinary
+interface CloudinaryImageProps {
+  publicId?: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  className?: string;
+  loading?: "lazy" | "eager";
+  priority?: boolean;
+}
+
+const CloudinaryImage = ({
+  publicId,
+  alt,
+  width = 800,
+  height = 600,
+  className = "",
+  loading = "lazy",
+  priority = false,
+}: CloudinaryImageProps) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isError, setIsError] = useState(false);
+
+  // Configuração do Cloudinary
+  const cloudName =
+    import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "sufficius-commerce";
+
+  // Se não houver publicId, use um placeholder
+  const finalPublicId = publicId ?? "placeholder";
+
+  // Transformações otimizadas
+  const transformations = "c_scale,w_800,h_600,q_auto,f_auto";
+
+  const src = `https://res.cloudinary.com/${cloudName}/image/upload/${transformations}/${finalPublicId}`;
+
+  // Placeholder em base64 para blur effect
+  const placeholder =
+    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmMWYxIi8+PC9zdmc+";
+
+  return (
+    <div className={`relative overflow-hidden ${className}`}>
+      {/* Placeholder */}
+      <div
+        className={`absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 transition-opacity duration-500 ${
+          isLoaded ? "opacity-0" : "opacity-100"
+        } ${isError ? "hidden" : "block"}`}
+      />
+
+      {/* Imagem otimizada */}
+      <img
+        src={isLoaded ? src : placeholder}
+        alt={alt}
+        loading={priority ? "eager" : loading}
+        width={width}
+        height={height}
+        onLoad={() => setIsLoaded(true)}
+        onError={() => {
+          setIsError(true);
+          setIsLoaded(true);
+        }}
+        className={`w-full h-full object-cover transition-opacity duration-500 ${
+          isLoaded ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
+      {/* Fallback para erro */}
+      {isError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+          <Package className="h-12 w-12 text-gray-400" />
+        </div>
+      )}
     </div>
-  </div>
+  );
+};
+
+// Imagens dos produtos usando SUAS imagens reais do Cloudinary
+const PrimeiraImagem = () => (
+  <CloudinaryImage
+    publicId="v1768212665/image6_s6uyn9.jpg"
+    alt="Smartphone Premium"
+    width={400}
+    height={300}
+    priority={true}
+    className="w-full h-full"
+  />
 );
+
+const SegundaImagem = () => (
+  <CloudinaryImage
+    publicId="v1768212665/image7_qyn6if.jpg"
+    alt="Notebook Gamer"
+    width={400}
+    height={300}
+    className="w-full h-full"
+  />
+);
+
+const TerceiraImagem = () => (
+  <CloudinaryImage
+    publicId="v1768212665/image12_fv8ifg.jpg"
+    alt="Fone Bluetooth com Cancelamento de Ruído"
+    width={400}
+    height={300}
+    className="w-full h-full"
+  />
+);
+
+const QuartaImagem = () => (
+  <CloudinaryImage
+    publicId="v1768212665/image3_g6gaai.jpg"
+    alt="Smart TV 4K 55 polegadas"
+    width={400}
+    height={300}
+    className="w-full h-full"
+  />
+);
+
+const QuintaImagem = () => (
+  <CloudinaryImage
+    publicId="v1768212665/image5_p7b819.jpg"
+    alt="Console de Jogos"
+    width={400}
+    height={300}
+    className="w-full h-full"
+  />
+);
+
+const SextaImagem = () => (
+  <CloudinaryImage
+    publicId="v1768212665/img5_ixgvhh.jpg"
+    alt="Smartwatch com Monitor Cardíaco"
+    width={400}
+    height={300}
+    className="w-full h-full"
+  />
+);
+
+// Imagem do Hero Section
+const HeroImage = () => (
+  <CloudinaryImage
+    publicId="v1768212665/image4_kyqknt.jpg"
+    alt="Nova Coleção de Produtos"
+    width={600}
+    height={400}
+    priority={true}
+    className="w-full h-full rounded-2xl"
+  />
+);
+
+// Imagens para categorias - usando suas imagens
+const CategoryImage = ({
+  category,
+  className = "",
+}: {
+  category: string;
+  className?: string;
+}) => {
+  const imageMap: Record<string, string> = {
+    Eletrônicos: "v1768212665/img2_jxkmz3.jpg",
+    Moda: "v1768212665/img3_frqidi.jpg",
+    "Casa & Jardim": "v1768212665/image13_bgsomn.jpg",
+    Beleza: "v1768212665/image6_s6uyn9.jpg",
+    Esportes: "v1768212665/image7_qyn6if.jpg",
+    Livros: "v1768212665/image12_fv8ifg.jpg",
+    Áudio: "sufficius-commerce/categoria-audio",
+    "TV & Vídeo": "sufficius-commerce/categoria-tv-video",
+    Games: "sufficius-commerce/categoria-games",
+    Wearables: "sufficius-commerce/categoria-wearables",
+  };
+
+  return (
+    <CloudinaryImage
+      publicId={imageMap[category] || "v1768212665/image3_g6gaai.jpg"}
+      alt={category}
+      width={200}
+      height={128}
+      className={`w-full h-full ${className}`}
+    />
+  );
+};
+
+// Imagem de testimonial
+const TestimonialAvatar = ({ id }: { id: number }) => {
+  const imageMap = {
+    1: "v1768212665/image3_g6gaai.jpg",
+    2: "v1768212665/img4_bsfuoz.jpg",
+    3: "v1768212665/image5_p7b819.jpg",
+  };
+
+  return (
+    <div className="h-10 w-10 rounded-full overflow-hidden">
+      <CloudinaryImage
+        publicId={
+          imageMap[id as keyof typeof imageMap] ||
+          "v1768212665/image3_g6gaai.jpg"
+        }
+        alt={`Cliente ${id}`}
+        width={40}
+        height={40}
+        className="w-full h-full"
+      />
+    </div>
+  );
+};
+
+// Imagem para o carrinho
+const CartProductImage = ({ productId }: { productId: number }) => {
+  const imageMap = {
+    1: "v1768212665/image6_s6uyn9.jpg",
+    2: "v1768212665/image7_qyn6if.jpg",
+    3: "v1768212665/image12_fv8ifg.jpg",
+  };
+
+  return (
+    <CloudinaryImage
+      publicId={
+        imageMap[productId as keyof typeof imageMap] ||
+        "sufficius-commerce/product-default"
+      }
+      alt={`Produto ${productId}`}
+      width={64}
+      height={64}
+      className="w-full h-full"
+    />
+  );
+};
+
+// Se você tem essa imagem específica que mencionou, use-a para um dos produtos:
+// https://res.cloudinary.com/sufficius-commerce/image/upload/v1768212665/image3_g6gaai.jpg
+// const ImagemEspecial = () => (
+//   <CloudinaryImage
+//     publicId="v1768212665/image3_g6gaai" // Note que removi o "sufficius-commerce/" pois parece que está em outra pasta
+//     alt="Produto Especial"
+//     width={400}
+//     height={300}
+//     className="w-full h-full"
+//   />
+// );
+
+// const ProductImage = ({ index }: { index: number }) => (
+//   <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+//     <div className="absolute bottom-2 right-2 bg-[#D4AF37] text-white px-2 py-1 text-xs rounded">
+//       Produto {index}
+//     </div>
+//   </div>
+// );
 
 const HeroSection = () => {
   const navigate = useNavigate();
   const logged = useAuthStore((state) => state.isAuthenticated);
 
-  const handleCompra = () => {
+  const handleCompra = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (logged) {
       navigate("/checkout");
     } else {
@@ -51,10 +292,12 @@ const HeroSection = () => {
 
   return (
     <section className="relative px-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white overflow-hidden">
+      {/* Ajuste o z-index da overlay para não sobrepor os botões */}
       <div className="absolute inset-0 bg-black/50 z-0" />
-      <div className="relative max-w-7xl mx-auto px-4 py-24 md:py-32">
+
+      <div className="relative max-w-7xl mx-auto px-4 py-24 md:py-32 z-10">
         <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
+          <div className="space-y-6 relative z-20">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
               <span className="text-[#D4AF37]">🔥</span>
               <span className="text-sm">Oferta Especial Limitada</span>
@@ -70,14 +313,20 @@ const HeroSection = () => {
               em um só lugar.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 relative z-30">
+              {/* Botão "Comprar Agora" com prioridade máxima */}
               <button
                 onClick={handleCompra}
-                className="bg-[#D4AF37] text-gray-900 font-semibold px-8 py-3 rounded-lg hover:bg-[#c19b2c] transition-all transform hover:scale-105"
+                className="relative z-50 bg-[#D4AF37] text-gray-900 font-semibold px-8 py-3 rounded-lg hover:bg-[#c19b2c] transition-all transform hover:scale-105 active:scale-95 shadow-lg"
+                style={{ pointerEvents: "auto" }}
               >
                 Comprar Agora
               </button>
-              <button className="border-2 border-white text-white font-semibold px-8 py-3 rounded-lg hover:bg-white/10 transition">
+
+              <button
+                className="border-2 border-white text-white font-semibold px-8 py-3 rounded-lg hover:bg-white/10 transition shadow-lg"
+                style={{ pointerEvents: "auto" }}
+              >
                 Ver Coleção
               </button>
             </div>
@@ -100,7 +349,7 @@ const HeroSection = () => {
 
           <div className="relative">
             <div className="relative h-[400px] rounded-2xl overflow-hidden shadow-2xl">
-              <ProductImage index={1} />
+              <HeroImage />
             </div>
             <div className="absolute -bottom-6 -left-6 w-64 h-64 bg-gradient-to-r from-[#D4AF37] to-yellow-500 rounded-2xl -z-10" />
           </div>
@@ -154,12 +403,12 @@ const Features = () => (
 
 const FeaturedCategories = () => {
   const categories = [
-    { name: "Eletrônicos", count: "120 produtos", color: "bg-blue-500" },
-    { name: "Moda", count: "85 produtos", color: "bg-pink-500" },
-    { name: "Casa & Jardim", count: "64 produtos", color: "bg-green-500" },
-    { name: "Beleza", count: "42 produtos", color: "bg-purple-500" },
-    { name: "Esportes", count: "56 produtos", color: "bg-orange-500" },
-    { name: "Livros", count: "210 produtos", color: "bg-red-500" },
+    { name: "Eletrônicos", count: "120 produtos" },
+    { name: "Moda", count: "85 produtos" },
+    { name: "Casa & Jardim", count: "64 produtos" },
+    { name: "Beleza", count: "42 produtos" },
+    { name: "Esportes", count: "56 produtos" },
+    { name: "Livros", count: "210 produtos" },
   ];
 
   return (
@@ -175,10 +424,12 @@ const FeaturedCategories = () => {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {categories.map((cat, idx) => (
             <div key={idx} className="group cursor-pointer">
-              <div
-                className={`${cat.color} h-32 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition`}
-              >
-                <Package className="h-12 w-12 text-white" />
+              <div className="h-32 rounded-xl overflow-hidden mb-4 group-hover:scale-105 transition duration-300">
+                <CategoryImage
+                  category={cat.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
               <div className="text-center">
                 <h3 className="font-semibold">{cat.name}</h3>
@@ -203,7 +454,7 @@ const Testimonials = () => (
       </div>
 
       <div className="grid md:grid-cols-3 gap-8">
-        {[1, 2, 3].map((_, idx) => (
+        {[1, 2, 3].map((idx) => (
           <div
             key={idx}
             className="border rounded-xl p-6 hover:shadow-lg transition"
@@ -221,8 +472,8 @@ const Testimonials = () => (
               atendimento impecável."
             </p>
             <div className="flex items-center">
-              <div className="h-10 w-10 bg-gray-200 rounded-full mr-3"></div>
-              <div>
+              <TestimonialAvatar id={idx} />
+              <div className="ml-3">
                 <div className="font-semibold">Maria Silva</div>
                 <div className="text-sm text-gray-500">Cliente há 2 anos</div>
               </div>
@@ -340,7 +591,7 @@ const ProductsSection = () => {
       categoria: "Eletrônicos",
       rating: 4.5,
       vendas: 234,
-      img: <PrimeiraImagem />,
+      imagemComponente: PrimeiraImagem,
     },
     {
       id: 2,
@@ -350,8 +601,7 @@ const ProductsSection = () => {
       categoria: "Eletrônicos",
       rating: 4.8,
       vendas: 189,
-      img: <SegundaImagem />,
-
+      imagemComponente: SegundaImagem,
     },
     {
       id: 3,
@@ -361,8 +611,7 @@ const ProductsSection = () => {
       categoria: "Áudio",
       rating: 4.3,
       vendas: 456,
-      img: <TerceiraImagem />,
-
+      imagemComponente: TerceiraImagem,
     },
     {
       id: 4,
@@ -372,8 +621,7 @@ const ProductsSection = () => {
       categoria: "TV & Vídeo",
       rating: 4.6,
       vendas: 123,
-      img: <QuartaImagem />,
-
+      imagemComponente: QuartaImagem,
     },
     {
       id: 5,
@@ -383,8 +631,7 @@ const ProductsSection = () => {
       categoria: "Games",
       rating: 4.7,
       vendas: 312,
-      img: <QuintaImagem />,
-
+      imagemComponente: QuintaImagem,
     },
     {
       id: 6,
@@ -394,7 +641,7 @@ const ProductsSection = () => {
       categoria: "Wearables",
       rating: 4.4,
       vendas: 278,
-      img: <SextaImagem />,
+      imagemComponente: SextaImagem,
     },
   ];
 
@@ -422,64 +669,69 @@ const ProductsSection = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {produtos.map((produto) => (
-            <div
-              key={produto.id}
-              className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
-            >
-              <div className="relative h-52 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-               {produto.img || ""}
-                <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white">
-                  <Heart className="h-5 w-5" />
-                </button>
-                <div className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs px-2 py-1 rounded">
-                  -20%
+          {produtos.map((produto) => {
+            const ImagemComponente = produto.imagemComponente;
+            return (
+              <div
+                key={produto.id}
+                className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
+              >
+                <div className="relative h-52 overflow-hidden">
+                  <ImagemComponente />
+                  <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white">
+                    <Heart className="h-5 w-5" />
+                  </button>
+                  <div className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs px-2 py-1 rounded">
+                    -20%
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-bold text-lg">{produto.nome}</h3>
+                      <p className="text-gray-500 text-sm">
+                        {produto.descricao}
+                      </p>
+                    </div>
+                    <div className="flex items-center">
+                      <Star className="h-4 w-4 text-[#D4AF37] fill-current" />
+                      <span className="ml-1 text-sm">{produto.rating}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-4">
+                    <div>
+                      <p className="text-2xl font-bold text-[#D4AF37]">
+                        KZ {produto.preco.toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {produto.vendas} vendas
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setProdutoSelecionado(produto);
+                          setQuantidade(1);
+                        }}
+                        className="p-2 border rounded-lg hover:bg-gray-50"
+                      >
+                        <BsEye size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleAdicionarAoCarrinho(produto)}
+                        className="p-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c]"
+                      >
+                        <FiShoppingCart size={18} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="font-bold text-lg">{produto.nome}</h3>
-                    <p className="text-gray-500 text-sm">{produto.descricao}</p>
-                  </div>
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 text-[#D4AF37] fill-current" />
-                    <span className="ml-1 text-sm">{produto.rating}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center mt-4">
-                  <div>
-                    <p className="text-2xl font-bold text-[#D4AF37]">
-                      KZ {produto.preco.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {produto.vendas} vendas
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setProdutoSelecionado(produto);
-                        setQuantidade(1);
-                      }}
-                      className="p-2 border rounded-lg hover:bg-gray-50"
-                    >
-                      <BsEye size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleAdicionarAoCarrinho(produto)}
-                      className="p-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c]"
-                    >
-                      <FiShoppingCart size={18} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -489,11 +741,12 @@ const ProductsSection = () => {
           <div className="relative bg-white w-full max-w-4xl rounded-2xl shadow-2xl animate-fadeIn overflow-hidden">
             <div className="flex flex-col md:flex-row gap-6 p-6 md:p-8">
               <div className="md:w-1/2">
-                <div className="h-80 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
-                  <div className="-mt-10">
-                  {produtoSelecionado.img}
-                  </div>
-                  <ProductImage index={produtoSelecionado.id} />
+                <div className="h-80 rounded-xl overflow-hidden">
+                  {(() => {
+                    const ImagemComponente =
+                      produtoSelecionado.imagemComponente;
+                    return <ImagemComponente />;
+                  })()}
                 </div>
               </div>
 
@@ -581,7 +834,6 @@ const ProductsSection = () => {
 const Header = () => {
   const [open, setOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  // const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [profileOpen, setProfileOpen] = useState(false);
   const [quantidades, setQuantidades] = useState<Record<number, number>>({});
   const [carrinho, setCarrinho] = useState<number[]>([]);
@@ -635,9 +887,24 @@ const Header = () => {
   };
 
   const produtosExemplo = [
-    { id: 1, nome: "Smartphone", preco: 8999, imagem: "📱" },
-    { id: 2, nome: "Notebook", preco: 12599, imagem: "💻" },
-    { id: 3, nome: "Fone", preco: 1999, imagem: "🎧" },
+    {
+      id: 1,
+      nome: "Smartphone",
+      preco: 8999,
+      imageId: "sufficius-commerce/smartphone-cart",
+    },
+    {
+      id: 2,
+      nome: "Notebook",
+      preco: 12599,
+      imageId: "sufficius-commerce/notebook-cart",
+    },
+    {
+      id: 3,
+      nome: "Fone",
+      preco: 1999,
+      imageId: "sufficius-commerce/fone-cart",
+    },
   ];
 
   const total = carrinho.reduce((acc, id) => {
@@ -708,7 +975,7 @@ const Header = () => {
                   </div>
                 )}
 
-                {profileOpen && logged && (
+                {(profileOpen && logged && (
                   <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-50">
                     <div className="p-3 border-b">
                       <p className="font-medium">Bem-vindo!</p>
@@ -730,7 +997,7 @@ const Header = () => {
                       Terminar Sessão
                     </button>
                   </div>
-                ) || (
+                )) || (
                   <div className="ml-3 mx-3">
                     {!logged && (
                       <Link to={"/login"}>
@@ -822,8 +1089,8 @@ const Header = () => {
 
                     return (
                       <div key={id} className="flex items-center border-b py-4">
-                        <div className="h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
-                          {produto.imagem}
+                        <div className="h-16 w-16 rounded-lg overflow-hidden">
+                          <CartProductImage productId={id} />
                         </div>
                         <div className="ml-4 flex-1">
                           <h3 className="font-medium">{produto.nome}</h3>
