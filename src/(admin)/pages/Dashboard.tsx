@@ -16,9 +16,9 @@ import {
   AlertCircle,
   FileText,
 } from "lucide-react";
-import SalesChart from "../components/Charts/SalesChart";
-import RevenueChart from "../components/Charts/RevenueChart";
-import TopProductsChart from "../components/Charts/TopProductChart";
+// import SalesChart from "../components/Charts/SalesChart";
+// import RevenueChart from "../components/Charts/RevenueChart";
+// import TopProductsChart from "../components/Charts/TopProductChart";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { api } from "@/modules/services/api/axios";
 import { formatCurrency, formatDate } from "@/lib/utils";
