@@ -90,25 +90,42 @@ const ImagemProduto = ({
   const [loading, setLoading] = useState(true);
   const [imageKey, setImageKey] = useState(version);
 
+   // DEBUG: Log para verificar o que está sendo recebido
+  console.log("🔍 ImagemProduto recebeu src:", src);
+
   // Função para garantir que a URL da imagem seja válida
   const getImageUrl = () => {
-    if (!src) return null;
+    if (!src) {
+      console.log("❌ Nenhuma src fornecida");
+      return null;
+    }
+
+       if (!src.includes("/")) {
+      // Verifique se o backend está retornando apenas o nome do arquivo
+      const fullUrl = `${api.defaults.baseURL}/uploads/${src}`;
+      console.log("✅ Apenas nome do arquivo, construído:", fullUrl);
+      return fullUrl;
+    }
+    
     let baseUrl = src;
 
     // Se a imagem já é uma URL completa
     if (src.startsWith("http://") || src.startsWith("https://")) {
+      console.log("✅ URL completa:", src);
       baseUrl = src;
+      return baseUrl;
     }
 
     // Se for um path relativo, adicione o base URL da sua API
     else if (src.startsWith("/uploads/") || src.startsWith("/images/")) {
       baseUrl = `${api.defaults.baseURL}${src}`;
-    } else {
-      // Se for apenas um nome de arquivo, assuma que está em uma pasta padrão
+      console.log("✅ URL relativa construída:", baseUrl);
+      return baseUrl;
+    } 
+    else {
       return `${api.defaults.baseURL}/uploads/products/${src}`;
     }
-
-    // Adicione parâmetro de cache busting
+    
     const separator = baseUrl.includes("?") ? "&" : "?";
     return `${baseUrl}${separator}v=${imageKey}`;
   };
@@ -144,8 +161,16 @@ const ImagemProduto = ({
       <img
         src={imageUrl}
         alt={alt}
-        onLoad={() => setLoading(false)}
-        onError={() => {
+        onLoad={() => {
+          console.log("✅ Imagem carregada com sucesso:", imageUrl);
+          setLoading(false);
+        }}
+        onError={(e) => {
+          console.error("❌ Erro ao carregar imagem:", {
+            url: imageUrl,
+            error: e,
+            srcOriginal: src,
+          });
           setError(true);
           setLoading(false);
         }}
