@@ -1139,7 +1139,7 @@ const NovoProdutoModal = ({
         ativo: formData.ativo,
         emDestaque: formData.emDestaque,
         imagem: imagem || undefined,
-      }); // ✅ token é garantido como string aqui
+      }, token); // ✅ token é garantido como string aqui
 
       console.log("✅ Produto criado com sucesso:", novoProduto);
 

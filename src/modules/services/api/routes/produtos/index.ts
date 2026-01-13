@@ -69,13 +69,13 @@ const produtoFiltersSchema = z.object({
 
 // ==================== INTERFACES ====================
 
-interface Produto extends z.infer<typeof produtoSchema> {}
+interface Produto extends z.infer<typeof produtoSchema> { }
 
-interface CreateProdutoDTO extends z.infer<typeof createProdutoSchema> {}
+interface CreateProdutoDTO extends z.infer<typeof createProdutoSchema> { }
 
-interface UpdateProdutoDTO extends z.infer<typeof updateProdutoSchema> {}
+interface UpdateProdutoDTO extends z.infer<typeof updateProdutoSchema> { }
 
-interface ProdutoFilters extends z.infer<typeof produtoFiltersSchema> {}
+interface ProdutoFilters extends z.infer<typeof produtoFiltersSchema> { }
 
 interface Paginacao {
   total: number;
@@ -159,15 +159,15 @@ class ProdutosRoute {
    */
   private getAuthHeaders(contentType?: string): Record<string, string> {
     const headers: Record<string, string> = {};
-    
+
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
-    
+
     if (contentType) {
       headers['Content-Type'] = contentType;
     }
-    
+
     return headers;
   }
 
@@ -177,11 +177,11 @@ class ProdutosRoute {
   private async handleRequest<T>(request: Promise<any>): Promise<T> {
     try {
       const response = await request;
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'Operação falhou');
       }
-      
+
       return response.data;
     } catch (error: any) {
       if (error.response) {
@@ -213,7 +213,7 @@ class ProdutosRoute {
         //   const path = e.path.join('.');
         //   return `${path ? `${path}: ` : ''}${e.message}`;
         // }).join(', ');
-        
+
         throw new Error(`Validação falhou: ${error}`);
       }
       throw new Error(`Erro de validação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
@@ -225,7 +225,7 @@ class ProdutosRoute {
    */
   private createFormData(produto: CreateProdutoDTO | UpdateProdutoDTO, isUpdate = false): FormData {
     const formData = new FormData();
-    
+
     // Campos obrigatórios para criação
     if (!isUpdate) {
       const produtoData = produto as CreateProdutoDTO;
@@ -245,19 +245,19 @@ class ProdutosRoute {
     if (produto.descricao !== undefined) {
       formData.append("descricao", produto.descricao?.trim() || "");
     }
-    
+
     if (produto.precoDesconto !== undefined) {
       formData.append("precoDesconto", produto.precoDesconto?.toString() || "");
     }
-    
+
     if (produto.percentualDesconto !== undefined) {
       formData.append("percentualDesconto", produto.percentualDesconto?.toString() || "");
     }
-    
+
     if (produto.categoriaId !== undefined) {
       formData.append("categoriaId", produto.categoriaId || "");
     }
-    
+
     if (produto.descontoAte) {
       formData.append("descontoAte", produto.descontoAte);
     }
@@ -266,7 +266,7 @@ class ProdutosRoute {
     if (produto.ativo !== undefined) {
       formData.append("ativo", produto.ativo.toString());
     }
-    
+
     if (produto.emDestaque !== undefined) {
       formData.append("emDestaque", produto.emDestaque.toString());
     }
@@ -290,9 +290,9 @@ class ProdutosRoute {
   async listar(filters: ProdutoFilters = {}): Promise<ListarProdutosResponse> {
     // Valida filtros
     const validatedFilters = this.validateData(produtoFiltersSchema, filters);
-    
+
     const params = new URLSearchParams();
-    
+
     if (validatedFilters.page) params.append('page', validatedFilters.page.toString());
     if (validatedFilters.limit) params.append('limit', validatedFilters.limit.toString());
     if (validatedFilters.busca) params.append('busca', validatedFilters.busca);
@@ -320,25 +320,29 @@ class ProdutosRoute {
         headers: this.getAuthHeaders()
       })
     );
-    
+
     return response.data;
   }
 
   /**
    * Criar novo produto (com suporte a upload de imagem)
    */
-  async criarProduto(produto: CreateProdutoDTO): Promise<Produto> {
+  async criarProduto(produto: CreateProdutoDTO, token?: string): Promise<Produto> {
     // Valida dados
     const validatedData = this.validateData(createProdutoSchema, produto);
-    
+
     // Cria FormData
     const formData = this.createFormData(validatedData, false);
-    
+
     const response = await this.handleRequest<ApiResponse<Produto>>(
       api.post("/produtos", formData, {
-        headers: this.getAuthHeaders("multipart/form-data"),
+
+        headers: {
+          "Authorization": `${token}`,
+          "Content-Type": "multipart/form-data",
+        }
       },
-    ));
+      ));
 
     return response.data;
   }
@@ -349,10 +353,10 @@ class ProdutosRoute {
   async atualizarProduto(updateData: UpdateProdutoDTO): Promise<Produto> {
     // Valida dados
     const validatedData = this.validateData(updateProdutoSchema, updateData);
-    
+
     // Cria FormData
     const formData = this.createFormData(validatedData, true);
-    
+
     const response = await this.handleRequest<ApiResponse<Produto>>(
       api.put(`/produtos/${validatedData.id}`, formData, {
         headers: this.getAuthHeaders("multipart/form-data")
@@ -406,7 +410,7 @@ class ProdutosRoute {
     });
 
     return this.handleRequest<{ success: boolean; message: string }>(
-      api.post("/produtos/deletar-multiplos", 
+      api.post("/produtos/deletar-multiplos",
         { ids },
         { headers: this.getAuthHeaders("application/json") }
       )
@@ -451,7 +455,7 @@ class ProdutosRoute {
         headers: this.getAuthHeaders()
       })
     );
-    
+
     return response.data;
   }
 
@@ -466,7 +470,7 @@ class ProdutosRoute {
         headers: this.getAuthHeaders()
       })
     );
-    
+
     return response.data;
   }
 
@@ -497,7 +501,7 @@ class ProdutosRoute {
         headers: this.getAuthHeaders()
       })
     );
-    
+
     return { exists: response.exists };
   }
 
@@ -514,7 +518,7 @@ class ProdutosRoute {
     }
 
     const response = await this.handleRequest<ApiResponse<Produto>>(
-      api.patch(`/produtos/${produtoId}/estoque`, 
+      api.patch(`/produtos/${produtoId}/estoque`,
         { quantidade },
         { headers: this.getAuthHeaders("application/json") }
       )
@@ -532,7 +536,7 @@ class ProdutosRoute {
     }
 
     const response = await this.handleRequest<ApiResponse<Produto>>(
-      api.patch(`/produtos/${produtoId}/ativo`, 
+      api.patch(`/produtos/${produtoId}/ativo`,
         { ativo },
         { headers: this.getAuthHeaders("application/json") }
       )
@@ -550,7 +554,7 @@ class ProdutosRoute {
     }
 
     const response = await this.handleRequest<ApiResponse<Produto>>(
-      api.patch(`/produtos/${produtoId}/destaque`, 
+      api.patch(`/produtos/${produtoId}/destaque`,
         { emDestaque },
         { headers: this.getAuthHeaders("application/json") }
       )
@@ -572,7 +576,7 @@ class ProdutosRoute {
         headers: this.getAuthHeaders()
       })
     );
-    
+
     return response.data;
   }
 
@@ -581,9 +585,9 @@ class ProdutosRoute {
    */
   async exportar(filters: ProdutoFilters = {}): Promise<Blob> {
     const validatedFilters = this.validateData(produtoFiltersSchema, filters);
-    
+
     const params = new URLSearchParams();
-    
+
     if (validatedFilters.busca) params.append('busca', validatedFilters.busca);
     if (validatedFilters.categoria) params.append('categoria', validatedFilters.categoria);
     if (validatedFilters.status) params.append('status', validatedFilters.status);
