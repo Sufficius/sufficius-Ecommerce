@@ -88,69 +88,73 @@ const ImagemProduto = ({
 }: ImagemProdutoProps) => {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "sufficius-commerce";
-  
+
+  const cloudName =
+    import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "sufficius-commerce";
+
   // Mapeamento de UUIDs para nomes de arquivo reais
   // Você precisa preencher isso com os dados reais do seu banco
   const imageMap: Record<string, string> = {
     // UUID -> Nome real do arquivo no Cloudinary
-    '7cfda493-0ca0-4da8-b351-904246affce6': 'v1768212665/image7_qyn6if.jpg',
-    '13bfe2cc-8364-45c6-b985-61ae58e40f0c': 'v1768212665/image6_s6uyn9.jpg',
+    "7cfda493-0ca0-4da8-b351-904246affce6": "v1768212665/image7_qyn6if.jpg",
+    "13bfe2cc-8364-45c6-b985-61ae58e40f0c": "v1768212665/image6_s6uyn9.jpg",
     // Adicione mais mapeamentos conforme necessário
   };
-    
-  let publicId = '';
+
+  let publicId = "";
 
   if (!src) {
-      return `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}`;
-    }
-    
-  // Se é uma URL completa com "undefined"
-    if (src.includes('undefined')) {
-      // Extrai o UUID da URL
-      const parts = src.split('/');
-      const uuid = parts[parts.length - 1];
-      publicId = imageMap[uuid] || uuid;
-    } 
+    return `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}`;
+  }
 
+  // Se é uma URL completa com "undefined"
+  if (src.includes("undefined")) {
+    // Extrai o UUID da URL
+    const parts = src.split("/");
+    const uuid = parts[parts.length - 1];
+    publicId = imageMap[uuid] || uuid;
+  }
 
   const getImageUrl = () => {
     if (!src) {
       return "";
     }
-    
-    let publicId = '';
-    
+
+    let publicId = "";
+
     // Se é uma URL completa com "undefined"
-    if (src.includes('undefined')) {
+    if (src.includes("undefined")) {
       // Extrai o UUID da URL
-      const parts = src.split('/');
+      const parts = src.split("/");
       const uuid = parts[parts.length - 1];
       publicId = imageMap[uuid] || uuid;
-    } 
+    }
     // Se é apenas um UUID
-    else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(src)) {
+    else if (
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        src
+      )
+    ) {
       publicId = imageMap[src] || src;
     }
     // Se já é um publicId correto (com versão)
-    else if (src.includes('v') && src.includes('/')) {
+    else if (src.includes("v") && src.includes("/")) {
       publicId = src;
     }
     // Outros casos
     else {
       publicId = src;
     }
-    
+
     // Se encontrou um mapeamento, usa o nome real
     if (imageMap[src] && publicId === src) {
       publicId = imageMap[src];
     }
-        
+
     // Constrói URL correta
     // const transformations = "w_400,h_400,c_fill,q_auto:good";
     const url = `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}`;
-    
+
     return url;
   };
 
@@ -165,7 +169,9 @@ const ImagemProduto = ({
 
   if (error) {
     return (
-      <div className={`flex items-center justify-center bg-gray-100 ${className}`}>
+      <div
+        className={`flex items-center justify-center bg-gray-100 ${className}`}
+      >
         {fallbackIcon}
       </div>
     );
@@ -190,7 +196,7 @@ const ImagemProduto = ({
           setLoading(false);
         }}
         className={`w-full h-full object-cover transition-opacity duration-300 ${
-          loading ? 'opacity-0' : 'opacity-100'
+          loading ? "opacity-0" : "opacity-100"
         }`}
         loading="lazy"
       />
@@ -547,65 +553,71 @@ const EditarProdutoModal = ({
     setDeletarImagem(true);
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-  try {
-    const formDataToSend = new FormData();
+    try {
+      const formDataToSend = new FormData();
 
-    // Campos obrigatórios
-    formDataToSend.append("nome", formData.nome);
-    formDataToSend.append("sku", formData.sku);
-    formDataToSend.append("preco", formData.preco);
-    formDataToSend.append("estoque", formData.estoque);
-    
-    // Campos opcionais
-    if (formData.descricao) formDataToSend.append("descricao", formData.descricao);
-    if (formData.precoDesconto) formDataToSend.append("precoDesconto", formData.precoDesconto);
-    if (formData.percentualDesconto) formDataToSend.append("percentualDesconto", formData.percentualDesconto);
-    if (formData.categoriaId) formDataToSend.append("categoriaId", formData.categoriaId);
-    if (formData.descontoAte) formDataToSend.append("descontoAte", formData.descontoAte);
-    
-    formDataToSend.append("ativo", formData.ativo.toString());
-    formDataToSend.append("emDestaque", formData.emDestaque.toString());
-    
-    // Adicionar imagem comprimida se houver
-    if (imagem) {
-      try {
-        const imagemComprimida = await comprimirImagem(imagem);
-        formDataToSend.append("imagem", imagemComprimida);
-      } catch {
-        formDataToSend.append("imagem", imagem);
+      // Campos obrigatórios
+      formDataToSend.append("nome", formData.nome);
+      formDataToSend.append("sku", formData.sku);
+      formDataToSend.append("preco", formData.preco);
+      formDataToSend.append("estoque", formData.estoque);
+
+      // Campos opcionais
+      if (formData.descricao)
+        formDataToSend.append("descricao", formData.descricao);
+      if (formData.precoDesconto)
+        formDataToSend.append("precoDesconto", formData.precoDesconto);
+      if (formData.percentualDesconto)
+        formDataToSend.append(
+          "percentualDesconto",
+          formData.percentualDesconto
+        );
+      if (formData.categoriaId)
+        formDataToSend.append("categoriaId", formData.categoriaId);
+      if (formData.descontoAte)
+        formDataToSend.append("descontoAte", formData.descontoAte);
+
+      formDataToSend.append("ativo", formData.ativo.toString());
+      formDataToSend.append("emDestaque", formData.emDestaque.toString());
+
+      // Adicionar imagem comprimida se houver
+      if (imagem) {
+        try {
+          const imagemComprimida = await comprimirImagem(imagem);
+          formDataToSend.append("imagem", imagemComprimida);
+        } catch {
+          formDataToSend.append("imagem", imagem);
+        }
       }
-    }
 
-    const response = await api.post("/produtos", formDataToSend, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      timeout: 30000,
-    });
+      const response = await api.post("/produtos", formDataToSend, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        timeout: 30000,
+      });
 
-    if (response.data.success) {
-      toast.success("Produto criado com sucesso!");
-      onSuccess();
-      onClose();
-      resetForm();
+      if (response.data.success) {
+        toast.success("Produto criado com sucesso!");
+        onSuccess();
+        onClose();
+        resetForm();
+      }
+    } catch (err: any) {
+      const errorMessage =
+        err.response?.data?.message || err.message || "Erro ao criar produto";
+
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
-  } catch (err: any) {
-    const errorMessage = 
-      err.response?.data?.message || 
-      err.message || 
-      "Erro ao criar produto";
-    
-    setError(errorMessage);
-    toast.error(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Função para comprimir imagem
   const comprimirImagem = async (file: File): Promise<File> => {
@@ -1082,77 +1094,76 @@ const NovoProdutoModal = ({
     setImagemPreview(null);
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-  // ✅ VALIDAÇÃO DO TOKEN
-  if (!token) {
-    setError("Sessão expirada. Faça login novamente.");
-    toast.error("Sessão expirada");
-    setLoading(false);
-    return;
-  }
-
-  // Validação básica dos campos
-  if (!formData.nome.trim()) {
-    setError("Nome do produto é obrigatório");
-    setLoading(false);
-    return;
-  }
-  if (!formData.sku.trim()) {
-    setError("SKU é obrigatório");
-    setLoading(false);
-    return;
-  }
-  if (!formData.preco || parseFloat(formData.preco) <= 0) {
-    setError("Preço deve ser maior que zero");
-    setLoading(false);
-    return;
-  }
-
-  try {
-    // ✅ CORREÇÃO: Passar token como string (não null)
-    const novoProduto = await produtosRoute.criarProduto({
-      nome: formData.nome.trim(),
-      sku: formData.sku.trim().toUpperCase(),
-      preco: formData.preco,
-      estoque: formData.estoque || "0",
-      descricao: formData.descricao.trim() || undefined,
-      precoDesconto: formData.precoDesconto.trim() || undefined,
-      percentualDesconto: formData.percentualDesconto.trim() || undefined,
-      categoriaId: formData.categoriaId.trim() || undefined,
-      descontoAte: formData.descontoAte.trim() || undefined,
-      ativo: formData.ativo,
-      emDestaque: formData.emDestaque,
-      imagem: imagem || undefined
-    }, token); // ✅ token é garantido como string aqui
-
-    console.log("✅ Produto criado com sucesso:", novoProduto);
-    
-    toast.success("Produto criado com sucesso!");
-    onSuccess();
-    onClose();
-    resetForm();
-    
-  } catch (err: any) {
-    console.error("❌ Erro ao criar produto:", err);
-    
-    let errorMessage = "Erro ao criar produto";
-    
-    if (err.response?.data?.message) {
-      errorMessage = err.response.data.message;
-    } else if (err.message) {
-      errorMessage = err.message;
+    // ✅ VALIDAÇÃO DO TOKEN
+    if (!token) {
+      setError("Sessão expirada. Faça login novamente.");
+      toast.error("Sessão expirada");
+      setLoading(false);
+      return;
     }
-    
-    setError(errorMessage);
-    toast.error(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
+
+    // Validação básica dos campos
+    if (!formData.nome.trim()) {
+      setError("Nome do produto é obrigatório");
+      setLoading(false);
+      return;
+    }
+    if (!formData.sku.trim()) {
+      setError("SKU é obrigatório");
+      setLoading(false);
+      return;
+    }
+    if (!formData.preco || parseFloat(formData.preco) <= 0) {
+      setError("Preço deve ser maior que zero");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // ✅ CORREÇÃO: Passar token como string (não null)
+      const novoProduto = await produtosRoute.criarProduto({
+        nome: formData.nome.trim(),
+        sku: formData.sku.trim().toUpperCase(),
+        preco: formData.preco,
+        estoque: formData.estoque || "0",
+        descricao: formData.descricao.trim() || undefined,
+        precoDesconto: formData.precoDesconto.trim() || undefined,
+        percentualDesconto: formData.percentualDesconto.trim() || undefined,
+        categoriaId: formData.categoriaId.trim() || undefined,
+        descontoAte: formData.descontoAte.trim() || undefined,
+        ativo: formData.ativo,
+        emDestaque: formData.emDestaque,
+        imagem: imagem || undefined,
+      }); // ✅ token é garantido como string aqui
+
+      console.log("✅ Produto criado com sucesso:", novoProduto);
+
+      toast.success("Produto criado com sucesso!");
+      onSuccess();
+      onClose();
+      resetForm();
+    } catch (err: any) {
+      console.error("❌ Erro ao criar produto:", err);
+
+      let errorMessage = "Erro ao criar produto";
+
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const resetForm = () => {
     setFormData({
