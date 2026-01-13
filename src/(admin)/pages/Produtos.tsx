@@ -24,6 +24,7 @@ import { api } from "@/modules/services/api/axios";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
+import axios from "axios";
 
 interface Produto {
   id: string;
@@ -42,14 +43,6 @@ interface Produto {
   imagem?: string; // URL da imagem vinda do banco
   imagemAlt?: string;
   status: string;
-}
-interface ImagemProdutoProps {
-  src?: string;
-  alt?: string;
-  className?: string;
-  fallbackIcon?: React.ReactNode;
-  // Adicione uma chave de versão para forçar recarregamento
-  version?: string | number;
 }
 interface Paginacao {
   total: number;
@@ -79,73 +72,100 @@ interface NovoProdutoModalProps {
   categorias: Categoria[];
 }
 
+interface ImagemProdutoProps {
+  src?: string;
+  alt?: string;
+  className?: string;
+  fallbackIcon?: React.ReactNode;
+  version?: string | number;
+}
+
 const ImagemProduto = ({
   src,
   alt = "Produto",
   className = "",
   fallbackIcon = <Package className="h-full w-full text-gray-400" />,
-  version = Date.now(),
 }: ImagemProdutoProps) => {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [imageKey, setImageKey] = useState(version);
+  
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "sufficius-commerce";
+  
+  // Mapeamento de UUIDs para nomes de arquivo reais
+  // Você precisa preencher isso com os dados reais do seu banco
+  const imageMap: Record<string, string> = {
+    // UUID -> Nome real do arquivo no Cloudinary
+    '7cfda493-0ca0-4da8-b351-904246affce6': 'v1768212665/image7_qyn6if.jpg',
+    '13bfe2cc-8364-45c6-b985-61ae58e40f0c': 'v1768212665/image6_s6uyn9.jpg',
+    // Adicione mais mapeamentos conforme necessário
+  };
+    
+  let publicId = '';
 
-   // DEBUG: Log para verificar o que está sendo recebido
-  console.log("🔍 ImagemProduto recebeu src:", src);
+  if (!src) {
+      return `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}`;
+    }
+    
+  // Se é uma URL completa com "undefined"
+    if (src.includes('undefined')) {
+      // Extrai o UUID da URL
+      const parts = src.split('/');
+      const uuid = parts[parts.length - 1];
+      publicId = imageMap[uuid] || uuid;
+    } 
 
-  // Função para garantir que a URL da imagem seja válida
+
   const getImageUrl = () => {
     if (!src) {
-      console.log("❌ Nenhuma src fornecida");
-      return null;
-    }
-
-       if (!src.includes("/")) {
-      // Verifique se o backend está retornando apenas o nome do arquivo
-      const fullUrl = `${api.defaults.baseURL}/uploads/${src}`;
-      console.log("✅ Apenas nome do arquivo, construído:", fullUrl);
-      return fullUrl;
+      return "";
     }
     
-    let baseUrl = src;
-
-    // Se a imagem já é uma URL completa
-    if (src.startsWith("http://") || src.startsWith("https://")) {
-      console.log("✅ URL completa:", src);
-      baseUrl = src;
-      return baseUrl;
-    }
-
-    // Se for um path relativo, adicione o base URL da sua API
-    else if (src.startsWith("/uploads/") || src.startsWith("/images/")) {
-      baseUrl = `${api.defaults.baseURL}${src}`;
-      console.log("✅ URL relativa construída:", baseUrl);
-      return baseUrl;
+    let publicId = '';
+    
+    // Se é uma URL completa com "undefined"
+    if (src.includes('undefined')) {
+      // Extrai o UUID da URL
+      const parts = src.split('/');
+      const uuid = parts[parts.length - 1];
+      publicId = imageMap[uuid] || uuid;
     } 
+    // Se é apenas um UUID
+    else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(src)) {
+      publicId = imageMap[src] || src;
+    }
+    // Se já é um publicId correto (com versão)
+    else if (src.includes('v') && src.includes('/')) {
+      publicId = src;
+    }
+    // Outros casos
     else {
-      return `${api.defaults.baseURL}/uploads/products/${src}`;
+      publicId = src;
     }
     
-    const separator = baseUrl.includes("?") ? "&" : "?";
-    return `${baseUrl}${separator}v=${imageKey}`;
+    // Se encontrou um mapeamento, usa o nome real
+    if (imageMap[src] && publicId === src) {
+      publicId = imageMap[src];
+    }
+        
+    // Constrói URL correta
+    // const transformations = "w_400,h_400,c_fill,q_auto:good";
+    const url = `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}`;
+    
+    return url;
   };
 
   const imageUrl = getImageUrl();
 
-  // Reset quando a src mudar
   useEffect(() => {
     if (src) {
-      setImageKey(Date.now());
       setError(false);
-      setLoading(true);
+      // setLoading(true);
     }
   }, [src]);
 
-  if (!imageUrl || error) {
+  if (error) {
     return (
-      <div
-        className={`flex items-center justify-center bg-gray-100 ${className}`}
-      >
+      <div className={`flex items-center justify-center bg-gray-100 ${className}`}>
         {fallbackIcon}
       </div>
     );
@@ -162,24 +182,17 @@ const ImagemProduto = ({
         src={imageUrl}
         alt={alt}
         onLoad={() => {
-          console.log("✅ Imagem carregada com sucesso:", imageUrl);
           setLoading(false);
         }}
-        onError={(e) => {
-          console.error("❌ Erro ao carregar imagem:", {
-            url: imageUrl,
-            error: e,
-            srcOriginal: src,
-          });
+        onError={() => {
+          console.error("❌ Erro ao carregar:", imageUrl);
           setError(true);
           setLoading(false);
         }}
         className={`w-full h-full object-cover transition-opacity duration-300 ${
-          loading ? "opacity-0" : "opacity-100"
+          loading ? 'opacity-0' : 'opacity-100'
         }`}
         loading="lazy"
-        // Forçar recarregamento sem cache
-        crossOrigin="anonymous"
       />
     </div>
   );
@@ -534,156 +547,65 @@ const EditarProdutoModal = ({
     setDeletarImagem(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
 
-    if (!produto) return;
+  try {
+    const formDataToSend = new FormData();
 
-    setLoading(true);
-    setError(null);
-    // setUploadProgress(0);
-
-    try {
-      const formDataToSend = new FormData();
-
-      // Adicione todos os campos
-      formDataToSend.append("nome", formData.nome);
-      formDataToSend.append("descricao", formData.descricao);
-      formDataToSend.append("preco", formData.preco);
-      formDataToSend.append("estoque", formData.estoque);
-      formDataToSend.append("sku", formData.sku);
-
-      // Campos opcionais
-      if (formData.precoDesconto) {
-        formDataToSend.append("precoDesconto", formData.precoDesconto);
+    // Campos obrigatórios
+    formDataToSend.append("nome", formData.nome);
+    formDataToSend.append("sku", formData.sku);
+    formDataToSend.append("preco", formData.preco);
+    formDataToSend.append("estoque", formData.estoque);
+    
+    // Campos opcionais
+    if (formData.descricao) formDataToSend.append("descricao", formData.descricao);
+    if (formData.precoDesconto) formDataToSend.append("precoDesconto", formData.precoDesconto);
+    if (formData.percentualDesconto) formDataToSend.append("percentualDesconto", formData.percentualDesconto);
+    if (formData.categoriaId) formDataToSend.append("categoriaId", formData.categoriaId);
+    if (formData.descontoAte) formDataToSend.append("descontoAte", formData.descontoAte);
+    
+    formDataToSend.append("ativo", formData.ativo.toString());
+    formDataToSend.append("emDestaque", formData.emDestaque.toString());
+    
+    // Adicionar imagem comprimida se houver
+    if (imagem) {
+      try {
+        const imagemComprimida = await comprimirImagem(imagem);
+        formDataToSend.append("imagem", imagemComprimida);
+      } catch {
+        formDataToSend.append("imagem", imagem);
       }
-      if (formData.percentualDesconto) {
-        formDataToSend.append(
-          "percentualDesconto",
-          formData.percentualDesconto
-        );
-      }
-      if (formData.categoriaId) {
-        formDataToSend.append("categoriaId", formData.categoriaId);
-      }
-      if (formData.descontoAte) {
-        formDataToSend.append("descontoAte", formData.descontoAte);
-      }
+    }
 
-      formDataToSend.append("ativo", formData.ativo.toString());
-      formDataToSend.append("emDestaque", formData.emDestaque.toString());
+    const response = await api.post("/produtos", formDataToSend, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      timeout: 30000,
+    });
 
-      // Controle de imagem
-      if (deletarImagem) {
-        formDataToSend.append("deletarImagem", "true");
-      }
-
-      // Adicionar nova imagem se houver (com compressão)
-      if (imagem) {
-        try {
-          // Comprimir imagem antes de enviar
-          const imagemComprimida = await comprimirImagem(imagem);
-          formDataToSend.append("imagem", imagemComprimida);
-          console.log(
-            "📁 Imagem comprimida:",
-            imagemComprimida.name,
-            imagemComprimida.type,
-            `${Math.round(imagemComprimida.size / 1024)}KB`
-          );
-        } catch (compressionError) {
-          console.warn(
-            "⚠️ Erro na compressão, enviando original:",
-            compressionError
-          );
-          formDataToSend.append("imagem", imagem);
-        }
-      }
-
-      console.log("🚀 Enviando requisição para:", `/produtos/${produto.id}`);
-
-      const response = await api.put(
-        `/produtos/${produto.id}`,
-        formDataToSend,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          // Timeout aumentado para 2 minutos (120 segundos)
-          timeout: 120000,
-          // Handler de progresso
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const percentCompleted = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              // setUploadProgress(percentCompleted);
-              console.log(`📤 Upload: ${percentCompleted}%`);
-            }
-          },
-        }
-      );
-
-      console.log("✅ Resposta recebida:", response.data);
-
-      if (response.data.success) {
-        toast.success("Produto atualizado com sucesso!");
-      }
-
-      if (imagem || deletarImagem) {
-        // Adicione um timestamp único à URL da imagem
-        const updatedProduto = response.data.data;
-        if (
-          updatedProduto.imagemproduto &&
-          updatedProduto.imagemproduto.length > 0
-        ) {
-          // Adicione parâmetro de cache busting
-          const timestamp = Date.now();
-          const imagemComTimestamp = `${updatedProduto.imagemproduto[0].url}?v=${timestamp}`;
-          updatedProduto.imagemproduto[0].url = imagemComTimestamp;
-        }
-      }
-
+    if (response.data.success) {
+      toast.success("Produto criado com sucesso!");
       onSuccess();
       onClose();
       resetForm();
-    } catch (err: any) {
-      console.error("❌ Erro ao atualizar produto:", err);
-
-      // Tratamento específico de erros
-      if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
-        setError(
-          "Tempo limite excedido. Tente com uma imagem menor ou verifique sua conexão."
-        );
-        toast.error("Tempo limite excedido. Tente com uma imagem menor.");
-      } else if (err.response) {
-        // Erro do servidor (400, 500, etc.)
-        const serverError = err.response.data;
-        console.error("📊 Erro do servidor:", {
-          status: err.response.status,
-          data: serverError,
-        });
-
-        const errorMessage =
-          serverError?.message ||
-          serverError?.error ||
-          `Erro ${err.response.status}: ${err.response.statusText}`;
-        setError(errorMessage);
-        toast.error(errorMessage);
-      } else if (err.request) {
-        // Requisição feita mas sem resposta
-        setError("Sem resposta do servidor. Verifique sua conexão.");
-        toast.error("Sem resposta do servidor. Verifique sua conexão.");
-      } else {
-        // Outros erros
-        const errorMessage = err.message || "Erro ao atualizar produto";
-        setError(errorMessage);
-        toast.error(errorMessage);
-      }
-    } finally {
-      setLoading(false);
-      // setUploadProgress(0);
     }
-  };
+  } catch (err: any) {
+    const errorMessage = 
+      err.response?.data?.message || 
+      err.message || 
+      "Erro ao criar produto";
+    
+    setError(errorMessage);
+    toast.error(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Função para comprimir imagem
   const comprimirImagem = async (file: File): Promise<File> => {
@@ -1160,65 +1082,52 @@ const NovoProdutoModal = ({
     setImagemPreview(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
 
-    try {
-      const formDataToSend = new FormData();
+  try {
+    const formDataToSend = new FormData();
+    
+    // Adicionar campos (mesmo do código acima)
+    
+    // ✅ Usar Axios com configuração EXPLÍCITA
+    const response = await axios({
+      method: 'post',
+      url: `${api.defaults.baseURL}/produtos`,
+      data: formDataToSend,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+      // ✅ Configuração CRÍTICA para Fastify
+      transformRequest: [(data) => data], // Não transformar o FormData!
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
 
-      // Campos obrigatórios
-      formDataToSend.append("nome", formData.nome);
-      formDataToSend.append("sku", formData.sku);
-      formDataToSend.append("preco", formData.preco);
-      formDataToSend.append("estoque", formData.estoque);
-
-      // Campos opcionais
-      if (formData.descricao)
-        formDataToSend.append("descricao", formData.descricao);
-      if (formData.precoDesconto)
-        formDataToSend.append("precoDesconto", formData.precoDesconto);
-      if (formData.percentualDesconto)
-        formDataToSend.append(
-          "percentualDesconto",
-          formData.percentualDesconto
-        );
-      if (formData.categoriaId)
-        formDataToSend.append("categoriaId", formData.categoriaId);
-      if (formData.descontoAte)
-        formDataToSend.append("descontoAte", formData.descontoAte);
-
-      formDataToSend.append("ativo", formData.ativo.toString());
-      formDataToSend.append("emDestaque", formData.emDestaque.toString());
-
-      // Adicionar imagem se houver
-      if (imagem) {
-        formDataToSend.append("imagem", imagem);
-      }
-
-      const response = await api.post("/produtos", formDataToSend, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.data.success) {
-        toast.success("Produto criado com sucesso!");
-        onSuccess();
-        onClose();
-        resetForm();
-      }
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.message || "Erro ao criar produto";
-      setError(errorMessage);
-      toast.error(errorMessage);
-      console.error("Erro ao criar produto:", err);
-    } finally {
-      setLoading(false);
+    if (response.data.success) {
+      toast.success("Produto criado com sucesso!");
+      onSuccess();
+      onClose();
+      resetForm();
     }
-  };
+  } catch (err: any) {
+    console.error("Erro detalhado:", {
+      status: err.response?.status,
+      data: err.response?.data,
+      headers: err.response?.headers,
+      message: err.message
+    });
+    
+    const errorMsg = err.response?.data?.message || err.message || "Erro ao criar produto";
+    setError(errorMsg);
+    toast.error(errorMsg);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const resetForm = () => {
     setFormData({
