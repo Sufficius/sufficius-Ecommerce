@@ -1,6 +1,5 @@
 import { api } from "../../axios";
 import { z } from "zod";
-// import type { ZodError } from "zod";
 
 // ==================== SCHEMAS DE VALIDAÇÃO ====================
 
@@ -140,23 +139,15 @@ interface ApiResponse<T> {
 class ProdutosRoute {
   private token?: string;
 
-  /**
-   * Define o token de autenticação para todas as requisições
-   */
   setToken(token: string): void {
     this.token = token;
   }
 
-  /**
-   * Remove o token de autenticação
-   */
   clearToken(): void {
     this.token = undefined;
   }
 
-  /**
-   * Obtém os headers de autenticação
-   */
+
   private getAuthHeaders(contentType?: string): Record<string, string> {
     const headers: Record<string, string> = {};
 
@@ -171,9 +162,6 @@ class ProdutosRoute {
     return headers;
   }
 
-  /**
-   * Tratamento centralizado de requisições
-   */
   private async handleRequest<T>(request: Promise<any>): Promise<T> {
     try {
       const response = await request;
@@ -185,48 +173,32 @@ class ProdutosRoute {
       return response.data;
     } catch (error: any) {
       if (error.response) {
-        // Erro da API
         const apiError = error.response.data as ApiError;
         throw new Error(
           `API Error (${error.response.status}): ${apiError.message || error.message}`
         );
       } else if (error.request) {
-        // Sem resposta do servidor
         throw new Error('Sem resposta do servidor. Verifique sua conexão.');
       } else {
-        // Erro na configuração
         throw new Error(`Erro na requisição: ${error.message}`);
       }
     }
   }
 
-  /**
-   * Valida dados usando Zod
-   */
   private validateData<T>(schema: z.ZodSchema<T>, data: unknown): T {
     try {
       return schema.parse(data);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        // const zodError = error as ZodError<T>;
-        // const messages = zodError.errors.map(e => {
-        //   const path = e.path.join('.');
-        //   return `${path ? `${path}: ` : ''}${e.message}`;
-        // }).join(', ');
-
         throw new Error(`Validação falhou: ${error}`);
       }
       throw new Error(`Erro de validação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   }
 
-  /**
-   * Converte DTO para FormData
-   */
   private createFormData(produto: CreateProdutoDTO | UpdateProdutoDTO, isUpdate = false): FormData {
     const formData = new FormData();
 
-    // Campos obrigatórios para criação
     if (!isUpdate) {
       const produtoData = produto as CreateProdutoDTO;
       formData.append("nome", produtoData.nome.trim());
@@ -234,14 +206,12 @@ class ProdutosRoute {
       formData.append("preco", produtoData.preco);
       formData.append("estoque", produtoData.estoque);
     } else {
-      // Para atualização, só adiciona se existir
       if (produto.nome) formData.append("nome", produto.nome.trim());
       if (produto.sku) formData.append("sku", produto.sku.trim().toUpperCase());
       if (produto.preco) formData.append("preco", produto.preco);
       if (produto.estoque) formData.append("estoque", produto.estoque);
     }
 
-    // Campos opcionais
     if (produto.descricao !== undefined) {
       formData.append("descricao", produto.descricao?.trim() || "");
     }
@@ -262,7 +232,6 @@ class ProdutosRoute {
       formData.append("descontoAte", produto.descontoAte);
     }
 
-    // Booleanos
     if (produto.ativo !== undefined) {
       formData.append("ativo", produto.ativo.toString());
     }
@@ -271,12 +240,10 @@ class ProdutosRoute {
       formData.append("emDestaque", produto.emDestaque.toString());
     }
 
-    // Imagem
     if (produto.imagem) {
       formData.append("imagem", produto.imagem);
     }
 
-    // Flag para deletar imagem (apenas em atualização)
     if ('deletarImagem' in produto && produto.deletarImagem) {
       formData.append("deletarImagem", "true");
     }
@@ -284,11 +251,7 @@ class ProdutosRoute {
     return formData;
   }
 
-  /**
-   * Listar produtos com filtros e paginação
-   */
   async listar(filters: ProdutoFilters = {}): Promise<ListarProdutosResponse> {
-    // Valida filtros
     const validatedFilters = this.validateData(produtoFiltersSchema, filters);
 
     const params = new URLSearchParams();
@@ -307,9 +270,6 @@ class ProdutosRoute {
     );
   }
 
-  /**
-   * Buscar produto por ID
-   */
   async getById(id: string): Promise<Produto> {
     if (!id) {
       throw new Error('ID do produto é obrigatório');
@@ -324,14 +284,9 @@ class ProdutosRoute {
     return response.data;
   }
 
-  /**
-   * Criar novo produto (com suporte a upload de imagem)
-   */
   async criarProduto(produto: CreateProdutoDTO, token?: string): Promise<Produto> {
-    // Valida dados
     const validatedData = this.validateData(createProdutoSchema, produto);
 
-    // Cria FormData
     const formData = this.createFormData(validatedData, false);
 
     const response = await this.handleRequest<ApiResponse<Produto>>(
@@ -347,14 +302,9 @@ class ProdutosRoute {
     return response.data;
   }
 
-  /**
-   * Atualizar produto (com suporte a imagem)
-   */
   async atualizarProduto(updateData: UpdateProdutoDTO): Promise<Produto> {
-    // Valida dados
     const validatedData = this.validateData(updateProdutoSchema, updateData);
 
-    // Cria FormData
     const formData = this.createFormData(validatedData, true);
 
     const response = await this.handleRequest<ApiResponse<Produto>>(
@@ -366,9 +316,6 @@ class ProdutosRoute {
     return response.data;
   }
 
-  /**
-   * Deletar produto
-   */
   async deletarProduto(id: string): Promise<{ success: boolean; message: string }> {
     if (!id) {
       throw new Error('ID do produto é obrigatório');
@@ -381,9 +328,6 @@ class ProdutosRoute {
     );
   }
 
-  /**
-   * Obter estatísticas de produtos
-   */
   async getEstatisticas(): Promise<EstatisticasResponse> {
     return this.handleRequest<EstatisticasResponse>(
       api.get("/produtos/estatisticas", {
@@ -392,15 +336,12 @@ class ProdutosRoute {
     );
   }
 
-  /**
-   * Deletar múltiplos produtos
-   */
+ 
   async deletarMultiplos(ids: string[]): Promise<{ success: boolean; message: string }> {
     if (!ids || ids.length === 0) {
       throw new Error('Nenhum ID fornecido para exclusão');
     }
 
-    // Valida que todos os IDs são UUIDs
     ids.forEach(id => {
       try {
         z.string().uuid().parse(id);
@@ -417,9 +358,6 @@ class ProdutosRoute {
     );
   }
 
-  /**
-   * Atualizar imagem do produto separadamente
-   */
   async atualizarImagem(produtoId: string, imagem: File): Promise<Produto> {
     if (!produtoId) {
       throw new Error('ID do produto é obrigatório');
@@ -442,9 +380,6 @@ class ProdutosRoute {
     return response.data;
   }
 
-  /**
-   * Buscar produtos por categoria
-   */
   async getPorCategoria(categoriaId: string): Promise<Produto[]> {
     if (!categoriaId) {
       throw new Error('ID da categoria é obrigatório');
@@ -459,9 +394,6 @@ class ProdutosRoute {
     return response.data;
   }
 
-  /**
-   * Buscar produtos em destaque
-   */
   async getDestaques(limit: number = 10): Promise<Produto[]> {
     const validatedLimit = Math.min(Math.max(1, limit), 100); // Limita entre 1 e 100
 
@@ -474,9 +406,7 @@ class ProdutosRoute {
     return response.data;
   }
 
-  /**
-   * Buscar produtos com desconto
-   */
+
   async getEmPromocao(page: number = 1, limit: number = 10): Promise<ListarProdutosResponse> {
     const validatedPage = Math.max(1, page);
     const validatedLimit = Math.min(Math.max(1, limit), 100);
@@ -488,9 +418,6 @@ class ProdutosRoute {
     );
   }
 
-  /**
-   * Verificar se SKU já existe
-   */
   async verificarSku(sku: string): Promise<{ exists: boolean }> {
     if (!sku) {
       throw new Error('SKU é obrigatório');
@@ -505,9 +432,6 @@ class ProdutosRoute {
     return { exists: response.exists };
   }
 
-  /**
-   * Atualizar estoque do produto
-   */
   async atualizarEstoque(produtoId: string, quantidade: number): Promise<Produto> {
     if (!produtoId) {
       throw new Error('ID do produto é obrigatório');
@@ -527,9 +451,6 @@ class ProdutosRoute {
     return response.data;
   }
 
-  /**
-   * Ativar/desativar produto
-   */
   async toggleAtivo(produtoId: string, ativo: boolean): Promise<Produto> {
     if (!produtoId) {
       throw new Error('ID do produto é obrigatório');
@@ -545,9 +466,6 @@ class ProdutosRoute {
     return response.data;
   }
 
-  /**
-   * Toggle produto em destaque
-   */
   async toggleDestaque(produtoId: string, emDestaque: boolean): Promise<Produto> {
     if (!produtoId) {
       throw new Error('ID do produto é obrigatório');
@@ -563,9 +481,6 @@ class ProdutosRoute {
     return response.data;
   }
 
-  /**
-   * Buscar produtos por termo (busca geral)
-   */
   async buscar(termo: string, limit: number = 20): Promise<Produto[]> {
     if (!termo || termo.trim().length === 0) {
       throw new Error('Termo de busca é obrigatório');
@@ -580,9 +495,6 @@ class ProdutosRoute {
     return response.data;
   }
 
-  /**
-   * Exportar produtos para CSV/Excel
-   */
   async exportar(filters: ProdutoFilters = {}): Promise<Blob> {
     const validatedFilters = this.validateData(produtoFiltersSchema, filters);
 
