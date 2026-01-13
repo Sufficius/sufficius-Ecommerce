@@ -1028,7 +1028,7 @@ const NovoProdutoModal = ({
     descontoAte: "",
   });
 
-  const [imagem, setImagem] = useState<File | null>(null);
+  const [, setImagem] = useState<File | null>(null);
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
 
   const handleChange = (
