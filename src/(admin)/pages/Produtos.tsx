@@ -24,7 +24,7 @@ import { api } from "@/modules/services/api/axios";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
-import axios from "axios";
+import { produtosRoute } from "@/modules/services/api/routes/produtos";
 
 interface Produto {
   id: string;
@@ -1028,7 +1028,7 @@ const NovoProdutoModal = ({
     descontoAte: "",
   });
 
-  const [, setImagem] = useState<File | null>(null);
+  const [imagem, setImagem] = useState<File | null>(null);
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
 
   const handleChange = (
@@ -1082,48 +1082,73 @@ const NovoProdutoModal = ({
     setImagemPreview(null);
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setLoading(true);
   setError(null);
 
-  try {
-    const formDataToSend = new FormData();
-    
-    // Adicionar campos (mesmo do código acima)
-    
-    // ✅ Usar Axios com configuração EXPLÍCITA
-    const response = await axios({
-      method: 'post',
-      url: `${api.defaults.baseURL}/produtos`,
-      data: formDataToSend,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
-      },
-      // ✅ Configuração CRÍTICA para Fastify
-      transformRequest: [(data) => data], // Não transformar o FormData!
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-    });
+  // ✅ VALIDAÇÃO DO TOKEN
+  if (!token) {
+    setError("Sessão expirada. Faça login novamente.");
+    toast.error("Sessão expirada");
+    setLoading(false);
+    return;
+  }
 
-    if (response.data.success) {
-      toast.success("Produto criado com sucesso!");
-      onSuccess();
-      onClose();
-      resetForm();
-    }
-  } catch (err: any) {
-    console.error("Erro detalhado:", {
-      status: err.response?.status,
-      data: err.response?.data,
-      headers: err.response?.headers,
-      message: err.message
-    });
+  // Validação básica dos campos
+  if (!formData.nome.trim()) {
+    setError("Nome do produto é obrigatório");
+    setLoading(false);
+    return;
+  }
+  if (!formData.sku.trim()) {
+    setError("SKU é obrigatório");
+    setLoading(false);
+    return;
+  }
+  if (!formData.preco || parseFloat(formData.preco) <= 0) {
+    setError("Preço deve ser maior que zero");
+    setLoading(false);
+    return;
+  }
+
+  try {
+    // ✅ CORREÇÃO: Passar token como string (não null)
+    const novoProduto = await produtosRoute.criarProduto({
+      nome: formData.nome.trim(),
+      sku: formData.sku.trim().toUpperCase(),
+      preco: formData.preco,
+      estoque: formData.estoque || "0",
+      descricao: formData.descricao.trim() || undefined,
+      precoDesconto: formData.precoDesconto.trim() || undefined,
+      percentualDesconto: formData.percentualDesconto.trim() || undefined,
+      categoriaId: formData.categoriaId.trim() || undefined,
+      descontoAte: formData.descontoAte.trim() || undefined,
+      ativo: formData.ativo,
+      emDestaque: formData.emDestaque,
+      imagem: imagem || undefined
+    }, token); // ✅ token é garantido como string aqui
+
+    console.log("✅ Produto criado com sucesso:", novoProduto);
     
-    const errorMsg = err.response?.data?.message || err.message || "Erro ao criar produto";
-    setError(errorMsg);
-    toast.error(errorMsg);
+    toast.success("Produto criado com sucesso!");
+    onSuccess();
+    onClose();
+    resetForm();
+    
+  } catch (err: any) {
+    console.error("❌ Erro ao criar produto:", err);
+    
+    let errorMessage = "Erro ao criar produto";
+    
+    if (err.response?.data?.message) {
+      errorMessage = err.response.data.message;
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+    
+    setError(errorMessage);
+    toast.error(errorMessage);
   } finally {
     setLoading(false);
   }
