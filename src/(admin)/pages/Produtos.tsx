@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   Search,
@@ -24,7 +24,9 @@ import { api } from "@/modules/services/api/axios";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
-import { produtosRoute } from "@/modules/services/api/routes/produtos";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { NovoProdutoModal } from "@/app/produtos/criarProduto";
 
 interface Produto {
   id: string;
@@ -33,13 +35,13 @@ interface Produto {
   preco: number;
   precoDesconto?: number;
   percentualDesconto?: number;
-  estoque: number;
+  quantidade: number;
   sku: string;
   ativo: boolean;
   emDestaque: boolean;
   criadoEm: string;
   categoria: string;
-  categoriaId?: string;
+  id_categoria?: string;
   imagem?: string; // URL da imagem vinda do banco
   imagemAlt?: string;
   status: string;
@@ -65,13 +67,6 @@ interface Categoria {
   slug: string;
 }
 
-interface NovoProdutoModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  categorias: Categoria[];
-}
-
 interface ImagemProdutoProps {
   src?: string;
   alt?: string;
@@ -92,13 +87,9 @@ const ImagemProduto = ({
   const cloudName =
     import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "sufficius-commerce";
 
-  // Mapeamento de UUIDs para nomes de arquivo reais
-  // Você precisa preencher isso com os dados reais do seu banco
   const imageMap: Record<string, string> = {
-    // UUID -> Nome real do arquivo no Cloudinary
     "7cfda493-0ca0-4da8-b351-904246affce6": "v1768212665/image7_qyn6if.jpg",
     "13bfe2cc-8364-45c6-b985-61ae58e40f0c": "v1768212665/image6_s6uyn9.jpg",
-    // Adicione mais mapeamentos conforme necessário
   };
 
   let publicId = "";
@@ -327,14 +318,14 @@ const VisualizarProdutoModal = ({
                     <label className="text-sm text-gray-600">Estoque</label>
                     <p
                       className={`font-medium ${
-                        produto.estoque === 0
+                        produto.quantidade === 0
                           ? "text-red-600"
-                          : produto.estoque < 10
+                          : produto.quantidade < 10
                           ? "text-yellow-600"
                           : "text-green-600"
                       }`}
                     >
-                      {produto.estoque} unidades
+                      {produto.quantidade} unidades
                     </p>
                   </div>
 
@@ -468,9 +459,9 @@ const EditarProdutoModal = ({
     preco: "",
     precoDesconto: "",
     percentualDesconto: "",
-    estoque: "",
+    quantidade: "",
     sku: "",
-    categoriaId: "",
+    id_categoria: "",
     ativo: true,
     emDestaque: false,
     descontoAte: "",
@@ -488,9 +479,9 @@ const EditarProdutoModal = ({
         preco: produto.preco.toString(),
         precoDesconto: produto.precoDesconto?.toString() || "",
         percentualDesconto: produto.percentualDesconto?.toString() || "",
-        estoque: produto.estoque.toString(),
+        quantidade: produto.quantidade.toString(),
         sku: produto.sku,
-        categoriaId: produto.categoriaId || "",
+        id_categoria: produto.id_categoria || "",
         ativo: produto.ativo,
         emDestaque: produto.emDestaque,
         descontoAte: "",
@@ -565,7 +556,7 @@ const EditarProdutoModal = ({
       formDataToSend.append("nome", formData.nome);
       formDataToSend.append("sku", formData.sku);
       formDataToSend.append("preco", formData.preco);
-      formDataToSend.append("estoque", formData.estoque);
+      formDataToSend.append("quantidade", formData.quantidade);
 
       // Campos opcionais
       if (formData.descricao)
@@ -577,8 +568,8 @@ const EditarProdutoModal = ({
           "percentualDesconto",
           formData.percentualDesconto
         );
-      if (formData.categoriaId)
-        formDataToSend.append("categoriaId", formData.categoriaId);
+      if (formData.id_categoria)
+        formDataToSend.append("id_categoria", formData.id_categoria);
       if (formData.descontoAte)
         formDataToSend.append("descontoAte", formData.descontoAte);
 
@@ -662,12 +653,6 @@ const EditarProdutoModal = ({
                   lastModified: Date.now(),
                 });
 
-                console.log(
-                  `📊 Compressão: ${Math.round(
-                    file.size / 1024
-                  )}KB → ${Math.round(compressedFile.size / 1024)}KB`
-                );
-
                 // Se ainda for muito grande (> 1MB), reduzir mais a qualidade
                 if (compressedFile.size > 1024 * 1024) {
                   canvas.toBlob(
@@ -677,11 +662,7 @@ const EditarProdutoModal = ({
                           type: "image/jpeg",
                           lastModified: Date.now(),
                         });
-                        console.log(
-                          `📊 Compressão extra: ${Math.round(
-                            compressedFile.size / 1024
-                          )}KB → ${Math.round(moreCompressed.size / 1024)}KB`
-                        );
+
                         resolve(moreCompressed);
                       } else {
                         resolve(compressedFile);
@@ -721,9 +702,9 @@ const EditarProdutoModal = ({
         preco: produto.preco.toString(),
         precoDesconto: produto.precoDesconto?.toString() || "",
         percentualDesconto: produto.percentualDesconto?.toString() || "",
-        estoque: produto.estoque.toString(),
+        quantidade: produto.quantidade.toString(),
         sku: produto.sku,
-        categoriaId: produto.categoriaId || "",
+        id_categoria: produto.id_categoria || "",
         ativo: produto.ativo,
         emDestaque: produto.emDestaque,
         descontoAte: "",
@@ -800,8 +781,8 @@ const EditarProdutoModal = ({
                     Categoria
                   </label>
                   <select
-                    name="categoriaId"
-                    value={formData.categoriaId}
+                    name="id_categoria"
+                    value={formData.id_categoria}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                   >
@@ -851,8 +832,8 @@ const EditarProdutoModal = ({
                   </label>
                   <input
                     type="number"
-                    name="estoque"
-                    value={formData.estoque}
+                    name="quantidade"
+                    value={formData.quantidade}
                     onChange={handleChange}
                     required
                     min="0"
@@ -1015,449 +996,6 @@ const EditarProdutoModal = ({
   );
 };
 
-// Modal de Novo Produto (ATUALIZADO)
-const NovoProdutoModal = ({
-  isOpen,
-  onClose,
-  onSuccess,
-  categorias,
-}: NovoProdutoModalProps) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const token = useAuthStore((state) => state.token);
-
-  const [formData, setFormData] = useState({
-    nome: "",
-    descricao: "",
-    preco: "",
-    precoDesconto: "",
-    percentualDesconto: "",
-    estoque: "0",
-    sku: "",
-    categoriaId: "",
-    ativo: true,
-    emDestaque: false,
-    descontoAte: "",
-  });
-
-  const [imagem, setImagem] = useState<File | null>(null);
-  const [imagemPreview, setImagemPreview] = useState<string | null>(null);
-
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
-  };
-
-  const handleImagemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validar tamanho da imagem (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setError("A imagem deve ter no máximo 10MB");
-        return;
-      }
-
-      // Validar tipo da imagem
-      const validTypes = [
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "image/gif",
-        "image/webp",
-      ];
-      if (!validTypes.includes(file.type)) {
-        setError("Formato de imagem inválido. Use JPEG, PNG, GIF ou WebP");
-        return;
-      }
-
-      setImagem(file);
-      setError(null);
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagemPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoverImagem = () => {
-    setImagem(null);
-    setImagemPreview(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    // ✅ VALIDAÇÃO DO TOKEN
-    if (!token) {
-      setError("Sessão expirada. Faça login novamente.");
-      toast.error("Sessão expirada");
-      setLoading(false);
-      return;
-    }
-
-    // Validação básica dos campos
-    if (!formData.nome.trim()) {
-      setError("Nome do produto é obrigatório");
-      setLoading(false);
-      return;
-    }
-    if (!formData.sku.trim()) {
-      setError("SKU é obrigatório");
-      setLoading(false);
-      return;
-    }
-    if (!formData.preco || parseFloat(formData.preco) <= 0) {
-      setError("Preço deve ser maior que zero");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // ✅ CORREÇÃO: Passar token como string (não null)
-      const novoProduto = await produtosRoute.criarProduto({
-        nome: formData.nome.trim(),
-        sku: formData.sku.trim().toUpperCase(),
-        preco: formData.preco,
-        estoque: formData.estoque || "0",
-        descricao: formData.descricao.trim() || undefined,
-        precoDesconto: formData.precoDesconto.trim() || undefined,
-        percentualDesconto: formData.percentualDesconto.trim() || undefined,
-        categoriaId: formData.categoriaId.trim() || undefined,
-        descontoAte: formData.descontoAte.trim() || undefined,
-        ativo: formData.ativo,
-        emDestaque: formData.emDestaque,
-        imagem: imagem || undefined,
-      }, token); // ✅ token é garantido como string aqui
-
-      console.log("✅ Produto criado com sucesso:", novoProduto);
-
-      toast.success("Produto criado com sucesso!");
-      onSuccess();
-      onClose();
-      resetForm();
-    } catch (err: any) {
-      console.error("❌ Erro ao criar produto:", err);
-
-      let errorMessage = "Erro ao criar produto";
-
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      nome: "",
-      descricao: "",
-      preco: "",
-      precoDesconto: "",
-      percentualDesconto: "",
-      estoque: "0",
-      sku: "",
-      categoriaId: "",
-      ativo: true,
-      emDestaque: false,
-      descontoAte: "",
-    });
-    setImagem(null);
-    setImagemPreview(null);
-    setError(null);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-          onClick={onClose}
-        ></div>
-
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
-                Adicionar Novo Produto
-              </h3>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-700 text-sm">{error}</p>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nome do Produto *
-                  </label>
-                  <input
-                    type="text"
-                    name="nome"
-                    value={formData.nome}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                    placeholder="Ex: iPhone 15 Pro Max"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    SKU *
-                  </label>
-                  <input
-                    type="text"
-                    name="sku"
-                    value={formData.sku}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                    placeholder="Ex: IPHONE-15-PRO-256"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Categoria
-                  </label>
-                  <select
-                    name="categoriaId"
-                    value={formData.categoriaId}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  >
-                    <option value="">Sem categoria</option>
-                    {categorias.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preço (KZ) *
-                  </label>
-                  <input
-                    type="number"
-                    name="preco"
-                    value={formData.preco}
-                    onChange={handleChange}
-                    required
-                    step="0.01"
-                    min="0"
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preço com Desconto (KZ)
-                  </label>
-                  <input
-                    type="number"
-                    name="precoDesconto"
-                    value={formData.precoDesconto}
-                    onChange={handleChange}
-                    step="0.01"
-                    min="0"
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                    placeholder="Opcional"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Estoque *
-                  </label>
-                  <input
-                    type="number"
-                    name="estoque"
-                    value={formData.estoque}
-                    onChange={handleChange}
-                    required
-                    min="0"
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                    placeholder="0"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Data Término Desconto
-                  </label>
-                  <input
-                    type="datetime-local"
-                    name="descontoAte"
-                    value={formData.descontoAte}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Status
-                  </label>
-                  <div className="flex items-center space-x-6">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="ativo"
-                        checked={formData.ativo}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            ativo: e.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 text-[#D4AF37] rounded"
-                      />
-                      <span className="ml-2 text-sm">Ativo</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="emDestaque"
-                        checked={formData.emDestaque}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            emDestaque: e.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 text-[#D4AF37] rounded"
-                      />
-                      <span className="ml-2 text-sm">Em Destaque</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Imagem do Produto
-                </label>
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-lg">
-                  <div className="space-y-1 text-center">
-                    {imagemPreview ? (
-                      <div className="relative">
-                        <img
-                          src={imagemPreview}
-                          alt="Preview"
-                          className="mx-auto h-32 w-32 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleRemoverImagem}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                        <div className="flex text-sm text-gray-600">
-                          <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#D4AF37] hover:text-[#c19b2c]">
-                            <span>Enviar uma imagem</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImagemChange}
-                              className="sr-only"
-                            />
-                          </label>
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          PNG, JPG, GIF até 10MB
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descrição
-                </label>
-                <textarea
-                  name="descricao"
-                  value={formData.descricao}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  placeholder="Descreva o produto..."
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    resetForm();
-                    onClose();
-                  }}
-                  className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
-                  disabled={loading}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-                      Criando...
-                    </>
-                  ) : (
-                    "Criar Produto"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Componente Principal
 export default function AdminProdutos() {
@@ -1472,7 +1010,15 @@ export default function AdminProdutos() {
 
   const [imageVersion, setImageVersion] = useState<Record<string, number>>({});
   const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
+
+  const { data: categorias } = useQuery({
+    queryKey: ["categorias"],
+    queryFn: async () => {
+      const response = await api.get("/categorias");
+      return response?.data.data;
+    },
+  });
+
   const [paginacao, setPaginacao] = useState<Paginacao>({
     total: 0,
     page: 1,
@@ -1492,7 +1038,7 @@ export default function AdminProdutos() {
   const [loadingEstatisticas, setLoadingEstatisticas] = useState(false);
 
   // Estados para modais
-  const [modalNovoProduto, setModalNovoProduto] = useState(false);
+  const [, setModalNovoProduto] = useState(false);
   const [modalVisualizar, setModalVisualizar] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [modalExcluir, setModalExcluir] = useState(false);
@@ -1560,16 +1106,13 @@ export default function AdminProdutos() {
     }
   };
 
-  const fetchCategorias = async () => {
-    try {
+  const { data: categoria } = useQuery({
+    queryKey: ["categoria"],
+    queryFn: async () => {
       const response = await api.get("/categorias");
-      if (response.data.success) {
-        setCategorias(response.data.data);
-      }
-    } catch (err) {
-      console.error("Erro ao buscar categorias:", err);
-    }
-  };
+      return response.data;
+    },
+  });
 
   const fetchEstatisticas = async () => {
     try {
@@ -1590,17 +1133,12 @@ export default function AdminProdutos() {
 
   useEffect(() => {
     const loadData = async () => {
-      await Promise.all([fetchProdutos(), fetchCategorias()]);
+      await Promise.all([fetchProdutos(), categoria]);
       fetchEstatisticas();
     };
 
     loadData();
   }, [paginaAtual, busca, filtroCategoria, filtroStatus, ordenar]);
-
-  const handleProdutoCriado = () => {
-    fetchProdutos();
-    fetchEstatisticas();
-  };
 
   const handleProdutoAtualizado = () => {
     fetchProdutos();
@@ -1677,9 +1215,9 @@ export default function AdminProdutos() {
         (p) => p.precoDesconto && p.precoDesconto > 0
       ).length,
       baixoEstoqueLocais: produtos.filter(
-        (p) => p.estoque <= 10 && p.estoque > 0
+        (p) => p.quantidade <= 10 && p.quantidade > 0
       ).length,
-      semEstoqueLocais: produtos.filter((p) => p.estoque === 0).length,
+      semEstoqueLocais: produtos.filter((p) => p.quantidade === 0).length,
     };
   };
 
@@ -1698,14 +1236,6 @@ export default function AdminProdutos() {
 
   return (
     <div className="py-8">
-      {/* Modais */}
-      <NovoProdutoModal
-        isOpen={modalNovoProduto}
-        onClose={() => setModalNovoProduto(false)}
-        onSuccess={handleProdutoCriado}
-        categorias={categorias}
-      />
-
       <VisualizarProdutoModal
         isOpen={modalVisualizar}
         onClose={() => {
@@ -1749,13 +1279,15 @@ export default function AdminProdutos() {
         </div>
 
         <div className="flex gap-3">
-          <button
-            onClick={() => setModalNovoProduto(true)}
-            className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-3 rounded-lg hover:bg-[#c19b2c] transition"
-          >
-            <Plus className="h-5 w-5" />
-            Novo Produto
-          </button>
+          <NovoProdutoModal>
+            <Button
+              onClick={() => setModalNovoProduto(true)}
+              className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-3 rounded-lg hover:bg-[#c19b2c] transition"
+            >
+              <Plus className="h-5 w-5" />
+              Novo Produto
+            </Button>
+          </NovoProdutoModal>
         </div>
       </div>
 
@@ -1799,7 +1331,7 @@ export default function AdminProdutos() {
                 className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
               >
                 <option value="todos">Todas categorias</option>
-                {categorias.map((categoria) => (
+                {categorias.map((categoria: Categoria) => (
                   <option key={categoria.id} value={categoria.id}>
                     {categoria.nome}
                   </option>
@@ -1822,8 +1354,8 @@ export default function AdminProdutos() {
                 <option value="todos">Todos status</option>
                 <option value="ativo">Ativo</option>
                 <option value="inativo">Inativo</option>
-                <option value="baixo_estoque">Baixo estoque</option>
-                <option value="sem_estoque">Sem estoque</option>
+                <option value="baixo_estoque">Baixo quantidade</option>
+                <option value="sem_estoque">Sem quantidade</option>
               </select>
             </div>
           </div>
@@ -2023,14 +1555,14 @@ export default function AdminProdutos() {
                       <td className="p-4">
                         <div
                           className={`font-medium ${
-                            produto.estoque === 0
+                            produto.quantidade === 0
                               ? "text-red-600"
-                              : produto.estoque < 10
+                              : produto.quantidade < 10
                               ? "text-yellow-600"
                               : "text-green-600"
                           }`}
                         >
-                          {produto.estoque} unidades
+                          {produto.quantidade} unidades
                         </div>
                       </td>
                       <td className="p-4">
