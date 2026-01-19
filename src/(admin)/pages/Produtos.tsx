@@ -399,7 +399,7 @@ const ConfirmarExclusaoModal = ({
   );
 };
 
-// Modal de Editar Produto (ATUALIZADO)
+/// Modal de Editar Produto (CORRIGIDO)
 const EditarProdutoModal = ({
   isOpen,
   onClose,
@@ -425,7 +425,7 @@ const EditarProdutoModal = ({
     percentualDesconto: "",
     quantidade: "",
     id_categoria: "",
-    status: "",
+    status: "ACTIVO",
     descontoAte: "",
   });
 
@@ -433,6 +433,7 @@ const EditarProdutoModal = ({
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
   const [deletarImagem, setDeletarImagem] = useState(false);
 
+  // Inicializar form quando produto mudar
   useEffect(() => {
     if (produto) {
       setFormData({
@@ -443,11 +444,13 @@ const EditarProdutoModal = ({
         percentualDesconto: produto.percentualDesconto?.toString() || "",
         quantidade: produto.quantidade.toString(),
         id_categoria: produto.id_categoria || "",
+        status: produto.status || "ACTIVO",
         descontoAte: "",
-        status: produto.status,
       });
       setImagemPreview(produto.imagem || null);
       setDeletarImagem(false);
+      setImagem(null);
+      setError(null);
     }
   }, [produto]);
 
@@ -457,11 +460,29 @@ const EditarProdutoModal = ({
     >
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+    
+    if (type === "checkbox") {
+      const checkbox = e.target as HTMLInputElement;
+      if (name === "status") {
+        // Se for o checkbox de status
+        setFormData(prev => ({
+          ...prev,
+          status: checkbox.checked ? "ACTIVO" : "INACTIVO"
+        }));
+      } else {
+        // Outros checkboxes
+        setFormData(prev => ({
+          ...prev,
+          [name]: checkbox.checked
+        }));
+      }
+    } else {
+      // Inputs normais
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleImagemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -506,6 +527,12 @@ const EditarProdutoModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!produto) {
+      setError("Produto não selecionado");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -518,23 +545,21 @@ const EditarProdutoModal = ({
       formDataToSend.append("quantidade", formData.quantidade);
 
       // Campos opcionais
-      if (formData.descricao)
-        formDataToSend.append("descricao", formData.descricao);
-      if (formData.precoDesconto)
-        formDataToSend.append("precoDesconto", formData.precoDesconto);
-      if (formData.percentualDesconto)
-        formDataToSend.append(
-          "percentualDesconto",
-          formData.percentualDesconto
-        );
-      if (formData.id_categoria)
-        formDataToSend.append("id_categoria", formData.id_categoria);
-      if (formData.descontoAte)
-        formDataToSend.append("descontoAte", formData.descontoAte);
+      if (formData.descricao) formDataToSend.append("descricao", formData.descricao);
+      if (formData.precoDesconto) formDataToSend.append("precoDesconto", formData.precoDesconto);
+      if (formData.percentualDesconto) formDataToSend.append("percentualDesconto", formData.percentualDesconto);
+      if (formData.id_categoria) formDataToSend.append("id_categoria", formData.id_categoria);
+      if (formData.descontoAte) formDataToSend.append("descontoAte", formData.descontoAte);
 
+      // Status e destaque
       formDataToSend.append("status", formData.status);
 
-      // Adicionar imagem comprimida se houver
+      // Para deletar imagem existente
+      if (deletarImagem) {
+        formDataToSend.append("deletarImagem", "true");
+      }
+
+      // Adicionar nova imagem se houver
       if (imagem) {
         try {
           const imagemComprimida = await comprimirImagem(imagem);
@@ -544,23 +569,27 @@ const EditarProdutoModal = ({
         }
       }
 
-      const response = await api.post("/produtos", formDataToSend, {
+      // IMPORTANTE: Usar PUT para atualização
+      const response = await api.put(`/produtos/${produto.id}`, formDataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
         },
         timeout: 30000,
       });
 
       if (response.data.success) {
-        toast.success("Produto criado com sucesso!");
+        toast.success("Produto atualizado com sucesso!");
         onSuccess();
         onClose();
-        resetForm();
+      } else {
+        throw new Error(response.data.message || "Erro ao atualizar produto");
       }
     } catch (err: any) {
       const errorMessage =
-        err.response?.data?.message || err.message || "Erro ao criar produto";
-
+        err.response?.data?.message || err.message || "Erro ao atualizar produto";
+      
+      console.error("❌ Erro ao atualizar produto:", err);
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -568,10 +597,9 @@ const EditarProdutoModal = ({
     }
   };
 
-  // Função para comprimir imagem
+  // Função para comprimir imagem (mantenha a mesma)
   const comprimirImagem = async (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
-      // Se a imagem já for pequena (< 500KB), não comprima
       if (file.size < 500 * 1024) {
         resolve(file);
         return;
@@ -588,7 +616,6 @@ const EditarProdutoModal = ({
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
 
-          // Reduzir dimensões se necessário (máx 1200px de largura)
           let width = img.width;
           let height = img.height;
           const maxWidth = 1200;
@@ -602,7 +629,6 @@ const EditarProdutoModal = ({
           canvas.height = height;
           ctx?.drawImage(img, 0, 0, width, height);
 
-          // Converter para JPEG com 80% de qualidade
           canvas.toBlob(
             (blob) => {
               if (blob) {
@@ -611,7 +637,6 @@ const EditarProdutoModal = ({
                   lastModified: Date.now(),
                 });
 
-                // Se ainda for muito grande (> 1MB), reduzir mais a qualidade
                 if (compressedFile.size > 1024 * 1024) {
                   canvas.toBlob(
                     (blob2) => {
@@ -620,14 +645,13 @@ const EditarProdutoModal = ({
                           type: "image/jpeg",
                           lastModified: Date.now(),
                         });
-
                         resolve(moreCompressed);
                       } else {
                         resolve(compressedFile);
                       }
                     },
                     "image/jpeg",
-                    0.6 // 60% de qualidade
+                    0.6
                   );
                 } else {
                   resolve(compressedFile);
@@ -637,7 +661,7 @@ const EditarProdutoModal = ({
               }
             },
             "image/jpeg",
-            0.8 // 80% de qualidade inicial
+            0.8
           );
         };
 
@@ -662,7 +686,7 @@ const EditarProdutoModal = ({
         percentualDesconto: produto.percentualDesconto?.toString() || "",
         quantidade: produto.quantidade.toString(),
         id_categoria: produto.id_categoria || "",
-        status: produto.status,
+        status: produto.status || "ACTIVO",
         descontoAte: "",
       });
     }
@@ -717,6 +741,7 @@ const EditarProdutoModal = ({
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                   />
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Categoria
@@ -803,9 +828,13 @@ const EditarProdutoModal = ({
                     <label className="flex items-center">
                       <input
                         type="checkbox"
-                        name="status"
                         checked={formData.status === "ACTIVO"}
-                        onChange={handleChange}
+                        onChange={(e) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            status: e.target.checked ? "ACTIVO" : "INACTIVO"
+                          }));
+                        }}
                         className="h-4 w-4 text-[#D4AF37] rounded"
                       />
                       <span className="ml-2 text-sm">Ativo</span>
