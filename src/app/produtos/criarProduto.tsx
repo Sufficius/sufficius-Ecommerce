@@ -161,7 +161,10 @@ export const NovoProdutoModal = ({
   });
 
   const handleCriarProduto = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+        console.log("Inválido....")
+        return;
+    }
     await criarProduto.mutateAsync();
   };
 
