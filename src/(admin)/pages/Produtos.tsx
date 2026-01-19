@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Plus,
-  Search,
   Edit,
   Trash2,
   Eye,
@@ -36,9 +35,6 @@ interface Produto {
   precoDesconto?: number;
   percentualDesconto?: number;
   quantidade: number;
-  sku: string;
-  ativo: boolean;
-  emDestaque: boolean;
   criadoEm: string;
   categoria: string;
   id_categoria?: string;
@@ -46,21 +42,6 @@ interface Produto {
   imagemAlt?: string;
   status: string;
 }
-interface Paginacao {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-interface Estatisticas {
-  totalProdutos: number;
-  totalAtivos: number;
-  totalEmPromocao: number;
-  baixoEstoque: number;
-  totalCategorias: number;
-}
-
 interface Categoria {
   id: string;
   nome: string;
@@ -247,26 +228,14 @@ const VisualizarProdutoModal = ({
                 <div className="mt-4 grid grid-cols-2 gap-4">
                   <div
                     className={`p-3 rounded-lg ${
-                      produto.ativo
+                      produto.status === "ACTIVO"
                         ? "bg-green-50 text-green-700"
                         : "bg-gray-100 text-gray-700"
                     }`}
                   >
                     <div className="text-sm font-medium">Status</div>
                     <div className="font-bold">
-                      {produto.ativo ? "Ativo" : "Inativo"}
-                    </div>
-                  </div>
-                  <div
-                    className={`p-3 rounded-lg ${
-                      produto.emDestaque
-                        ? "bg-yellow-50 text-yellow-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    <div className="text-sm font-medium">Destaque</div>
-                    <div className="font-bold">
-                      {produto.emDestaque ? "Sim" : "Não"}
+                      {produto.status === "ACTIVO" ? "Ativo" : "Inativo"}
                     </div>
                   </div>
                 </div>
@@ -277,11 +246,6 @@ const VisualizarProdutoModal = ({
                 <h4 className="text-lg font-semibold mb-4">{produto.nome}</h4>
 
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-sm text-gray-600">SKU</label>
-                    <p className="font-medium">{produto.sku}</p>
-                  </div>
-
                   <div>
                     <label className="text-sm text-gray-600">Categoria</label>
                     <p className="font-medium">{produto.categoria}</p>
@@ -460,10 +424,8 @@ const EditarProdutoModal = ({
     precoDesconto: "",
     percentualDesconto: "",
     quantidade: "",
-    sku: "",
     id_categoria: "",
-    ativo: true,
-    emDestaque: false,
+    status: "",
     descontoAte: "",
   });
 
@@ -480,11 +442,9 @@ const EditarProdutoModal = ({
         precoDesconto: produto.precoDesconto?.toString() || "",
         percentualDesconto: produto.percentualDesconto?.toString() || "",
         quantidade: produto.quantidade.toString(),
-        sku: produto.sku,
         id_categoria: produto.id_categoria || "",
-        ativo: produto.ativo,
-        emDestaque: produto.emDestaque,
         descontoAte: "",
+        status: produto.status,
       });
       setImagemPreview(produto.imagem || null);
       setDeletarImagem(false);
@@ -554,7 +514,6 @@ const EditarProdutoModal = ({
 
       // Campos obrigatórios
       formDataToSend.append("nome", formData.nome);
-      formDataToSend.append("sku", formData.sku);
       formDataToSend.append("preco", formData.preco);
       formDataToSend.append("quantidade", formData.quantidade);
 
@@ -573,8 +532,7 @@ const EditarProdutoModal = ({
       if (formData.descontoAte)
         formDataToSend.append("descontoAte", formData.descontoAte);
 
-      formDataToSend.append("ativo", formData.ativo.toString());
-      formDataToSend.append("emDestaque", formData.emDestaque.toString());
+      formDataToSend.append("status", formData.status);
 
       // Adicionar imagem comprimida se houver
       if (imagem) {
@@ -703,10 +661,8 @@ const EditarProdutoModal = ({
         precoDesconto: produto.precoDesconto?.toString() || "",
         percentualDesconto: produto.percentualDesconto?.toString() || "",
         quantidade: produto.quantidade.toString(),
-        sku: produto.sku,
         id_categoria: produto.id_categoria || "",
-        ativo: produto.ativo,
-        emDestaque: produto.emDestaque,
+        status: produto.status,
         descontoAte: "",
       });
     }
@@ -761,21 +717,6 @@ const EditarProdutoModal = ({
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    SKU *
-                  </label>
-                  <input
-                    type="text"
-                    name="sku"
-                    value={formData.sku}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Categoria
@@ -862,22 +803,12 @@ const EditarProdutoModal = ({
                     <label className="flex items-center">
                       <input
                         type="checkbox"
-                        name="ativo"
-                        checked={formData.ativo}
+                        name="status"
+                        checked={formData.status === "ACTIVO"}
                         onChange={handleChange}
                         className="h-4 w-4 text-[#D4AF37] rounded"
                       />
                       <span className="ml-2 text-sm">Ativo</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="emDestaque"
-                        checked={formData.emDestaque}
-                        onChange={handleChange}
-                        className="h-4 w-4 text-[#D4AF37] rounded"
-                      />
-                      <span className="ml-2 text-sm">Em Destaque</span>
                     </label>
                   </div>
                 </div>
@@ -996,12 +927,11 @@ const EditarProdutoModal = ({
   );
 };
 
-
 // Componente Principal
 export default function AdminProdutos() {
   const token = useAuthStore((state) => state.token);
 
-  const [busca, setBusca] = useState("");
+  const [busca] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [ordenar, setOrdenar] = useState("criadoEm_desc");
@@ -1009,8 +939,13 @@ export default function AdminProdutos() {
   const [itensPorPagina] = useState(10);
 
   const [imageVersion, setImageVersion] = useState<Record<string, number>>({});
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-
+  const [, setModalNovoProduto] = useState(false);
+  const [modalVisualizar, setModalVisualizar] = useState(false);
+  const [modalEditar, setModalEditar] = useState(false);
+  const [modalExcluir, setModalExcluir] = useState(false);
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(
+    null
+  );
   const { data: categorias } = useQuery({
     queryKey: ["categorias"],
     queryFn: async () => {
@@ -1019,32 +954,74 @@ export default function AdminProdutos() {
     },
   });
 
-  const [paginacao, setPaginacao] = useState<Paginacao>({
+  const {
+    data: produtosData,
+    isLoading: produtosLoading,
+    refetch: refetchProdutos,
+    error: produtosError,
+  } = useQuery({
+    queryKey: [
+      "produtos",
+      paginaAtual,
+      busca,
+      filtroCategoria,
+      filtroStatus,
+      ordenar,
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: paginaAtual.toString(),
+        limit: itensPorPagina.toString(),
+        ordenar,
+      });
+
+      if (busca) params.append("busca", busca);
+      if (filtroCategoria !== "todos")
+        params.append("categoria", filtroCategoria);
+      if (filtroStatus !== "todos") params.append("status", filtroStatus);
+      const response = await api.get(`/produtos?${params.toString()}`);
+      if (!response.data.success) {
+        throw new Error("Erro ao carregar produtos");
+      }
+      return response.data;
+    },
+    staleTime: 0,
+    retry: 1,
+  });
+
+  const produtos = Array.isArray(produtosData?.data?.produtos)
+    ? produtosData?.data
+    : [];
+  const paginacao = produtosData?.paginacao || {
     total: 0,
     page: 1,
     limit: 10,
     totalPages: 1,
+  };
+
+  const {
+    data: estatisticasData,
+    isLoading: loadingEstatisticas,
+    refetch: refetchEstatisticas,
+  } = useQuery({
+    queryKey: ["estatisticas_produtos"],
+    queryFn: async () => {
+      const response = await api.get("/produtos/estatisticas");
+      if (!response.data.success) {
+        throw new Error("Erro ao carregar estatísticas");
+      }
+      return response.data.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutos
   });
-  const [estatisticas, setEstatisticas] = useState<Estatisticas>({
+
+  const estatisticas = estatisticasData || {
     totalProdutos: 0,
     totalAtivos: 0,
     totalEmPromocao: 0,
     baixoEstoque: 0,
     totalCategorias: 0,
-  });
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [loadingEstatisticas, setLoadingEstatisticas] = useState(false);
-
-  // Estados para modais
-  const [, setModalNovoProduto] = useState(false);
-  const [modalVisualizar, setModalVisualizar] = useState(false);
-  const [modalEditar, setModalEditar] = useState(false);
-  const [modalExcluir, setModalExcluir] = useState(false);
-  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(
-    null
-  );
+  };
 
   const statusProdutos = {
     ativo: { label: "Ativo", cor: "bg-green-100 text-green-800" },
@@ -1064,87 +1041,10 @@ export default function AdminProdutos() {
     }));
   };
 
-  const fetchProdutos = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const params = new URLSearchParams({
-        page: paginaAtual.toString(),
-        limit: itensPorPagina.toString(),
-        ordenar,
-      });
-
-      if (busca) params.append("busca", busca);
-      if (filtroCategoria !== "todos")
-        params.append("categoria", filtroCategoria);
-      if (filtroStatus !== "todos") params.append("status", filtroStatus);
-
-      const response = await api.get(`/produtos?${params.toString()}`);
-
-      if (response.data.success) {
-        setProdutos(response.data.data.produtos);
-        setPaginacao(response.data.data.paginacao);
-        if (response.data.data.estatisticas) {
-          setEstatisticas((prev) => ({
-            ...prev,
-            totalProdutos: response.data.data.estatisticas.totalProdutos,
-            totalAtivos: response.data.data.estatisticas.totalAtivos,
-            totalEmPromocao: response.data.data.estatisticas.totalEmPromocao,
-            baixoEstoque: response.data.data.estatisticas.baixoEstoque,
-            totalCategorias: response.data.data.estatisticas.totalCategorias,
-          }));
-        }
-      } else {
-        throw new Error("Erro ao carregar produtos");
-      }
-    } catch (err: any) {
-      console.error("Erro ao buscar produtos:", err);
-      setError(err.message || "Erro ao carregar produtos");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const { data: categoria } = useQuery({
-    queryKey: ["categoria"],
-    queryFn: async () => {
-      const response = await api.get("/categorias");
-      return response.data;
-    },
-  });
-
-  const fetchEstatisticas = async () => {
-    try {
-      setLoadingEstatisticas(true);
-      const response = await api.get("/produtos/estatisticas");
-      if (response.data.success) {
-        setEstatisticas((prev) => ({
-          ...prev,
-          ...response.data.data,
-        }));
-      }
-    } catch (err: any) {
-      console.error("Erro ao buscar estatísticas:", err);
-    } finally {
-      setLoadingEstatisticas(false);
-    }
-  };
-
-  useEffect(() => {
-    const loadData = async () => {
-      await Promise.all([fetchProdutos(), categoria]);
-      fetchEstatisticas();
-    };
-
-    loadData();
-  }, [paginaAtual, busca, filtroCategoria, filtroStatus, ordenar]);
-
   const handleProdutoAtualizado = () => {
-    fetchProdutos();
-    fetchEstatisticas();
+    refetchProdutos();
+    refetchEstatisticas();
 
-    // Se tiver um produto selecionado, atualize sua versão de imagem
     if (produtoSelecionado) {
       updateImageVersion(produtoSelecionado.id);
     }
@@ -1177,8 +1077,9 @@ export default function AdminProdutos() {
 
       if (response.data.success) {
         toast.success("Produto excluído com sucesso!");
-        fetchProdutos();
-        fetchEstatisticas();
+        refetchProdutos();
+        refetchEstatisticas();
+
         setModalExcluir(false);
         setProdutoSelecionado(null);
       }
@@ -1208,22 +1109,7 @@ export default function AdminProdutos() {
     return icons[categoria] || "📦";
   };
 
-  const calcularEstatisticasLocais = () => {
-    return {
-      totalProdutosLocais: produtos.length,
-      totalEmPromocaoLocais: produtos.filter(
-        (p) => p.precoDesconto && p.precoDesconto > 0
-      ).length,
-      baixoEstoqueLocais: produtos.filter(
-        (p) => p.quantidade <= 10 && p.quantidade > 0
-      ).length,
-      semEstoqueLocais: produtos.filter((p) => p.quantidade === 0).length,
-    };
-  };
-
-  const estatisticasLocais = calcularEstatisticasLocais();
-
-  if (loading && produtos.length === 0) {
+  if (produtosLoading && produtos.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -1279,7 +1165,12 @@ export default function AdminProdutos() {
         </div>
 
         <div className="flex gap-3">
-          <NovoProdutoModal>
+          <NovoProdutoModal
+            onProdutoCriado={() => {
+              refetchProdutos();
+              refetchEstatisticas();
+            }}
+          >
             <Button
               onClick={() => setModalNovoProduto(true)}
               className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-3 rounded-lg hover:bg-[#c19b2c] transition"
@@ -1291,11 +1182,13 @@ export default function AdminProdutos() {
         </div>
       </div>
 
-      {error && (
+      {produtosError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
             <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-            <p className="text-red-700">{error}</p>
+            <p className="text-red-700">
+              {produtosError.message || "Erro ao carregar produtos"}
+            </p>
           </div>
         </div>
       )}
@@ -1303,22 +1196,6 @@ export default function AdminProdutos() {
       {/* Filtros e Busca */}
       <div className="bg-white rounded-xl shadow p-6 mb-6">
         <div className="grid md:grid-cols-4 gap-4">
-          <div className="md:col-span-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                value={busca}
-                onChange={(e) => {
-                  setBusca(e.target.value);
-                  setPaginaAtual(1);
-                }}
-                placeholder="Buscar por nome, descrição ou SKU..."
-                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-              />
-            </div>
-          </div>
-
           <div>
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1390,8 +1267,7 @@ export default function AdminProdutos() {
                 {loadingEstatisticas ? (
                   <Loader2 className="h-6 w-6 animate-spin inline" />
                 ) : (
-                  estatisticas.totalProdutos ||
-                  estatisticasLocais.totalProdutosLocais
+                  estatisticas.totalProdutos || 0
                 )}
               </p>
             </div>
@@ -1407,7 +1283,7 @@ export default function AdminProdutos() {
                 {loadingEstatisticas ? (
                   <Loader2 className="h-6 w-6 animate-spin inline" />
                 ) : (
-                  estatisticas.totalCategorias || categorias.length
+                  estatisticas.totalCategorias || categorias?.length || 0
                 )}
               </p>
             </div>
@@ -1423,8 +1299,7 @@ export default function AdminProdutos() {
                 {loadingEstatisticas ? (
                   <Loader2 className="h-6 w-6 animate-spin inline" />
                 ) : (
-                  estatisticas.totalEmPromocao ||
-                  estatisticasLocais.totalEmPromocaoLocais
+                  estatisticas.totalEmPromocao || 0
                 )}
               </p>
             </div>
@@ -1440,8 +1315,7 @@ export default function AdminProdutos() {
                 {loadingEstatisticas ? (
                   <Loader2 className="h-6 w-6 animate-spin inline" />
                 ) : (
-                  estatisticas.baixoEstoque ||
-                  estatisticasLocais.baixoEstoqueLocais
+                  estatisticas.baixoEstoque || 0
                 )}
               </p>
             </div>
@@ -1452,12 +1326,12 @@ export default function AdminProdutos() {
 
       {/* Tabela de Produtos */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
-        {loading ? (
+        {produtosLoading ? (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37] mr-2" />
             <span>Carregando produtos...</span>
           </div>
-        ) : produtos.length === 0 ? (
+        ) : produtos?.produtos?.length === 0 ? (
           <div className="text-center p-8">
             <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -1468,12 +1342,14 @@ export default function AdminProdutos() {
                 ? "Tente ajustar seus filtros de busca"
                 : "Comece adicionando seu primeiro produto!"}
             </p>
-            <button
-              onClick={() => setModalNovoProduto(true)}
-              className="bg-[#D4AF37] text-white px-4 py-2 rounded-lg hover:bg-[#c19b2c]"
-            >
-              Adicionar Primeiro Produto
-            </button>
+            <NovoProdutoModal>
+              <button
+                onClick={() => setModalNovoProduto(true)}
+                className="bg-[#D4AF37] text-white px-4 py-2 rounded-lg hover:bg-[#c19b2c]"
+              >
+                Adicionar Primeiro Produto
+              </button>
+            </NovoProdutoModal>
           </div>
         ) : (
           <>
@@ -1502,7 +1378,7 @@ export default function AdminProdutos() {
                   </tr>
                 </thead>
                 <tbody>
-                  {produtos.map((produto) => (
+                  {produtos?.produtos?.map((produto: Produto) => (
                     <tr key={produto.id} className="border-b hover:bg-gray-50">
                       <td className="p-4">
                         <div className="flex items-center">
@@ -1521,9 +1397,6 @@ export default function AdminProdutos() {
                           </div>
                           <div>
                             <div className="font-medium">{produto.nome}</div>
-                            <div className="text-sm text-gray-500">
-                              SKU: {produto.sku}
-                            </div>
                           </div>
                         </div>
                       </td>

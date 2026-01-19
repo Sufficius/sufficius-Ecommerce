@@ -108,7 +108,6 @@ export function authMiddleware(
 ): boolean {
   const token = getCookie("akin-token");
   const userRole = getCookie("akin-role") as Role | undefined;
-  console.log(`Middleware executando para: ${pathname}, Token: ${!!token}, Role: ${userRole}`);
 
     // Se está na rota raiz e não tem token, permita (é a página de login)
   if (pathname === '/' && !token) {

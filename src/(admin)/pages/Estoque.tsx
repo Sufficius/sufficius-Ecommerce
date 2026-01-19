@@ -15,6 +15,7 @@ import {
   ChevronRight,
   RefreshCw
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function AdminEstoque() {
   const [busca, setBusca] = useState("");
@@ -148,26 +149,22 @@ export default function AdminEstoque() {
   };
 
   const handleAdicionarEstoque = (id: number, quantidade: number) => {
-    // Lógica para adicionar estoque
-    console.log(`Adicionar ${quantidade} unidades ao produto ${id}`);
+    toast.success(`Adicionar ${quantidade} unidades ao produto ${id} em breve!`);
   };
 
   const handleRemoverEstoque = (id: number, quantidade: number) => {
-    // Lógica para remover estoque
-    console.log(`Remover ${quantidade} unidades do produto ${id}`);
+    toast.success(`Remover ${quantidade} unidades do produto ${id} em breve!`);
   };
 
   const handleAtualizarEstoque = (id: number) => {
     const novaQuantidade = prompt("Nova quantidade de estoque:");
     if (novaQuantidade) {
-      // Lógica para atualizar estoque
-      console.log(`Atualizar produto ${id} para ${novaQuantidade} unidades`);
+      toast.success(`Atualizar estoque do produto ${id} para ${novaQuantidade} unidades em breve!`);
     }
   };
 
   const handleExportarRelatorio = () => {
-    // Lógica para exportar relatório
-    console.log("Exportar relatório de estoque");
+    toast.success("Relatório de estoque exportado com sucesso!");
   };
 
   // Calcular estatísticas

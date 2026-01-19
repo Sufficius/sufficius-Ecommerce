@@ -30,7 +30,7 @@ export function AuthMiddlewareProvider({ children }: { children: React.ReactNode
       const accessAllowed = authMiddleware(location.pathname, navigate);
       
       if (!accessAllowed) {
-        console.log(`Acesso negado para: ${location.pathname}`);
+        return;
       }
     }
   }, [location.pathname, navigate]);

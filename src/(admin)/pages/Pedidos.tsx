@@ -26,6 +26,7 @@ import {
 import { api } from "@/modules/services/api/axios";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Pedido {
   id: string;
@@ -234,10 +235,10 @@ export default function AdminPedidos() {
       link.click();
       link.remove();
       
-      alert('Pedidos exportados com sucesso!');
+      toast.success('Pedidos exportados com sucesso!');
     } catch (err: any) {
       console.error('Erro ao exportar pedidos:', err);
-      alert(err.response?.data?.message || 'Erro ao exportar pedidos');
+      toast.error(err.response?.data?.message || 'Erro ao exportar pedidos');
     } finally {
       setExportando(false);
     }
@@ -279,11 +280,11 @@ export default function AdminPedidos() {
       });
 
       if (response.data.success) {
-        alert('Status alterado com sucesso!');
+        toast.success('Status do pedido alterado com sucesso!');
         fetchPedidos(); // Recarregar lista
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erro ao alterar status');
+      toast.error(err.response?.data?.message || 'Erro ao alterar status do pedido');
     }
   };
 

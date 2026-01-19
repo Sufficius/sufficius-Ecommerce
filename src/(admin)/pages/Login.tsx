@@ -120,7 +120,6 @@ export default function AdminLogin() {
     script.defer = true;
     script.onload = () => {
       googleScriptLoaded.current = true;
-      console.log("✅ Google Identity Services carregado");
     };
     script.onerror = () => {
       console.error("❌ Falha ao carregar script do Google");
@@ -135,7 +134,6 @@ export default function AdminLogin() {
     try {
       // @ts-ignore
       if (!window.google || !window.google.accounts) {
-        console.warn("Google Identity Services não carregado ainda");
         return;
       }
 
@@ -147,13 +145,11 @@ export default function AdminLogin() {
         context: "signin",
         ux_mode: "popup",
         itp_support: true,
-        // Configurações para evitar o warning do FedCM
         use_fedcm_for_prompt: true,
       });
 
       googleInitialized.current = true;
-      console.log("✅ Google Identity Services inicializado");
-      
+
     } catch (error: any) {
       console.error("❌ Erro ao inicializar Google Sign-In:", error.message);
       

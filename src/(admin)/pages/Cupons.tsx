@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Users
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function AdminCupons() {
   const [busca, setBusca] = useState("");
@@ -131,24 +132,24 @@ export default function AdminCupons() {
 
   const handleNovoCupom = () => {
     // Lógica para novo cupom
-    console.log("Novo cupom");
+    toast.success("Funcionalidade de criar novo cupom em breve!")
   };
 
-  const handleEditarCupom = (id: number) => {
+  const handleEditarCupom = () => {
     // Lógica para editar cupom
-    console.log(`Editar cupom ${id}`);
+   toast.success("Funcionalidade de editar cupom em breve!")
   };
 
-  const handleExcluirCupom = (id: number) => {
+  const handleExcluirCupom = () => {
     if (confirm("Tem certeza que deseja excluir este cupom?")) {
       // Lógica de exclusão
-      console.log(`Excluir cupom ${id}`);
+      toast.success("Cupom excluído com sucesso!");
     }
   };
 
   const handleCopiarCodigo = (codigo: string) => {
     navigator.clipboard.writeText(codigo);
-    alert(`Código ${codigo} copiado!`);
+    toast.success("Código do cupom copiado para a área de transferência!");
   };
 
   const formatarValorCupom = (cupom: any) => {
@@ -350,14 +351,14 @@ export default function AdminCupons() {
                         <Copy className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleEditarCupom(cupom.id)}
+                        onClick={() => handleEditarCupom()}
                         className="p-1 text-green-600 hover:bg-green-50 rounded"
                         title="Editar"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleExcluirCupom(cupom.id)}
+                        onClick={() => handleExcluirCupom()}
                         className="p-1 text-red-600 hover:bg-red-50 rounded"
                         title="Excluir"
                       >

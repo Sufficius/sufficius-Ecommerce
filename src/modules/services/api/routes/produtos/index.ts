@@ -130,8 +130,6 @@ class ProdutosRoute {
 
   async atualizarProduto(id: string, produto: IProdutoToEdit) {
     try {
-      console.log(`🔄 Atualizando produto ${id}:`, produto);
-
       // Se tiver imagem, usar FormData
       if (produto.imagemproduto && produto.imagemproduto instanceof File) {
         const formData = new FormData();
@@ -145,7 +143,6 @@ class ProdutosRoute {
         
         formData.append("imagemproduto", produto.imagemproduto);
 
-        console.log('📤 Enviando atualização com imagem...');
         const { data } = await api.put(`/produtos/${id}`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",

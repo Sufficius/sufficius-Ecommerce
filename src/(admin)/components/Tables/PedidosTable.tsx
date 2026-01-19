@@ -19,8 +19,9 @@ import {
   ChevronRight,
   MessageSquare,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Pedido {
   id: string;
@@ -29,8 +30,14 @@ interface Pedido {
   telefone?: string;
   valor: number;
   produtos: number;
-  status: 'pendente' | 'pago' | 'processando' | 'enviado' | 'entregue' | 'cancelado';
-  pagamento: 'cartao' | 'pix' | 'boleto' | 'debito';
+  status:
+    | "pendente"
+    | "pago"
+    | "processando"
+    | "enviado"
+    | "entregue"
+    | "cancelado";
+  pagamento: "cartao" | "pix" | "boleto" | "debito";
   data: string;
   hora: string;
   codigoRastreio?: string;
@@ -53,57 +60,60 @@ export default function PedidosTable({
   onEdit,
   onStatusChange,
   onPrint,
-  onExport
+  onExport,
 }: PedidosTableProps) {
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroPagamento, setFiltroPagamento] = useState("todos");
   const [filtroData, setFiltroData] = useState("todos");
-  const [ordenacao, setOrdenacao] = useState<{ campo: string; direcao: 'asc' | 'desc' }>({ 
-    campo: 'data', 
-    direcao: 'desc' 
+  const [ordenacao, setOrdenacao] = useState<{
+    campo: string;
+    direcao: "asc" | "desc";
+  }>({
+    campo: "data",
+    direcao: "desc",
   });
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 10;
 
   // Status dos pedidos
   const statusPedidos = {
-    pendente: { 
-      label: "Pendente", 
-      cor: "bg-yellow-100 text-yellow-800", 
+    pendente: {
+      label: "Pendente",
+      cor: "bg-yellow-100 text-yellow-800",
       icon: <Clock className="h-3 w-3" />,
-      acoes: ['pago', 'cancelado']
+      acoes: ["pago", "cancelado"],
     },
-    pago: { 
-      label: "Pago", 
-      cor: "bg-blue-100 text-blue-800", 
+    pago: {
+      label: "Pago",
+      cor: "bg-blue-100 text-blue-800",
       icon: <CreditCard className="h-3 w-3" />,
-      acoes: ['processando', 'cancelado']
+      acoes: ["processando", "cancelado"],
     },
-    processando: { 
-      label: "Processando", 
-      cor: "bg-purple-100 text-purple-800", 
+    processando: {
+      label: "Processando",
+      cor: "bg-purple-100 text-purple-800",
       icon: <Package className="h-3 w-3" />,
-      acoes: ['enviado', 'cancelado']
+      acoes: ["enviado", "cancelado"],
     },
-    enviado: { 
-      label: "Enviado", 
-      cor: "bg-orange-100 text-orange-800", 
+    enviado: {
+      label: "Enviado",
+      cor: "bg-orange-100 text-orange-800",
       icon: <Truck className="h-3 w-3" />,
-      acoes: ['entregue']
+      acoes: ["entregue"],
     },
-    entregue: { 
-      label: "Entregue", 
-      cor: "bg-green-100 text-green-800", 
+    entregue: {
+      label: "Entregue",
+      cor: "bg-green-100 text-green-800",
       icon: <CheckCircle className="h-3 w-3" />,
-      acoes: []
+      acoes: [],
     },
-    cancelado: { 
-      label: "Cancelado", 
-      cor: "bg-red-100 text-red-800", 
+    cancelado: {
+      label: "Cancelado",
+      cor: "bg-red-100 text-red-800",
       icon: <XCircle className="h-3 w-3" />,
-      acoes: []
-    }
+      acoes: [],
+    },
   };
 
   // Métodos de pagamento
@@ -111,7 +121,7 @@ export default function PedidosTable({
     cartao: { label: "Cartão", cor: "bg-blue-100 text-blue-800" },
     pix: { label: "PIX", cor: "bg-green-100 text-green-800" },
     boleto: { label: "Boleto", cor: "bg-yellow-100 text-yellow-800" },
-    debito: { label: "Débito", cor: "bg-gray-100 text-gray-800" }
+    debito: { label: "Débito", cor: "bg-gray-100 text-gray-800" },
   };
 
   // Opções de data
@@ -121,38 +131,41 @@ export default function PedidosTable({
     { value: "ontem", label: "Ontem" },
     { value: "7dias", label: "Últimos 7 dias" },
     { value: "30dias", label: "Últimos 30 dias" },
-    { value: "mes", label: "Este mês" }
+    { value: "mes", label: "Este mês" },
   ];
 
   // Filtrar e ordenar pedidos
   const pedidosFiltrados = pedidos
-    .filter(pedido => {
-      const buscaMatch = pedido.id.toLowerCase().includes(busca.toLowerCase()) ||
-                        pedido.cliente.toLowerCase().includes(busca.toLowerCase()) ||
-                        pedido.email.toLowerCase().includes(busca.toLowerCase());
-      const statusMatch = filtroStatus === "todos" || pedido.status === filtroStatus;
-      const pagamentoMatch = filtroPagamento === "todos" || pedido.pagamento === filtroPagamento;
+    .filter((pedido) => {
+      const buscaMatch =
+        pedido.id.toLowerCase().includes(busca.toLowerCase()) ||
+        pedido.cliente.toLowerCase().includes(busca.toLowerCase()) ||
+        pedido.email.toLowerCase().includes(busca.toLowerCase());
+      const statusMatch =
+        filtroStatus === "todos" || pedido.status === filtroStatus;
+      const pagamentoMatch =
+        filtroPagamento === "todos" || pedido.pagamento === filtroPagamento;
       const dataMatch = filtroData === "todos" || true; // Implementar lógica de data
-      
+
       return buscaMatch && statusMatch && pagamentoMatch && dataMatch;
     })
     .sort((a, b) => {
-      if (ordenacao.campo === 'cliente') {
-        return ordenacao.direcao === 'asc' 
+      if (ordenacao.campo === "cliente") {
+        return ordenacao.direcao === "asc"
           ? a.cliente.localeCompare(b.cliente)
           : b.cliente.localeCompare(a.cliente);
       }
-      if (ordenacao.campo === 'valor') {
-        return ordenacao.direcao === 'asc'
+      if (ordenacao.campo === "valor") {
+        return ordenacao.direcao === "asc"
           ? a.valor - b.valor
           : b.valor - a.valor;
       }
-      if (ordenacao.campo === 'data') {
-        return ordenacao.direcao === 'asc'
+      if (ordenacao.campo === "data") {
+        return ordenacao.direcao === "asc"
           ? new Date(a.data).getTime() - new Date(b.data).getTime()
           : new Date(b.data).getTime() - new Date(a.data).getTime();
       }
-      return ordenacao.direcao === 'asc' ? 1 : -1;
+      return ordenacao.direcao === "asc" ? 1 : -1;
     });
 
   // Paginação
@@ -164,21 +177,25 @@ export default function PedidosTable({
   // Estatísticas
   const totalPedidos = pedidosFiltrados.length;
   const totalValor = pedidosFiltrados.reduce((acc, p) => acc + p.valor, 0);
-  const pedidosPendentes = pedidosFiltrados.filter(p => p.status === 'pendente').length;
-  const pedidosEntregues = pedidosFiltrados.filter(p => p.status === 'entregue').length;
+  const pedidosPendentes = pedidosFiltrados.filter(
+    (p) => p.status === "pendente"
+  ).length;
+  const pedidosEntregues = pedidosFiltrados.filter(
+    (p) => p.status === "entregue"
+  ).length;
 
   // Ordenar coluna
   const ordenarColuna = (campo: string) => {
-    setOrdenacao(prev => ({
+    setOrdenacao((prev) => ({
       campo,
-      direcao: prev.campo === campo && prev.direcao === 'desc' ? 'asc' : 'desc'
+      direcao: prev.campo === campo && prev.direcao === "desc" ? "asc" : "desc",
     }));
   };
 
   // Renderizar seta de ordenação
   const renderSetaOrdenacao = (campo: string) => {
     if (ordenacao.campo !== campo) return null;
-    return ordenacao.direcao === 'asc' ? '↑' : '↓';
+    return ordenacao.direcao === "asc" ? "↑" : "↓";
   };
 
   // Ações de status
@@ -214,7 +231,7 @@ export default function PedidosTable({
           {status.icon}
           {status.label}
           <span className="ml-1 bg-white/20 px-1.5 rounded-full text-xs">
-            {pedidos.filter(p => p.status === key).length}
+            {pedidos.filter((p) => p.status === key).length}
           </span>
         </button>
       ))}
@@ -230,7 +247,7 @@ export default function PedidosTable({
             <h3 className="font-bold text-xl">Pedidos</h3>
             <p className="text-gray-600">Gerencie todos os pedidos da loja</p>
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gray-50 p-3 rounded-lg">
               <div className="text-sm text-gray-600">Total Pedidos</div>
@@ -244,11 +261,15 @@ export default function PedidosTable({
             </div>
             <div className="bg-gray-50 p-3 rounded-lg">
               <div className="text-sm text-gray-600">Pendentes</div>
-              <div className="text-2xl font-bold text-yellow-600">{pedidosPendentes}</div>
+              <div className="text-2xl font-bold text-yellow-600">
+                {pedidosPendentes}
+              </div>
             </div>
             <div className="bg-gray-50 p-3 rounded-lg">
               <div className="text-sm text-gray-600">Entregues</div>
-              <div className="text-2xl font-bold text-green-600">{pedidosEntregues}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {pedidosEntregues}
+              </div>
             </div>
           </div>
         </div>
@@ -293,7 +314,7 @@ export default function PedidosTable({
               onChange={(e) => setFiltroData(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] text-sm"
             >
-              {opcoesData.map(opcao => (
+              {opcoesData.map((opcao) => (
                 <option key={opcao.value} value={opcao.value}>
                   {opcao.label}
                 </option>
@@ -332,26 +353,26 @@ export default function PedidosTable({
             <tr className="bg-gray-50 border-b">
               <th className="text-left p-4 text-sm font-medium text-gray-700">
                 <button
-                  onClick={() => ordenarColuna('id')}
+                  onClick={() => ordenarColuna("id")}
                   className="flex items-center gap-1 hover:text-gray-900"
                 >
-                  Pedido {renderSetaOrdenacao('id')}
+                  Pedido {renderSetaOrdenacao("id")}
                 </button>
               </th>
               <th className="text-left p-4 text-sm font-medium text-gray-700">
                 <button
-                  onClick={() => ordenarColuna('cliente')}
+                  onClick={() => ordenarColuna("cliente")}
                   className="flex items-center gap-1 hover:text-gray-900"
                 >
-                  Cliente {renderSetaOrdenacao('cliente')}
+                  Cliente {renderSetaOrdenacao("cliente")}
                 </button>
               </th>
               <th className="text-left p-4 text-sm font-medium text-gray-700">
                 <button
-                  onClick={() => ordenarColuna('valor')}
+                  onClick={() => ordenarColuna("valor")}
                   className="flex items-center gap-1 hover:text-gray-900"
                 >
-                  Valor {renderSetaOrdenacao('valor')}
+                  Valor {renderSetaOrdenacao("valor")}
                 </button>
               </th>
               <th className="text-left p-4 text-sm font-medium text-gray-700">
@@ -362,10 +383,10 @@ export default function PedidosTable({
               </th>
               <th className="text-left p-4 text-sm font-medium text-gray-700">
                 <button
-                  onClick={() => ordenarColuna('data')}
+                  onClick={() => ordenarColuna("data")}
                   className="flex items-center gap-1 hover:text-gray-900"
                 >
-                  Data {renderSetaOrdenacao('data')}
+                  Data {renderSetaOrdenacao("data")}
                 </button>
               </th>
               <th className="text-left p-4 text-sm font-medium text-gray-700">
@@ -374,11 +395,13 @@ export default function PedidosTable({
             </tr>
           </thead>
           <tbody>
-            {pedidosPagina.map(pedido => (
+            {pedidosPagina.map((pedido) => (
               <tr key={pedido.id} className="border-b hover:bg-gray-50 group">
                 <td className="p-4">
                   <div className="font-bold">{pedido.id}</div>
-                  <div className="text-sm text-gray-500">{pedido.produtos} produtos</div>
+                  <div className="text-sm text-gray-500">
+                    {pedido.produtos} produtos
+                  </div>
                 </td>
                 <td className="p-4">
                   <div className="flex items-center">
@@ -387,31 +410,46 @@ export default function PedidosTable({
                     </div>
                     <div>
                       <div className="font-medium">{pedido.cliente}</div>
-                      <div className="text-sm text-gray-500">{pedido.email}</div>
+                      <div className="text-sm text-gray-500">
+                        {pedido.email}
+                      </div>
                     </div>
                   </div>
                 </td>
                 <td className="p-4">
-                  <div className="font-bold text-lg">KZ {pedido.valor.toLocaleString()}</div>
+                  <div className="font-bold text-lg">
+                    KZ {pedido.valor.toLocaleString()}
+                  </div>
                 </td>
                 <td className="p-4">
                   <div className="relative">
-                    <span className={`px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1 ${statusPedidos[pedido.status].cor}`}>
+                    <span
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1 ${
+                        statusPedidos[pedido.status].cor
+                      }`}
+                    >
                       {statusPedidos[pedido.status].icon}
                       {statusPedidos[pedido.status].label}
                     </span>
-                    
+
                     {/* Dropdown de alteração de status */}
                     {statusPedidos[pedido.status].acoes.length > 0 && (
                       <div className="absolute left-0 mt-1 w-48 bg-white border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                        {statusPedidos[pedido.status].acoes.map(acao => (
+                        {statusPedidos[pedido.status].acoes.map((acao) => (
                           <button
                             key={acao}
                             onClick={() => handleMudarStatus(pedido.id, acao)}
                             className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm flex items-center gap-2"
                           >
-                            {statusPedidos[acao as keyof typeof statusPedidos].icon}
-                            Alterar para {statusPedidos[acao as keyof typeof statusPedidos].label}
+                            {
+                              statusPedidos[acao as keyof typeof statusPedidos]
+                                .icon
+                            }
+                            Alterar para{" "}
+                            {
+                              statusPedidos[acao as keyof typeof statusPedidos]
+                                .label
+                            }
                           </button>
                         ))}
                       </div>
@@ -419,14 +457,20 @@ export default function PedidosTable({
                   </div>
                 </td>
                 <td className="p-4">
-                  <span className={`px-2 py-1 rounded text-sm ${metodosPagamento[pedido.pagamento].cor}`}>
+                  <span
+                    className={`px-2 py-1 rounded text-sm ${
+                      metodosPagamento[pedido.pagamento].cor
+                    }`}
+                  >
                     {metodosPagamento[pedido.pagamento].label}
                   </span>
                 </td>
                 <td className="p-4">
                   <div className="flex items-center gap-1 text-gray-600">
                     <Calendar className="h-4 w-4" />
-                    <span>{pedido.data} {pedido.hora}</span>
+                    <span>
+                      {pedido.data} {pedido.hora}
+                    </span>
                   </div>
                 </td>
                 <td className="p-4">
@@ -447,7 +491,12 @@ export default function PedidosTable({
                     </button>
                     {pedido.codigoRastreio && (
                       <button
-                        onClick={() => window.open(`https://rastreamento/${pedido.codigoRastreio}`, '_blank')}
+                        onClick={() =>
+                          window.open(
+                            `https://rastreamento/${pedido.codigoRastreio}`,
+                            "_blank"
+                          )
+                        }
                         className="p-1 text-orange-600 hover:bg-orange-50 rounded"
                         title="Rastrear"
                       >
@@ -456,7 +505,7 @@ export default function PedidosTable({
                     )}
                     {pedido.observacoes && (
                       <button
-                        onClick={() => alert(pedido.observacoes)}
+                        onClick={() => toast.info(pedido.observacoes!)}
                         className="p-1 text-purple-600 hover:bg-purple-50 rounded"
                         title="Observações"
                       >
@@ -476,7 +525,9 @@ export default function PedidosTable({
                           Editar Pedido
                         </button>
                         <button
-                          onClick={() => handleMudarStatus(pedido.id, 'cancelado')}
+                          onClick={() =>
+                            handleMudarStatus(pedido.id, "cancelado")
+                          }
                           className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm text-red-600"
                         >
                           Cancelar Pedido
@@ -484,7 +535,7 @@ export default function PedidosTable({
                         <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm">
                           Enviar Notificação
                         </button>
-                        {pedido.status === 'entregue' && (
+                        {pedido.status === "entregue" && (
                           <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm">
                             Solicitar Avaliação
                           </button>
@@ -515,34 +566,32 @@ export default function PedidosTable({
         <div className="p-4 border-t">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-sm text-gray-600">
-              Mostrando {inicio + 1}-{Math.min(fim, pedidosFiltrados.length)} de {pedidosFiltrados.length} pedidos
+              Mostrando {inicio + 1}-{Math.min(fim, pedidosFiltrados.length)} de{" "}
+              {pedidosFiltrados.length} pedidos
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">Itens por página:</span>
-                <select
-                  className="border rounded px-2 py-1 text-sm"
-                  disabled
-                >
+                <select className="border rounded px-2 py-1 text-sm" disabled>
                   <option>{itensPorPagina}</option>
                 </select>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
+                  onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
                   disabled={paginaAtual === 1}
                   className="p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                
+
                 <div className="flex items-center gap-1">
                   {(() => {
                     const paginas = [];
                     const maxBotoes = 5;
-                    
+
                     if (totalPaginas <= maxBotoes) {
                       for (let i = 1; i <= totalPaginas; i++) {
                         paginas.push(i);
@@ -551,26 +600,26 @@ export default function PedidosTable({
                       for (let i = 1; i <= 4; i++) {
                         paginas.push(i);
                       }
-                      paginas.push('...');
+                      paginas.push("...");
                       paginas.push(totalPaginas);
                     } else if (paginaAtual >= totalPaginas - 2) {
                       paginas.push(1);
-                      paginas.push('...');
+                      paginas.push("...");
                       for (let i = totalPaginas - 3; i <= totalPaginas; i++) {
                         paginas.push(i);
                       }
                     } else {
                       paginas.push(1);
-                      paginas.push('...');
+                      paginas.push("...");
                       for (let i = paginaAtual - 1; i <= paginaAtual + 1; i++) {
                         paginas.push(i);
                       }
-                      paginas.push('...');
+                      paginas.push("...");
                       paginas.push(totalPaginas);
                     }
 
                     return paginas.map((pagina, index) => {
-                      if (pagina === '...') {
+                      if (pagina === "...") {
                         return (
                           <span key={index} className="px-2">
                             ...
@@ -584,8 +633,8 @@ export default function PedidosTable({
                           onClick={() => setPaginaAtual(pagina as number)}
                           className={`w-8 h-8 flex items-center justify-center rounded text-sm ${
                             paginaAtual === pagina
-                              ? 'bg-[#D4AF37] text-white'
-                              : 'border hover:bg-gray-50'
+                              ? "bg-[#D4AF37] text-white"
+                              : "border hover:bg-gray-50"
                           }`}
                         >
                           {pagina}
@@ -594,9 +643,11 @@ export default function PedidosTable({
                     });
                   })()}
                 </div>
-                
+
                 <button
-                  onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))}
+                  onClick={() =>
+                    setPaginaAtual((p) => Math.min(totalPaginas, p + 1))
+                  }
                   disabled={paginaAtual === totalPaginas}
                   className="p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
                 >

@@ -24,6 +24,7 @@ import {
 import { api } from "@/modules/services/api/axios";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Usuario {
   id: string;
@@ -178,11 +179,11 @@ export default function AdminUsuarios() {
       });
 
       if (response.data.success) {
-        alert('Usuário excluído com sucesso!');
+        toast.success('Usuário excluído com sucesso!');
         fetchUsuarios(); // Recarregar lista
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erro ao excluir usuário');
+      toast.error(err.response?.data?.message || 'Erro ao excluir usuário');
     } finally {
       setActionLoading(null);
     }
@@ -205,11 +206,11 @@ export default function AdminUsuarios() {
       });
 
       if (response.data.success) {
-        alert('Status alterado com sucesso!');
+        toast.success('Status alterado com sucesso!');
         fetchUsuarios(); // Recarregar lista
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erro ao alterar status');
+      toast.error(err.response?.data?.message || 'Erro ao alterar status');
     } finally {
       setActionLoading(null);
     }
@@ -230,10 +231,10 @@ export default function AdminUsuarios() {
 
       if (response.data.success) {
         const novaSenha = response.data.data.novaSenha;
-        alert(`Senha resetada com sucesso! Nova senha: ${novaSenha}`);
+        toast.success(`Senha resetada com sucesso! Nova senha: ${novaSenha}`);
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erro ao resetar senha');
+      toast.error(err.response?.data?.message || 'Erro ao resetar senha');
     } finally {
       setActionLoading(null);
     }
@@ -259,11 +260,11 @@ export default function AdminUsuarios() {
       });
 
       if (response.data.success) {
-        alert('Tipo alterado com sucesso!');
+        toast.success('Tipo de usuário alterado com sucesso!');
         fetchUsuarios(); // Recarregar lista
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erro ao alterar tipo');
+      toast.error(err.response?.data?.message || 'Erro ao alterar tipo de usuário');
     } finally {
       setActionLoading(null);
     }

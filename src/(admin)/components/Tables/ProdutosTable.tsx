@@ -18,6 +18,7 @@ import {
   Star,
   AlertTriangle
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Produto {
   id: number;
@@ -132,29 +133,25 @@ export default function ProdutosTable({
   // Ações em massa
   const handleAcaoMassa = (acao: string) => {
     if (selecionados.length === 0) {
-      alert("Selecione pelo menos um produto");
+      toast.error("Selecione pelo menos um produto");
       return;
     }
 
     switch (acao) {
       case 'ativar':
         if (confirm(`Ativar ${selecionados.length} produtos?`)) {
-          console.log("Ativar produtos:", selecionados);
         }
         break;
       case 'inativar':
         if (confirm(`Inativar ${selecionados.length} produtos?`)) {
-          console.log("Inativar produtos:", selecionados);
         }
         break;
       case 'excluir':
         if (confirm(`Excluir ${selecionados.length} produtos? Esta ação não pode ser desfeita.`)) {
-          console.log("Excluir produtos:", selecionados);
           setSelecionados([]);
         }
         break;
       case 'exportar':
-        console.log("Exportar produtos:", selecionados);
         break;
     }
   };

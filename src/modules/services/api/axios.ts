@@ -88,15 +88,6 @@ api.interceptors.request.use((config) => {
     delete config.headers['Content-Type']; // Deixe o browser definir
   }
   
-  // // Log dos headers para debug
-  // if (process.env.NODE_ENV === 'development') {
-  //   console.log('📋 Headers da requisição:', {
-  //     'Authorization': config.headers.Authorization ? 'Presente' : 'Ausente',
-  //     'Content-Type': config.headers['Content-Type'] || 'auto',
-  //     'URL': config.url
-  //   });
-  // }
-  
   return config;
 }, (error) => {
   console.error('❌ Erro no interceptor de requisição:', error);
@@ -134,11 +125,6 @@ api.interceptors.request.use((config) => {
 //       }
 //     }
     
-//     // Se for erro 400 (Bad Request)
-//     if (error.response?.status === 400) {
-//       console.log('📝 Erro de validação:', error.response.data);
-//     }
-    
 //     return Promise.reject(error);
 //   }
 // );
@@ -146,10 +132,8 @@ api.interceptors.request.use((config) => {
 // Função de teste para verificar configuração
 export const testApiConnection = async () => {
   try {
-    console.log('🧪 Testando conexão com API...');
     const response = await api.get('/health');
-    console.log('✅ API conectada:', response.data);
-    return true;
+    return response.data;
   } catch (error) {
     console.error('❌ Falha ao conectar com API:', error);
     return false;
@@ -160,27 +144,18 @@ export const testApiConnection = async () => {
 export const verifyToken = () => {
   const token = getToken();
   if (!token) {
-    console.log('❌ Nenhum token encontrado');
     return null;
   }
   
   try {
     const parts = token.split('.');
     if (parts.length !== 3) {
-      console.log('❌ Token não é JWT válido');
       return null;
     }
     
     const payload = JSON.parse(atob(parts[1]));
     const isExpired = Date.now() > payload.exp * 1000;
     
-    console.log('🔍 Informações do token:', {
-      userId: payload.id,
-      email: payload.email,
-      tipo: payload.tipo,
-      expiracao: new Date(payload.exp * 1000).toLocaleString('pt-PT'),
-      expirado: isExpired
-    });
     
     return {
       token,
@@ -188,7 +163,6 @@ export const verifyToken = () => {
       isExpired
     };
   } catch (error) {
-    console.log('❌ Erro ao decodificar token:', error);
     return null;
   }
 };

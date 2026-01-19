@@ -15,10 +15,3 @@ export const filterSheduleByAccess = (schedule: string): boolean => {
     route.access?.includes(schedule)
   );
 };
-
-// const hasAccess = filterSheduleByAccess(data!.data.tipo);
-// if (!hasAccess) {
-//   return redirect("/akin/schedule/completed");
-// } else{
-//   console.log(!hasAccess)
-// }

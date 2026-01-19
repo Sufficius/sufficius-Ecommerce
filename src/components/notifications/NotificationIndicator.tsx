@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 // Tipos para as notificações
 export interface NotificationData {
@@ -251,8 +252,7 @@ function NotificationPreview({
               size="sm"
               className="w-full text-gray-600 hover:text-gray-900 hover:bg-gray-100"
               onClick={() => {
-                // Aqui você pode navegar para página completa de notificações
-                console.log("Ver todas as notificações");
+                toast.info("Navegar para página completa de notificações em breve!");
                 setOpen(false);
               }}
             >

@@ -30,9 +30,10 @@ import { Loader2 } from "lucide-react";
 interface NovoProdutoModalProps {
   children: React.ReactNode;
   id_categoria?: string;
+  onProdutoCriado?: () => void;
 }
 
-export const NovoProdutoModal = ({ children }: NovoProdutoModalProps) => {
+export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModalProps) => {
   const queryClient = useQueryClient();
 
   const [open, setOpen] = useState(false);
@@ -209,18 +210,6 @@ export const NovoProdutoModal = ({ children }: NovoProdutoModalProps) => {
         throw new Error("Imagem do produto não fornecida.");
       }
 
-      // Log dos dados para debug
-      console.log("📤 Dados do produto:", {
-        nome: form.nome,
-        preco: form.preco,
-        quantidade: form.quantidade,
-        categoria: form.id_categoria,
-        temImagem: !!imagem,
-        tamanhoImagem: imagem
-          ? `${(imagem.size / 1024 / 1024).toFixed(2)}MB`
-          : "N/A",
-      });
-
       // Criar objeto de dados para enviar
       const produtoData = {
         nome: form.nome,
@@ -235,10 +224,13 @@ export const NovoProdutoModal = ({ children }: NovoProdutoModalProps) => {
       return await produtosRoute.criarProduto(produtoData);
     },
 
-    onSuccess: (data) => {
-      console.log("✅ Produto criado com sucesso:", data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["produtos"] });
       queryClient.invalidateQueries({ queryKey: ["estatisticas-produtos"] });
+
+      if(onProdutoCriado) {
+        onProdutoCriado();
+      }
       toast.success("Produto criado com sucesso!");
 
       // Resetar formulário
