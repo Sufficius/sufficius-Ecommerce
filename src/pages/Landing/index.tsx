@@ -222,7 +222,6 @@ const TestimonialAvatar = ({ id }: { id: number }) => {
 // }
 // };
 
-
 const HeroSection = () => {
   const navigate = useNavigate();
   const logged = useAuthStore((state) => state.isAuthenticated);
@@ -833,6 +832,7 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const user = useAuthStore((state) => state.user);
   const logged = useAuthStore((state) => state.isAuthenticated);
+  const navigate = useNavigate();
 
   const {
     items: carrinho,
@@ -880,9 +880,8 @@ const Header = () => {
       toast.error("Nenhum produto no carrinho!");
       return;
     }
-    toast.success("Compra finalizada com sucesso!");
-    clearCart();
     setCartOpen(false);
+    navigate("/checkout");
   };
 
   const logout = useAuthStore((state) => state.logout);
@@ -1162,12 +1161,24 @@ const Header = () => {
                     <span>Total:</span>
                     <span>KZ {getTotal().toLocaleString()}</span>
                   </div>
-                  <button
-                    onClick={finalizarCompra}
-                    className="w-full bg-[#D4AF37] text-white py-3 rounded-lg font-semibold hover:bg-[#c19b2c] transition"
-                  >
-                    Finalizar Compra
-                  </button>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        clearCart();
+                        toast.success("Carrinho limpo com sucesso!");
+                      }}
+                      className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 transition"
+                    >
+                      Limpar
+                    </button>
+                    <button
+                      onClick={finalizarCompra}
+                      className="w-full bg-[#D4AF37] text-white py-3 rounded-lg font-semibold hover:bg-[#c19b2c] transition"
+                    >
+                      Finalizar Compra
+                    </button>
+                  </div>
                 </div>
               </>
             )}
