@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Lock, 
@@ -14,6 +14,90 @@ import {
   Calendar
 } from "lucide-react";
 import { toast } from "sonner";
+import InputMask from 'react-input-mask';
+
+// Componentes reutilizáveis
+const InfoBox = ({ 
+  title, 
+  icon: Icon, 
+  children,
+  className = ""
+}: { 
+  title: string; 
+  icon: React.ElementType;
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div className={`border rounded-lg p-4 ${className}`}>
+    <h3 className="font-bold mb-3 flex items-center">
+      <Icon className="h-5 w-5 mr-2" />
+      {title}
+    </h3>
+    {children}
+  </div>
+);
+
+const ProgressStep = ({ 
+  step, 
+  currentStep, 
+  label, 
+  isLast = false 
+}: { 
+  step: string; 
+  currentStep: string; 
+  label: string;
+  isLast?: boolean;
+}) => {
+  const steps = ["endereco", "pagamento", "confirmacao"];
+  const currentIndex = steps.indexOf(currentStep);
+  const stepIndex = steps.indexOf(step);
+  const isCompleted = stepIndex < currentIndex;
+  const isActive = step === currentStep;
+
+  return (
+    <div className="flex items-center">
+      <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+        isActive 
+          ? "bg-[#D4AF37] text-white" 
+          : isCompleted
+          ? "bg-green-500 text-white"
+          : "bg-gray-200 text-gray-600"
+      }`}>
+        {isCompleted ? (
+          <CheckCircle className="h-5 w-5" />
+        ) : (
+          stepIndex + 1
+        )}
+      </div>
+      <div className="ml-2 mr-4">
+        <div className="text-sm font-medium">{label}</div>
+      </div>
+      {!isLast && (
+        <div className={`h-1 w-16 ${
+          isCompleted ? "bg-green-500" : "bg-gray-200"
+        }`} />
+      )}
+    </div>
+  );
+};
+
+const validateCardNumber = (card: string): boolean => {
+  const cleaned = card.replace(/\D/g, '');
+  return cleaned.length >= 13 && cleaned.length <= 19;
+};
+
+const getCardBrand = (cardNumber: string): string => {
+  const cleaned = cardNumber.replace(/\D/g, '');
+  
+  if (/^4/.test(cleaned)) return "Visa";
+  if (/^5[1-5]/.test(cleaned)) return "Mastercard";
+  if (/^3[47]/.test(cleaned)) return "American Express";
+  if (/^6(?:011|5)/.test(cleaned)) return "Discover";
+  if (/^3(?:0[0-5]|[68])/.test(cleaned)) return "Diners Club";
+  if (/^(?:2131|1800|35)/.test(cleaned)) return "JCB";
+  
+  return "Cartão";
+};
 
 // Página de Checkout/Pagamento
 export default function CheckoutPage() {
@@ -21,19 +105,18 @@ export default function CheckoutPage() {
   const [etapa, setEtapa] = useState<"endereco" | "pagamento" | "confirmacao">("endereco");
   const [metodoPagamento, setMetodoPagamento] = useState("cartao");
   const [carregando, setCarregando] = useState(false);
+  const [cardBrand, setCardBrand] = useState("");
   
   // Dados do formulário
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
     telefone: "",
-    cep: "",
     endereco: "",
     numero: "",
     complemento: "",
     cidade: "",
     estado: "",
-    cpf: "",
     numeroCartao: "",
     nomeCartao: "",
     validade: "",
@@ -48,7 +131,33 @@ export default function CheckoutPage() {
   
   const subtotal = carrinho.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
   const frete = subtotal > 5000 ? 0 : 29.90;
-  const total = subtotal + frete;
+  const descontoPix = metodoPagamento === "pix" ? subtotal * 0.05 : 0;
+  const total = subtotal + frete - descontoPix;
+  
+  // Persistir dados no localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('checkoutData');
+    if (saved) {
+      try {
+        setFormData(JSON.parse(saved));
+      } catch (e) {
+        console.error("Erro ao carregar dados salvos:", e);
+      }
+    }
+  }, []);
+  
+  useEffect(() => {
+    localStorage.setItem('checkoutData', JSON.stringify(formData));
+  }, [formData]);
+  
+  // Atualizar bandeira do cartão
+  useEffect(() => {
+    if (formData.numeroCartao) {
+      setCardBrand(getCardBrand(formData.numeroCartao));
+    } else {
+      setCardBrand("");
+    }
+  }, [formData.numeroCartao]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -56,17 +165,58 @@ export default function CheckoutPage() {
       ...prev,
       [name]: value
     }));
+    
+  };
+  
+  
+  const validarEtapaEndereco = (): boolean => {
+    const camposObrigatorios = ["nome", "email", "telefone", "endereco", "numero", "cidade", "estado"];
+    
+    for (const campo of camposObrigatorios) {
+      if (!formData[campo as keyof typeof formData]) {
+        toast.error(`O campo ${campo.replace(/[A-Z]/g, ' $&').toLowerCase()} é obrigatório`);
+        return false;
+      }
+    }
+    
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("E-mail inválido");
+      return false;
+    }
+    
+    return true;
+  };
+  
+  const validarEtapaPagamento = (): boolean => {
+    if (metodoPagamento === "cartao") {
+      if (!formData.numeroCartao || !formData.nomeCartao || !formData.validade || !formData.cvv) {
+        toast.error("Preencha todos os dados do cartão");
+        return false;
+      }
+      
+      if (!validateCardNumber(formData.numeroCartao)) {
+        toast.error("Número do cartão inválido");
+        return false;
+      }
+      
+      const cvvClean = formData.cvv.replace(/\D/g, '');
+      if (cvvClean.length < 3) {
+        toast.error("CVV inválido");
+        return false;
+      }
+    }
+    
+    return true;
   };
   
   const avancarEtapa = () => {
     if (etapa === "endereco") {
-      // Validação básica
-      if (!formData.nome || !formData.email || !formData.endereco) {
-        toast.error("Preencha todos os campos obrigatórios");
-        return;
-      }
+      if (!validarEtapaEndereco()) return;
       setEtapa("pagamento");
     } else if (etapa === "pagamento") {
+      if (!validarEtapaPagamento()) return;
       setEtapa("confirmacao");
     }
   };
@@ -79,13 +229,16 @@ export default function CheckoutPage() {
     }
   };
   
-  const finalizarCompra = () => {
+  const finalizarCompra = async () => {
     setCarregando(true);
     
     // Simulação de processamento
     setTimeout(() => {
       setCarregando(false);
       toast.success("🎉 Compra realizada com sucesso!");
+      
+      // Limpar dados salvos
+      localStorage.removeItem('checkoutData');
       
       // Redirecionar para página de confirmação
       setTimeout(() => {
@@ -94,9 +247,12 @@ export default function CheckoutPage() {
     }, 2000);
   };
   
+  const aplicarCupom = () => {
+    toast.info("Funcionalidade de cupom em desenvolvimento");
+  };
+  
   return (
     <div className="min-h-screen bg-gray-50">
-      
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -104,6 +260,7 @@ export default function CheckoutPage() {
             <button
               onClick={() => navigate("/")}
               className="flex items-center text-gray-600 hover:text-gray-900"
+              aria-label="Voltar para a loja"
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
               Voltar para a loja
@@ -133,39 +290,22 @@ export default function CheckoutPage() {
         {/* Progresso */}
         <div className="mb-12">
           <div className="flex items-center justify-center">
-            {["endereco", "pagamento", "confirmacao"].map((etapaAtual, index) => (
-              <div key={etapaAtual} className="flex items-center">
-                <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                  etapa === etapaAtual 
-                    ? "bg-[#D4AF37] text-white" 
-                    : etapa === "pagamento" && index === 0
-                    ? "bg-green-500 text-white"
-                    : etapa === "confirmacao" && index <= 1
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-600"
-                }`}>
-                  {etapa === "confirmacao" && index <= 1 ? (
-                    <CheckCircle className="h-5 w-5" />
-                  ) : (
-                    index + 1
-                  )}
-                </div>
-                <div className="ml-2 mr-4">
-                  <div className="text-sm font-medium">
-                    {etapaAtual === "endereco" ? "Endereço" : 
-                     etapaAtual === "pagamento" ? "Pagamento" : "Confirmação"}
-                  </div>
-                </div>
-                {index < 2 && (
-                  <div className={`h-1 w-16 ${
-                    (etapa === "pagamento" && index === 0) || 
-                    (etapa === "confirmacao" && index <= 1)
-                      ? "bg-green-500" 
-                      : "bg-gray-200"
-                  }`} />
-                )}
-              </div>
-            ))}
+            <ProgressStep 
+              step="endereco" 
+              currentStep={etapa} 
+              label="Endereço" 
+            />
+            <ProgressStep 
+              step="pagamento" 
+              currentStep={etapa} 
+              label="Pagamento" 
+            />
+            <ProgressStep 
+              step="confirmacao" 
+              currentStep={etapa} 
+              label="Confirmação" 
+              isLast={true}
+            />
           </div>
         </div>
         
@@ -193,6 +333,7 @@ export default function CheckoutPage() {
                         onChange={handleChange}
                         className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                         placeholder="Digite seu nome completo"
+                        required
                       />
                     </div>
                     
@@ -207,6 +348,7 @@ export default function CheckoutPage() {
                         onChange={handleChange}
                         className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                         placeholder="seu@email.com"
+                        required
                       />
                     </div>
                     
@@ -214,27 +356,14 @@ export default function CheckoutPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Telefone *
                       </label>
-                      <input
-                        type="tel"
+                      <InputMask
+                        mask="(+244) 999-999-999"
                         name="telefone"
                         value={formData.telefone}
                         onChange={handleChange}
                         className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                        placeholder="(11) 99999-9999"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        CEP *
-                      </label>
-                      <input
-                        type="text"
-                        name="cep"
-                        value={formData.cep}
-                        onChange={handleChange}
-                        className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                        placeholder="00000-000"
+                        placeholder="(+244) 999-999-999"
+                        required
                       />
                     </div>
                     
@@ -249,6 +378,7 @@ export default function CheckoutPage() {
                         onChange={handleChange}
                         className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                         placeholder="Rua, Avenida, etc."
+                        required
                       />
                     </div>
                     
@@ -263,6 +393,7 @@ export default function CheckoutPage() {
                         onChange={handleChange}
                         className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                         placeholder="123"
+                        required
                       />
                     </div>
                     
@@ -291,6 +422,7 @@ export default function CheckoutPage() {
                         onChange={handleChange}
                         className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                         placeholder="Sua cidade"
+                        required
                       />
                     </div>
                     
@@ -303,27 +435,37 @@ export default function CheckoutPage() {
                         value={formData.estado}
                         onChange={handleChange}
                         className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        required
                       >
                         <option value="">Selecione</option>
-                        <option value="SP">São Paulo</option>
-                        <option value="RJ">Rio de Janeiro</option>
+                        <option value="AC">Acre</option>
+                        <option value="AL">Alagoas</option>
+                        <option value="AP">Amapá</option>
+                        <option value="AM">Amazonas</option>
+                        <option value="BA">Bahia</option>
+                        <option value="CE">Ceará</option>
+                        <option value="DF">Distrito Federal</option>
+                        <option value="ES">Espírito Santo</option>
+                        <option value="GO">Goiás</option>
+                        <option value="MA">Maranhão</option>
+                        <option value="MT">Mato Grosso</option>
+                        <option value="MS">Mato Grosso do Sul</option>
                         <option value="MG">Minas Gerais</option>
+                        <option value="PA">Pará</option>
+                        <option value="PB">Paraíba</option>
                         <option value="PR">Paraná</option>
+                        <option value="PE">Pernambuco</option>
+                        <option value="PI">Piauí</option>
+                        <option value="RJ">Rio de Janeiro</option>
+                        <option value="RN">Rio Grande do Norte</option>
+                        <option value="RS">Rio Grande do Sul</option>
+                        <option value="RO">Rondônia</option>
+                        <option value="RR">Roraima</option>
+                        <option value="SC">Santa Catarina</option>
+                        <option value="SP">São Paulo</option>
+                        <option value="SE">Sergipe</option>
+                        <option value="TO">Tocantins</option>
                       </select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        CPF *
-                      </label>
-                      <input
-                        type="text"
-                        name="cpf"
-                        value={formData.cpf}
-                        onChange={handleChange}
-                        className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                        placeholder="000.000.000-00"
-                      />
                     </div>
                   </div>
                 </>
@@ -339,13 +481,16 @@ export default function CheckoutPage() {
                   
                   <div className="space-y-4 mb-6">
                     {[
-                      { id: "cartao", label: "Cartão de Crédito", icon: "💳" },
-                      { id: "pix", label: "PIX", icon: "🏦" },
-                      { id: "boleto", label: "Boleto Bancário", icon: "📄" },
-                      { id: "debito", label: "Cartão de Débito", icon: "💵" }
+                      { id: "cartao", label: "Cartão de Crédito", icon: "💳", desc: "Em até 12x sem juros" },
+                      { id: "pix", label: "PIX", icon: "🏦", desc: "5% de desconto" },
+                      { id: "boleto", label: "Boleto Bancário", icon: "📄", desc: "Pagamento em até 3 dias" },
+                      { id: "debito", label: "Cartão de Débito", icon: "💵", desc: "Débito automático" }
                     ].map((metodo) => (
                       <div
                         key={metodo.id}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && setMetodoPagamento(metodo.id)}
                         className={`flex items-center p-4 border rounded-lg cursor-pointer ${
                           metodoPagamento === metodo.id
                             ? "border-[#D4AF37] bg-[#D4AF37]/5"
@@ -356,12 +501,7 @@ export default function CheckoutPage() {
                         <div className="text-2xl mr-4">{metodo.icon}</div>
                         <div className="flex-1">
                           <div className="font-medium">{metodo.label}</div>
-                          {metodo.id === "cartao" && (
-                            <div className="text-sm text-gray-500">Em até 12x sem juros</div>
-                          )}
-                          {metodo.id === "pix" && (
-                            <div className="text-sm text-gray-500">5% de desconto</div>
-                          )}
+                          <div className="text-sm text-gray-500">{metodo.desc}</div>
                         </div>
                         <div className={`h-5 w-5 rounded-full border-2 ${
                           metodoPagamento === metodo.id
@@ -379,14 +519,21 @@ export default function CheckoutPage() {
                   {/* Formulário do cartão */}
                   {metodoPagamento === "cartao" && (
                     <div className="border-t pt-6">
-                      <h3 className="font-bold mb-4">Dados do Cartão</h3>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold">Dados do Cartão</h3>
+                        {cardBrand && (
+                          <span className="text-sm bg-gray-100 px-3 py-1 rounded-full">
+                            {cardBrand}
+                          </span>
+                        )}
+                      </div>
                       <div className="grid md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Número do Cartão *
                           </label>
-                          <input
-                            type="text"
+                          <InputMask
+                            mask="9999 9999 9999 9999"
                             name="numeroCartao"
                             value={formData.numeroCartao}
                             onChange={handleChange}
@@ -413,8 +560,8 @@ export default function CheckoutPage() {
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Validade *
                           </label>
-                          <input
-                            type="text"
+                          <InputMask
+                            mask="99/99"
                             name="validade"
                             value={formData.validade}
                             onChange={handleChange}
@@ -427,8 +574,8 @@ export default function CheckoutPage() {
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             CVV *
                           </label>
-                          <input
-                            type="text"
+                          <InputMask
+                            mask="999"
                             name="cvv"
                             value={formData.cvv}
                             onChange={handleChange}
@@ -486,63 +633,58 @@ export default function CheckoutPage() {
                   </div>
                   
                   <div className="space-y-6">
-                    <div>
-                      <h3 className="font-bold mb-3">Resumo do Pedido</h3>
-                      <div className="border rounded-lg p-4">
-                        {carrinho.map((item) => (
-                          <div key={item.id} className="flex items-center justify-between py-2">
-                            <div className="flex items-center">
-                              <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center mr-3">
-                                {item.imagem}
-                              </div>
-                              <div>
-                                <div className="font-medium">{item.nome}</div>
-                                <div className="text-sm text-gray-500">Quantidade: {item.quantidade}</div>
-                              </div>
+                    <InfoBox title="Resumo do Pedido" icon={CheckCircle}>
+                      {carrinho.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between py-2">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center mr-3">
+                              {item.imagem}
                             </div>
-                            <div className="font-bold">
-                              KZ {(item.preco * item.quantidade).toLocaleString()}
+                            <div>
+                              <div className="font-medium">{item.nome}</div>
+                              <div className="text-sm text-gray-500">Quantidade: {item.quantidade}</div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-bold mb-3">Endereço de Entrega</h3>
-                      <div className="border rounded-lg p-4">
-                        <p className="font-medium">{formData.nome}</p>
-                        <p>{formData.endereco}, {formData.numero}</p>
-                        <p>{formData.complemento}</p>
-                        <p>{formData.cidade} - {formData.estado}</p>
-                        <p>CEP: {formData.cep}</p>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-bold mb-3">Método de Pagamento</h3>
-                      <div className="border rounded-lg p-4">
-                        <div className="flex items-center">
-                          <div className="text-2xl mr-3">
-                            {metodoPagamento === "cartao" ? "💳" : 
-                             metodoPagamento === "pix" ? "🏦" : 
-                             metodoPagamento === "boleto" ? "📄" : "💵"}
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {metodoPagamento === "cartao" ? "Cartão de Crédito" : 
-                               metodoPagamento === "pix" ? "PIX" : 
-                               metodoPagamento === "boleto" ? "Boleto Bancário" : "Cartão de Débito"}
-                            </p>
-                            {metodoPagamento === "cartao" && formData.numeroCartao && (
-                              <p className="text-sm text-gray-600">
-                                **** **** **** {formData.numeroCartao.slice(-4)}
-                              </p>
-                            )}
+                          <div className="font-bold">
+                            KZ {(item.preco * item.quantidade).toLocaleString()}
                           </div>
                         </div>
+                      ))}
+                    </InfoBox>
+                    
+                    <InfoBox title="Endereço de Entrega" icon={MapPin}>
+                      <p className="font-medium">{formData.nome}</p>
+                      <p>{formData.endereco}, {formData.numero}</p>
+                      {formData.complemento && <p>{formData.complemento}</p>}
+                      <p>{formData.cidade} - {formData.estado}</p>
+                      <p className="text-sm text-gray-600 mt-2">Telefone: {formData.telefone}</p>
+                      <p className="text-sm text-gray-600">E-mail: {formData.email}</p>
+                    </InfoBox>
+                    
+                    <InfoBox title="Método de Pagamento" icon={CreditCard}>
+                      <div className="flex items-center">
+                        <div className="text-2xl mr-3">
+                          {metodoPagamento === "cartao" ? "💳" : 
+                           metodoPagamento === "pix" ? "🏦" : 
+                           metodoPagamento === "boleto" ? "📄" : "💵"}
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            {metodoPagamento === "cartao" ? "Cartão de Crédito" : 
+                             metodoPagamento === "pix" ? "PIX" : 
+                             metodoPagamento === "boleto" ? "Boleto Bancário" : "Cartão de Débito"}
+                          </p>
+                          {metodoPagamento === "cartao" && formData.numeroCartao && (
+                            <p className="text-sm text-gray-600">
+                              **** **** **** {formData.numeroCartao.slice(-4)}
+                            </p>
+                          )}
+                          {metodoPagamento === "pix" && (
+                            <p className="text-sm text-green-600">5% de desconto aplicado</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    </InfoBox>
                     
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600">
@@ -565,6 +707,7 @@ export default function CheckoutPage() {
                       ? "text-gray-400 border-gray-300 cursor-not-allowed"
                       : "text-gray-700 hover:bg-gray-50"
                   }`}
+                  aria-label="Voltar para etapa anterior"
                 >
                   Voltar
                 </button>
@@ -573,6 +716,7 @@ export default function CheckoutPage() {
                   onClick={etapa === "confirmacao" ? finalizarCompra : avancarEtapa}
                   disabled={carregando}
                   className="px-8 py-3 bg-[#D4AF37] text-white rounded-lg font-medium hover:bg-[#c19b2c] disabled:opacity-70 disabled:cursor-not-allowed flex items-center"
+                  aria-label={etapa === "confirmacao" ? "Finalizar compra" : "Continuar para próxima etapa"}
                 >
                   {carregando ? (
                     <>
@@ -664,9 +808,7 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-lg font-bold border-t pt-3">
                   <span>Total</span>
                   <span className="text-[#D4AF37]">
-                    KZ {metodoPagamento === "pix" 
-                      ? (total - (subtotal * 0.05)).toLocaleString() 
-                      : total.toLocaleString()}
+                    KZ {total.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -690,8 +832,13 @@ export default function CheckoutPage() {
                     type="text"
                     placeholder="Código do cupom"
                     className="flex-1 border rounded-l-lg px-4 py-3 focus:outline-none"
+                    aria-label="Código do cupom de desconto"
                   />
-                  <button className="bg-gray-800 text-white px-4 py-3 rounded-r-lg hover:bg-gray-900">
+                  <button 
+                    onClick={aplicarCupom}
+                    className="bg-gray-800 text-white px-4 py-3 rounded-r-lg hover:bg-gray-900"
+                    aria-label="Aplicar cupom"
+                  >
                     Aplicar
                   </button>
                 </div>
