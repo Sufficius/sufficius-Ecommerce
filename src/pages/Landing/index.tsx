@@ -29,6 +29,7 @@ import { useAuthStore } from "@/modules/services/store/auth-store";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { produtosRoute } from "@/modules/services/api/routes/produtos";
+import { useCartStore } from "@/modules/services/store/cart-store";
 
 // Componente de imagem otimizado com Cloudinary
 interface CloudinaryImageProps {
@@ -190,47 +191,37 @@ const TestimonialAvatar = ({ id }: { id: number }) => {
   );
 };
 
-// Imagem para o carrinho
-const CartProductImage = ({ productId }: { productId: number }) => {
-  const imageMap = {
-    1: "v1768212665/image6_s6uyn9.jpg",
-    2: "v1768212665/image7_qyn6if.jpg",
-    3: "v1768212665/image12_fv8ifg.jpg",
-  };
+// const CartProductImage = ({ produto }: { produto: any }) => {
+//   if(produto.imagem) {
+//     let imagePath = produto.imagem;
 
-  return (
-    <CloudinaryImage
-      publicId={
-        imageMap[productId as keyof typeof imageMap] ||
-        "sufficius-commerce/product-default"
-      }
-      alt={`Produto ${productId}`}
-      width={64}
-      height={64}
-      className="w-full h-full"
-    />
-  );
-};
+//     if(imagePath.startsWith('/')){
+//       imagePath = imagePath.substring(1);
+//     }
+//     const cloudName = "sufficius-commerce";
+//     const transformations = "c_scale,w_150,h_150,q_auto,f_auto";
+//     const imageUrl = `https://res.cloudinary.com/${cloudName}/image/upload/${transformations}/${imagePath}`;
 
-// Se você tem essa imagem específica que mencionou, use-a para um dos produtos:
-// https://res.cloudinary.com/sufficius-commerce/image/upload/v1768212665/image3_g6gaai.jpg
-// const ImagemEspecial = () => (
-//   <CloudinaryImage
-//     publicId="v1768212665/image3_g6gaai" // Note que removi o "sufficius-commerce/" pois parece que está em outra pasta
-//     alt="Produto Especial"
-//     width={400}
-//     height={300}
-//     className="w-full h-full"
-//   />
-// );
+//     return (
+//       <img
+//       src={imageUrl}
+//       alt={`Produto ${produto.nome}`}
+//       width={64}
+//       height={64}
+//       className="w-full h-full object-cover"
+//       onError={(e)=>  {
+//         e.currentTarget.style.display = 'none';
+//         e.currentTarget.parentElement!.innerHTML = `
+//         <div class="w-full h-full bg-gray-100 flex items-center justify-center">
+//               <Package className="h-6 w-6 text-gray-400" />
+//             </div>
+//         `
+//       }}
+//     />
+//   );
+// }
+// };
 
-// const ProductImage = ({ index }: { index: number }) => (
-//   <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-//     <div className="absolute bottom-2 right-2 bg-[#D4AF37] text-white px-2 py-1 text-xs rounded">
-//       Produto {index}
-//     </div>
-//   </div>
-// );
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -539,6 +530,8 @@ const ProductsSection = () => {
   const [quantidade, setQuantidade] = useState(1);
   const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null);
 
+  const addItem = useCartStore((state) => state.addItem);
+
   const { data: produtos } = useQuery({
     queryKey: ["produtos"],
     queryFn: async () => {
@@ -599,12 +592,32 @@ const ProductsSection = () => {
   };
 
   const handleQuantidade = (action: "increment" | "decrement") => {
-    setQuantidade((prev) =>
-      action === "increment" ? prev + 1 : prev > 1 ? prev - 1 : 1
-    );
+    setQuantidade((prev) => {
+      const quantidadeDisponivel = produtoSelecionado?.quantidade || 0;
+
+      if (action === "increment") {
+        return prev < quantidadeDisponivel ? prev + 1 : prev;
+      } else {
+        return prev > 1 ? prev - 1 : 1;
+      }
+    });
   };
 
-  const handleAdicionarAoCarrinho = (produto: any) => {
+  const handleAdicionarAoCarrinho = (
+    produto: any,
+    quantidadeSelecionada: number = 1
+  ) => {
+    const cartItem = {
+      id: produto.id,
+      nome: produto.nome,
+      descricao: produto.descricao,
+      preco: produto.preco,
+      quantidade: produto.quantidade || 0,
+      quantidadeSelecionada: quantidadeSelecionada,
+      imagem: produto.imagem,
+      categoria: produto.categoria,
+    };
+    addItem(cartItem);
     toast.success(`${produto.nome} adicionado ao carrinho!`);
   };
 
@@ -673,7 +686,7 @@ const ProductsSection = () => {
                         <BsEye size={18} />
                       </button>
                       <button
-                        onClick={() => handleAdicionarAoCarrinho(produto)}
+                        onClick={() => handleAdicionarAoCarrinho(produto, 1)}
                         className="p-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c]"
                       >
                         <FiShoppingCart size={18} />
@@ -767,8 +780,12 @@ const ProductsSection = () => {
                   <div className="flex gap-3">
                     <button
                       onClick={() => {
-                        handleAdicionarAoCarrinho(produtoSelecionado);
+                        handleAdicionarAoCarrinho(
+                          produtoSelecionado,
+                          quantidade
+                        );
                         setProdutoSelecionado(null);
+                        setQuantidade(1);
                       }}
                       className="flex-1 bg-[#D4AF37] text-white py-3 rounded-lg font-semibold hover:bg-[#c19b2c] transition disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={
@@ -813,12 +830,18 @@ const Header = () => {
   const [open, setOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [quantidades, setQuantidades] = useState<Record<number, number>>({});
-  const [carrinho, setCarrinho] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const user = useAuthStore((state) => state.user);
   const logged = useAuthStore((state) => state.isAuthenticated);
-  const [produtoSelecionado,] = useState<any>(null);
+
+  const {
+    items: carrinho,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    getTotal,
+    getTotalItems,
+  } = useCartStore();
 
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -835,20 +858,20 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleQuantidade = (action: "increment" | "decrement") => {
-    const quantidadeDisponivel = produtoSelecionado?.quantidade || 0;
-    setQuantidades((prev: any) => {
-      if(action === "increment"){
-        return prev < quantidadeDisponivel ? prev + 1 : prev;
-      }
-      else {
-        return prev > 1 ? prev - 1 : 1;
-      }
-    });
+  const handleQuantidade = (id: string, action: "increment" | "decrement") => {
+    const item = carrinho.find((i) => i.id === id);
+    if (!item) return;
+
+    const novaQuantidade =
+      action === "increment"
+        ? item.quantidadeSelecionada + 1
+        : item.quantidadeSelecionada - 1;
+
+    updateQuantity(id, novaQuantidade);
   };
 
-  const removerDoCarrinho = (id: number) => {
-    setCarrinho(carrinho.filter((item) => item !== id));
+  const removerDoCarrinho = (id: string) => {
+    removeItem(id);
     toast.info("Produto removido do carrinho");
   };
 
@@ -858,7 +881,7 @@ const Header = () => {
       return;
     }
     toast.success("Compra finalizada com sucesso!");
-    setCarrinho([]);
+    clearCart();
     setCartOpen(false);
   };
 
@@ -867,33 +890,6 @@ const Header = () => {
   const handleLogout = async () => {
     await logout();
   };
-
-  const produtosExemplo = [
-    {
-      id: 1,
-      nome: "Smartphone",
-      preco: 8999,
-      imageId: "sufficius-commerce/smartphone-cart",
-    },
-    {
-      id: 2,
-      nome: "Notebook",
-      preco: 12599,
-      imageId: "sufficius-commerce/notebook-cart",
-    },
-    {
-      id: 3,
-      nome: "Fone",
-      preco: 1999,
-      imageId: "sufficius-commerce/fone-cart",
-    },
-  ];
-
-  const total = carrinho.reduce((acc, id) => {
-    const produto = produtosExemplo.find((p) => p.id === id);
-    const qtd = quantidades[id] || 1;
-    return produto ? acc + produto.preco * qtd : acc;
-  }, 0);
 
   return (
     <>
@@ -997,17 +993,14 @@ const Header = () => {
               </div>
 
               {/* BOTÃO DO CARRINHO */}
-              <div className="bg-red-500 size-5 text-center relative rounded-full -top-2 left-14 text-white">
-                1
-              </div>
               <button
                 className="relative p-2 rounded-full"
                 onClick={() => setCartOpen(true)}
               >
                 <ShoppingCart size={22} />
-                {carrinho.length > 0 && (
+                {getTotalItems() > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {carrinho.length}
+                    {getTotalItems()}
                   </span>
                 )}
               </button>
@@ -1054,7 +1047,7 @@ const Header = () => {
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-6 max-h-[80vh] flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
-                Meu Carrinho ({carrinho.length})
+                Meu Carrinho ({getTotalItems()})
               </h2>
               <button onClick={() => setCartOpen(false)} className="p-1">
                 <X size={24} />
@@ -1075,43 +1068,90 @@ const Header = () => {
             ) : (
               <>
                 <div className="flex-1 overflow-y-auto">
-                  {carrinho.map((id) => {
-                    const produto = produtosExemplo.find((p) => p.id === id);
-                    if (!produto) return null;
-                    const qtd = quantidades[id] || 1;
+                  {carrinho.map((item) => {
+                    let imagePath = item.imagem;
+                    if (imagePath && imagePath.startsWith("/")) {
+                      imagePath = imagePath.substring(1);
+                    }
+                    const cloudName = "sufficius-commerce";
+                    const transformations = "c_fill,w_150,h_150,q_auto,f_auto";
+                    const imageUrl = imagePath
+                      ? `https://res.cloudinary.com/${cloudName}/image/upload/${transformations}/${imagePath}`
+                      : null;
 
                     return (
-                      <div key={id} className="flex items-center border-b py-4">
-                        <div className="h-16 w-16 rounded-lg overflow-hidden">
-                          <CartProductImage productId={id} />
+                      <div
+                        key={item.id}
+                        className="flex items-center border-b py-4"
+                      >
+                        <div className="h-16 w-16 rounded-lg overflow-hidden bg-gray-100">
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={item.nome}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                e.currentTarget.parentElement!.innerHTML = `
+                                <div class="w-full h-full bg-gray-100 flex items-center justify-center">
+                                  <span class="text-gray-400 text-xs">${item.nome}</span>
+                                </div>
+                              `;
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="text-gray-400 text-xs">
+                                Sem imagem
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="ml-4 flex-1">
-                          <h3 className="font-medium">{produto.nome}</h3>
+                          <h3 className="font-medium">{item.nome}</h3>
                           <p className="text-[#D4AF37] font-semibold">
-                            KZ {produto.preco.toLocaleString()}
+                            KZ {item.preco.toLocaleString()}
                           </p>
                           <div className="flex items-center gap-2 mt-2">
                             <button
-                              onClick={() => handleQuantidade("decrement")}
+                              onClick={() =>
+                                handleQuantidade(item.id, "decrement")
+                              }
                               className="w-6 h-6 border rounded"
+                              disabled={item.quantidadeSelecionada <= 1}
                             >
                               -
                             </button>
-                            <span>{qtd}</span>
+                            <span className="min-w-[2rem] text-center">
+                              {item.quantidadeSelecionada}
+                            </span>
                             <button
-                              onClick={() => handleQuantidade("increment")}
+                              onClick={() =>
+                                handleQuantidade(item.id, "increment")
+                              }
                               className="w-6 h-6 border rounded"
+                              disabled={
+                                item.quantidadeSelecionada >= item.quantidade
+                              }
                             >
                               +
                             </button>
                           </div>
                         </div>
-                        <button
-                          onClick={() => removerDoCarrinho(id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <CgClose size={20} />
-                        </button>
+                        <div className="text-right ml-2">
+                          <p className="font-semibold">
+                            KZ{" "}
+                            {(
+                              item.preco * item.quantidadeSelecionada
+                            ).toLocaleString()}
+                          </p>
+                          <button
+                            onClick={() => removerDoCarrinho(item.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <CgClose size={20} />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -1120,7 +1160,7 @@ const Header = () => {
                 <div className="mt-4 pt-4 border-t">
                   <div className="flex justify-between text-lg font-bold mb-4">
                     <span>Total:</span>
-                    <span>KZ {total.toLocaleString()}</span>
+                    <span>KZ {getTotal().toLocaleString()}</span>
                   </div>
                   <button
                     onClick={finalizarCompra}
@@ -1138,7 +1178,6 @@ const Header = () => {
   );
 };
 
-// Componente principal Landing Page
 export default function Landing() {
   return (
     <div className="min-h-screen bg-white">
