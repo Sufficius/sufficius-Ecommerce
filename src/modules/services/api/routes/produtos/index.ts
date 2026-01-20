@@ -47,6 +47,17 @@ interface IProduto {
 }
 
 class ProdutosRoute {
+
+  async getProdutos() {
+    try {
+      const response = await api.get("/produtos");
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Erro ao buscar produtos:', error);
+      throw new Error("Erro ao carregar produtos");
+    }
+  }
+
   async criarProduto(produto: IProdutoToCreate) {
 
     const formData = new FormData();

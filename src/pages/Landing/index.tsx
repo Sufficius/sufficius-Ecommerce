@@ -27,6 +27,8 @@ import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { produtosRoute } from "@/modules/services/api/routes/produtos";
 
 // Componente de imagem otimizado com Cloudinary
 interface CloudinaryImageProps {
@@ -55,8 +57,22 @@ const CloudinaryImage = ({
   const cloudName =
     import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "sufficius-commerce";
 
-  // Se não houver publicId, use um placeholder
-  const finalPublicId = publicId ?? "placeholder";
+  const normalizedPublicId = (id: string | undefined): string => {
+    if (!id) return "placeholder";
+
+    if (id.includes("res.cloudinary.com")) {
+      const parts = id.split("/upload/");
+      return parts.length > 1 ? parts[1] : parts[0];
+    }
+    return id.startsWith("/") ? id.substring(1) : id;
+  };
+
+  const normalizeId = normalizedPublicId(publicId);
+  const isFullPublicId =
+    normalizeId.includes("/") || normalizeId.startsWith("v");
+  const finalPublicId = isFullPublicId
+    ? normalizeId
+    : `placeholder/${normalizeId}`;
 
   // Transformações otimizadas
   const transformations = "c_scale,w_800,h_600,q_auto,f_auto";
@@ -66,6 +82,13 @@ const CloudinaryImage = ({
   // Placeholder em base64 para blur effect
   const placeholder =
     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmMWYxIi8+PC9zdmc+";
+
+  console.log(
+    `CloudinaryImage: publicId=${publicId}, normalized=${normalizeId}, src=${src.substring(
+      0,
+      100
+    )}...`
+  );
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
@@ -83,8 +106,12 @@ const CloudinaryImage = ({
         loading={priority ? "eager" : loading}
         width={width}
         height={height}
-        onLoad={() => setIsLoaded(true)}
+        onLoad={() => {
+          console.log(`Imagem carregada: ${alt}`);
+          setIsLoaded(true);
+        }}
         onError={() => {
+          console.error(`Erro ao carregar imagem ${alt}:`, src);
           setIsError(true);
           setIsLoaded(true);
         }}
@@ -97,73 +124,74 @@ const CloudinaryImage = ({
       {isError && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
           <Package className="h-12 w-12 text-gray-400" />
+          <span className="ml-2 text-gray-500 text-sm">{alt}</span>
         </div>
       )}
     </div>
   );
 };
 
-// Imagens dos produtos usando SUAS imagens reais do Cloudinary
-const PrimeiraImagem = () => (
-  <CloudinaryImage
-    publicId="v1768212665/image6_s6uyn9.jpg"
-    alt="Smartphone Premium"
-    width={400}
-    height={300}
-    priority={true}
-    className="w-full h-full"
-  />
-);
+// // Imagens dos produtos usando SUAS imagens reais do Cloudinary
+// const PrimeiraImagem = () => (
+//   <CloudinaryImage
+//     publicId="v1768212665/image6_s6uyn9.jpg"
+//     alt="Smartphone Premium"
+//     width={400}
+//     height={300}
+//     priority={true}
+//     className="w-full h-full"
+//   />
+// );
 
-const SegundaImagem = () => (
-  <CloudinaryImage
-    publicId="v1768212665/image7_qyn6if.jpg"
-    alt="Notebook Gamer"
-    width={400}
-    height={300}
-    className="w-full h-full"
-  />
-);
+// const SegundaImagem = () => (
+//   <CloudinaryImage
+//     publicId="v1768212665/image7_qyn6if.jpg"
+//     alt="Notebook Gamer"
+//     width={400}
+//     height={300}
+//     className="w-full h-full"
+//   />
+// );
 
-const TerceiraImagem = () => (
-  <CloudinaryImage
-    publicId="v1768212665/image12_fv8ifg.jpg"
-    alt="Fone Bluetooth com Cancelamento de Ruído"
-    width={400}
-    height={300}
-    className="w-full h-full"
-  />
-);
+// const TerceiraImagem = () => (
+//   <CloudinaryImage
+//     publicId="v1768212665/image12_fv8ifg.jpg"
+//     alt="Fone Bluetooth com Cancelamento de Ruído"
+//     width={400}
+//     height={300}
+//     className="w-full h-full"
+//   />
+// );
 
-const QuartaImagem = () => (
-  <CloudinaryImage
-    publicId="v1768212665/image3_g6gaai.jpg"
-    alt="Smart TV 4K 55 polegadas"
-    width={400}
-    height={300}
-    className="w-full h-full"
-  />
-);
+// const QuartaImagem = () => (
+//   <CloudinaryImage
+//     publicId="v1768212665/image3_g6gaai.jpg"
+//     alt="Smart TV 4K 55 polegadas"
+//     width={400}
+//     height={300}
+//     className="w-full h-full"
+//   />
+// );
 
-const QuintaImagem = () => (
-  <CloudinaryImage
-    publicId="v1768212665/image5_p7b819.jpg"
-    alt="Console de Jogos"
-    width={400}
-    height={300}
-    className="w-full h-full"
-  />
-);
+// const QuintaImagem = () => (
+//   <CloudinaryImage
+//     publicId="v1768212665/image5_p7b819.jpg"
+//     alt="Console de Jogos"
+//     width={400}
+//     height={300}
+//     className="w-full h-full"
+//   />
+// );
 
-const SextaImagem = () => (
-  <CloudinaryImage
-    publicId="v1768212665/img5_ixgvhh.jpg"
-    alt="Smartwatch com Monitor Cardíaco"
-    width={400}
-    height={300}
-    className="w-full h-full"
-  />
-);
+// const SextaImagem = () => (
+//   <CloudinaryImage
+//     publicId="v1768212665/img5_ixgvhh.jpg"
+//     alt="Smartwatch com Monitor Cardíaco"
+//     width={400}
+//     height={300}
+//     className="w-full h-full"
+//   />
+// );
 
 // Imagem do Hero Section
 const HeroImage = () => (
@@ -582,68 +610,70 @@ const ProductsSection = () => {
   const [quantidade, setQuantidade] = useState(1);
   const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null);
 
-  const produtos = [
-    {
-      id: 1,
-      nome: "Smartphone Premium",
-      descricao: '128GB, Tela 6.7", Câmera Tripla',
-      preco: 8999,
-      categoria: "Eletrônicos",
-      rating: 4.5,
-      vendas: 234,
-      imagemComponente: PrimeiraImagem,
+  const { data: produtos } = useQuery({
+    queryKey: ["produtos"],
+    queryFn: async () => {
+      const response = await produtosRoute.getProdutos();
+      return response.data;
     },
-    {
-      id: 2,
-      nome: "Notebook Gamer",
-      descricao: "RTX 4060, 16GB RAM, 1TB SSD",
-      preco: 12599,
-      categoria: "Eletrônicos",
-      rating: 4.8,
-      vendas: 189,
-      imagemComponente: SegundaImagem,
-    },
-    {
-      id: 3,
-      nome: "Fone Bluetooth",
-      descricao: "Cancelamento de Ruído, 30h bateria",
-      preco: 1999,
-      categoria: "Áudio",
-      rating: 4.3,
-      vendas: 456,
-      imagemComponente: TerceiraImagem,
-    },
-    {
-      id: 4,
-      nome: "Smart TV 4K",
-      descricao: "55 polegadas, Android TV",
-      preco: 3299,
-      categoria: "TV & Vídeo",
-      rating: 4.6,
-      vendas: 123,
-      imagemComponente: QuartaImagem,
-    },
-    {
-      id: 5,
-      nome: "Console de Jogos",
-      descricao: "1TB SSD, 2 Controles",
-      preco: 4599,
-      categoria: "Games",
-      rating: 4.7,
-      vendas: 312,
-      imagemComponente: QuintaImagem,
-    },
-    {
-      id: 6,
-      nome: "Smartwatch",
-      descricao: "Monitor Cardíaco, GPS, À prova d'água",
-      preco: 1599,
-      categoria: "Wearables",
-      rating: 4.4,
-      vendas: 278,
-      imagemComponente: SextaImagem,
-    },
-  ];
+  });
+
+  console.log("Meus Produtos", produtos?.produtos);
+
+  const renderImagem = (produto: any) => {
+    console.log(`Renderizando imagem para ${produto.nome}:`, produto.imagem);
+
+    if (produto.imagem) {
+      if (produto.imagem.includes("http")) {
+        return (
+          <img
+            src={produto.imagem}
+            alt={produto.nome}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              console.error(
+                `Erro ao carregar imagem completa: ${produto.imagem}`
+              );
+              e.currentTarget.style.display = "none";
+              e.currentTarget.parentElement!.innerHTML = `
+              <div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                <span class="text-gray-400">${produto.nome}</span>
+              </div>
+            `;
+            }}
+          />
+        );
+      }
+
+      let cloudinaryPath = produto.imagem;
+
+      if (cloudinaryPath.startsWith("/")) {
+        cloudinaryPath = cloudinaryPath.substring(1);
+      }
+
+      console.log(`Cloudinary path: ${cloudinaryPath}`);
+
+      return (
+        <CloudinaryImage
+          publicId={cloudinaryPath}
+          alt={produto.nome}
+          width={400}
+          height={300}
+          className="w-full h-full"
+        />
+      );
+    } else {
+      return (
+        <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center">
+          <Package className="h-12 w-12 text-gray-400 mb-2" />
+          <span className="text-gray-500 text-sm">{produto.nome}</span>
+          <div className="absolute bottom-2 right-2 bg-[#D4AF37] text-white px-2 py-1 text-xs rounded">
+            Sem Imagem
+          </div>
+        </div>
+      );
+    }
+  };
 
   const handleQuantidade = (action: "increment" | "decrement") => {
     setQuantidade((prev) =>
@@ -669,15 +699,14 @@ const ProductsSection = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {produtos.map((produto) => {
-            const ImagemComponente = produto.imagemComponente;
+          {produtos?.produtos?.map((produto: any) => {
             return (
               <div
                 key={produto.id}
                 className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
               >
                 <div className="relative h-52 overflow-hidden">
-                  <ImagemComponente />
+                  {renderImagem(produto)}
                   <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white">
                     <Heart className="h-5 w-5" />
                   </button>
@@ -961,7 +990,7 @@ const Header = () => {
             {/* ACTIONS */}
             <div className="flex items-center gap-4">
               <div className="relative" ref={profileRef}>
-                {logged && (
+                {logged && user?.role === "ADMIN" ? (
                   <div className="flex gap-2 items-center">
                     <button
                       onClick={() => setProfileOpen(!profileOpen)}
@@ -973,6 +1002,15 @@ const Header = () => {
                       <Button>Voltar</Button>
                     </Link>
                   </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setProfileOpen(!profileOpen)}
+                      className="p-2 rounded-full hover:bg-gray-100"
+                    >
+                      <CgProfile size={24} />
+                    </button>
+                  </>
                 )}
 
                 {(profileOpen && logged && (
