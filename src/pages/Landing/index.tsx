@@ -83,13 +83,6 @@ const CloudinaryImage = ({
   const placeholder =
     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmMWYxIi8+PC9zdmc+";
 
-  console.log(
-    `CloudinaryImage: publicId=${publicId}, normalized=${normalizeId}, src=${src.substring(
-      0,
-      100
-    )}...`
-  );
-
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {/* Placeholder */}
@@ -107,7 +100,6 @@ const CloudinaryImage = ({
         width={width}
         height={height}
         onLoad={() => {
-          console.log(`Imagem carregada: ${alt}`);
           setIsLoaded(true);
         }}
         onError={() => {
@@ -131,69 +123,6 @@ const CloudinaryImage = ({
   );
 };
 
-// // Imagens dos produtos usando SUAS imagens reais do Cloudinary
-// const PrimeiraImagem = () => (
-//   <CloudinaryImage
-//     publicId="v1768212665/image6_s6uyn9.jpg"
-//     alt="Smartphone Premium"
-//     width={400}
-//     height={300}
-//     priority={true}
-//     className="w-full h-full"
-//   />
-// );
-
-// const SegundaImagem = () => (
-//   <CloudinaryImage
-//     publicId="v1768212665/image7_qyn6if.jpg"
-//     alt="Notebook Gamer"
-//     width={400}
-//     height={300}
-//     className="w-full h-full"
-//   />
-// );
-
-// const TerceiraImagem = () => (
-//   <CloudinaryImage
-//     publicId="v1768212665/image12_fv8ifg.jpg"
-//     alt="Fone Bluetooth com Cancelamento de Ruído"
-//     width={400}
-//     height={300}
-//     className="w-full h-full"
-//   />
-// );
-
-// const QuartaImagem = () => (
-//   <CloudinaryImage
-//     publicId="v1768212665/image3_g6gaai.jpg"
-//     alt="Smart TV 4K 55 polegadas"
-//     width={400}
-//     height={300}
-//     className="w-full h-full"
-//   />
-// );
-
-// const QuintaImagem = () => (
-//   <CloudinaryImage
-//     publicId="v1768212665/image5_p7b819.jpg"
-//     alt="Console de Jogos"
-//     width={400}
-//     height={300}
-//     className="w-full h-full"
-//   />
-// );
-
-// const SextaImagem = () => (
-//   <CloudinaryImage
-//     publicId="v1768212665/img5_ixgvhh.jpg"
-//     alt="Smartwatch com Monitor Cardíaco"
-//     width={400}
-//     height={300}
-//     className="w-full h-full"
-//   />
-// );
-
-// Imagem do Hero Section
 const HeroImage = () => (
   <CloudinaryImage
     publicId="v1768212665/image4_kyqknt.jpg"
@@ -618,10 +547,8 @@ const ProductsSection = () => {
     },
   });
 
-  console.log("Meus Produtos", produtos?.produtos);
 
   const renderImagem = (produto: any) => {
-    console.log(`Renderizando imagem para ${produto.nome}:`, produto.imagem);
 
     if (produto.imagem) {
       if (produto.imagem.includes("http")) {
@@ -650,8 +577,6 @@ const ProductsSection = () => {
       if (cloudinaryPath.startsWith("/")) {
         cloudinaryPath = cloudinaryPath.substring(1);
       }
-
-      console.log(`Cloudinary path: ${cloudinaryPath}`);
 
       return (
         <CloudinaryImage
@@ -771,11 +696,7 @@ const ProductsSection = () => {
             <div className="flex flex-col md:flex-row gap-6 p-6 md:p-8">
               <div className="md:w-1/2">
                 <div className="h-80 rounded-xl overflow-hidden">
-                  {(() => {
-                    const ImagemComponente =
-                      produtoSelecionado.imagemComponente;
-                    return <ImagemComponente />;
-                  })()}
+                  {renderImagem(produtoSelecionado)}
                 </div>
               </div>
 
