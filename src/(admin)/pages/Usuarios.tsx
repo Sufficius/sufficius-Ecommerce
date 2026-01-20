@@ -19,7 +19,13 @@ import {
   AlertCircle,
   Filter,
   Eye,
-  RefreshCw
+  X,
+  Key,
+  Info,
+  Package,
+  DollarSign,
+  Eye as EyeIcon,
+  EyeOff
 } from "lucide-react";
 import { api } from "@/modules/services/api/axios";
 import { useAuthStore } from "@/modules/services/store/auth-store";
@@ -37,6 +43,8 @@ interface Usuario {
   atualizadoEm: string;
   foto?: string;
   pedidos?: any[];
+  endereco?: string;
+  dataNascimento?: string;
 }
 
 interface Paginacao {
@@ -44,6 +52,11 @@ interface Paginacao {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+interface ModalData {
+  type: 'create' | 'edit' | 'view' | 'delete' | 'resetPassword' | null;
+  usuario?: Usuario;
 }
 
 export default function AdminUsuarios() {
@@ -64,6 +77,19 @@ export default function AdminUsuarios() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [modal, setModal] = useState<ModalData>({ type: null });
+  
+  const [formData, setFormData] = useState({
+    nome: '',
+    email: '',
+    senha: '',
+    telefone: '',
+    tipo: 'CLIENTE',
+    dataNascimento: '',
+    endereco: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
   
   const token = useAuthStore((state) => state.token);
 
@@ -73,7 +99,6 @@ export default function AdminUsuarios() {
     CLIENTE: { label: "Cliente", cor: "bg-green-100 text-green-800", icon: <UserCheck className="h-4 w-4" /> }
   };
 
-  // Função para buscar usuários
   const fetchUsuarios = async () => {
     try {
       setLoading(true);
@@ -98,7 +123,7 @@ export default function AdminUsuarios() {
         setPaginacao({
           total: response.data.pagination?.total || response.data.data.length,
           page: response.data.pagination?.page || paginaAtual,
-          limit:response.data.pagination?.limit || itensPorPagina ,
+          limit:response.data.pagination?.limit || itensPorPagina,
           totalPages: response.data.pagination?.totalPages || Math.ceil((response.data.pagination?.total || response.data.data.length) / itensPorPagina)
         });
       } else {
@@ -112,22 +137,6 @@ export default function AdminUsuarios() {
     }
   };
 
-  // // Função para buscar estatísticas
-  // const fetchEstatisticas = async () => {
-  //   try {
-  //     const response = await api.get('/usuarios/estatisticas', {
-  //       headers: {
-  //         Authorization: `Bearer ${token}`
-  //       }
-  //     });
-  //     return response.data;
-  //   } catch (err) {
-  //     console.error('Erro ao buscar estatísticas:', err);
-  //     return null;
-  //   }
-  // };
-
-  // Efeito para buscar dados
   useEffect(() => {
     if (!token) {
       setError('Faça login para acessar os usuários');
@@ -138,7 +147,6 @@ export default function AdminUsuarios() {
     fetchUsuarios();
   }, [paginaAtual, busca, filtroTipo, filtroStatus, token]);
 
-  // Calcular estatísticas locais
   const calcularEstatisticas = () => {
     return {
       totalUsuarios: usuarios.length,
@@ -151,28 +159,64 @@ export default function AdminUsuarios() {
 
   const estatisticas = calcularEstatisticas();
 
-  // Funções de ação
-  const handleNovoUsuario = () => {
-    // Navegar para página de criação de usuário
-    window.location.href = '/admin/usuarios/novo';
-  };
-
-  const handleEditarUsuario = (id: string) => {
-    window.location.href = `/admin/usuarios/editar/${id}`;
-  };
-
-  const handleVisualizarUsuario = (id: string) => {
-    window.location.href = `/admin/usuarios/${id}`;
-  };
-
-  const handleExcluirUsuario = async (id: string, nome: string) => {
-    if (!confirm(`Tem certeza que deseja excluir o usuário "${nome}"?`)) {
-      return;
+  const openModal = (type: ModalData['type'], usuario?: Usuario) => {
+    if (usuario && type !== 'create') {
+      if (type === 'edit') {
+        setFormData({
+          nome: usuario.nome,
+          email: usuario.email,
+          senha: '',
+          telefone: usuario.telefone || '',
+          tipo: usuario.tipo,
+          dataNascimento: usuario.dataNascimento || '',
+          endereco: usuario.endereco || ''
+        });
+      }
+    } else if (type === 'create') {
+      setFormData({
+        nome: '',
+        email: '',
+        senha: '',
+        telefone: '',
+        tipo: 'CLIENTE',
+        dataNascimento: '',
+        endereco: ''
+      });
     }
+    setModal({ type, usuario });
+    setShowPassword(false);
+  };
+
+  const closeModal = () => {
+    setModal({ type: null });
+  };
+
+  const handleNovoUsuario = () => {
+    openModal('create');
+  };
+
+  const handleEditarUsuario = (usuario: Usuario) => {
+    openModal('edit', usuario);
+  };
+
+  const handleVisualizarUsuario = (usuario: Usuario) => {
+    openModal('view', usuario);
+  };
+
+  const handleExcluirUsuario = (usuario: Usuario) => {
+    openModal('delete', usuario);
+  };
+
+  const handleResetarSenha = (usuario: Usuario) => {
+    openModal('resetPassword', usuario);
+  };
+
+  const confirmarExclusao = async () => {
+    if (!modal.usuario) return;
 
     try {
-      setActionLoading(`excluir-${id}`);
-      const response = await api.delete(`/usuarios/${id}`, {
+      setActionLoading(`excluir-${modal.usuario.id}`);
+      const response = await api.delete(`/usuarios/${modal.usuario.id}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -180,10 +224,34 @@ export default function AdminUsuarios() {
 
       if (response.data.success) {
         toast.success('Usuário excluído com sucesso!');
-        fetchUsuarios(); // Recarregar lista
+        fetchUsuarios();
+        closeModal();
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erro ao excluir usuário');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const confirmarResetSenha = async () => {
+    if (!modal.usuario) return;
+
+    try {
+      setActionLoading(`senha-${modal.usuario.id}`);
+      const response = await api.post(`/usuarios/${modal.usuario.id}/resetar-senha`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        const novaSenha = response.data.data.novaSenha;
+        toast.success(`Senha resetada com sucesso! Nova senha: ${novaSenha}`);
+        closeModal();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erro ao resetar senha');
     } finally {
       setActionLoading(null);
     }
@@ -207,34 +275,10 @@ export default function AdminUsuarios() {
 
       if (response.data.success) {
         toast.success('Status alterado com sucesso!');
-        fetchUsuarios(); // Recarregar lista
+        fetchUsuarios();
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erro ao alterar status');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleResetarSenha = async (id: string, nome: string) => {
-    if (!confirm(`Deseja resetar a senha do usuário "${nome}"?`)) {
-      return;
-    }
-
-    try {
-      setActionLoading(`senha-${id}`);
-      const response = await api.post(`/usuarios/${id}/resetar-senha`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (response.data.success) {
-        const novaSenha = response.data.data.novaSenha;
-        toast.success(`Senha resetada com sucesso! Nova senha: ${novaSenha}`);
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Erro ao resetar senha');
     } finally {
       setActionLoading(null);
     }
@@ -261,7 +305,7 @@ export default function AdminUsuarios() {
 
       if (response.data.success) {
         toast.success('Tipo de usuário alterado com sucesso!');
-        fetchUsuarios(); // Recarregar lista
+        fetchUsuarios();
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erro ao alterar tipo de usuário');
@@ -270,17 +314,86 @@ export default function AdminUsuarios() {
     }
   };
 
-  // Função para obter inicial do nome
+  const salvarUsuario = async () => {
+    try {
+      setFormLoading(true);
+
+      if (!formData.nome || !formData.email || !formData.tipo) {
+        toast.error('Nome, e-mail e tipo são obrigatórios');
+        setFormLoading(false);
+        return;
+      }
+
+      if (modal.type === 'create' && !formData.senha) {
+        toast.error('Senha é obrigatória para novo usuário');
+        setFormLoading(false);
+        return;
+      }
+
+      if (modal.type === 'create' && formData.senha.length < 6) {
+        toast.error('Senha deve ter pelo menos 6 caracteres');
+        setFormLoading(false);
+        return;
+      }
+
+      const usuarioData: any = {
+        nome: formData.nome,
+        email: formData.email,
+        telefone: formData.telefone || undefined,
+        tipo: formData.tipo,
+        dataNascimento: formData.dataNascimento || undefined,
+        endereco: formData.endereco || undefined
+      };
+
+      if (modal.type === 'create') {
+        usuarioData.senha = formData.senha;
+      } else if (modal.type === 'edit' && formData.senha) {
+        usuarioData.senha = formData.senha;
+      }
+
+      let response;
+      if (modal.type === 'create') {
+        console.log('Enviando dados para criar usuário:', usuarioData);
+        response = await api.post('/usuarios', usuarioData, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+      } else if (modal.type === 'edit' && modal.usuario) {
+        console.log('Enviando dados para editar usuário:', usuarioData);
+        response = await api.put(`/usuarios/${modal.usuario.id}`, usuarioData, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+      }
+
+      if (response?.data.success) {
+        toast.success(
+          modal.type === 'create' 
+            ? 'Usuário criado com sucesso!' 
+            : 'Usuário atualizado com sucesso!'
+        );
+        fetchUsuarios();
+        closeModal();
+      }
+    } catch (err: any) {
+      console.error('Erro detalhado:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Erro ao salvar usuário';
+      toast.error(errorMessage);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   const getInicialNome = (nome: string) => {
     return nome.charAt(0).toUpperCase();
   };
 
-  // Função para calcular total de compras
   const getTotalCompras = (usuario: Usuario) => {
     return usuario.pedidos?.length || 0;
   };
 
-  // Função para calcular total gasto
   const getTotalGasto = (usuario: Usuario) => {
     if (!usuario.pedidos) return 0;
     return usuario.pedidos.reduce((total, pedido) => total + (pedido.total || 0), 0);
@@ -299,7 +412,374 @@ export default function AdminUsuarios() {
 
   return (
     <div className="py-8">
-      {/* Header */}
+      {modal.type && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex items-center gap-3">
+                {modal.type === 'create' && <UserPlus className="h-6 w-6 text-[#D4AF37]" />}
+                {modal.type === 'edit' && <Edit className="h-6 w-6 text-[#D4AF37]" />}
+                {modal.type === 'view' && <Eye className="h-6 w-6 text-[#D4AF37]" />}
+                {modal.type === 'delete' && <Trash2 className="h-6 w-6 text-red-600" />}
+                {modal.type === 'resetPassword' && <Key className="h-6 w-6 text-[#D4AF37]" />}
+                <h2 className="text-xl font-bold">
+                  {modal.type === 'create' && 'Novo Usuário'}
+                  {modal.type === 'edit' && 'Editar Usuário'}
+                  {modal.type === 'view' && 'Detalhes do Usuário'}
+                  {modal.type === 'delete' && 'Excluir Usuário'}
+                  {modal.type === 'resetPassword' && 'Resetar Senha'}
+                </h2>
+              </div>
+              <button
+                onClick={closeModal}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {modal.type === 'view' && modal.usuario && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    {modal.usuario.foto ? (
+                      <img
+                        src={modal.usuario.foto}
+                        alt={modal.usuario.nome}
+                        className="h-20 w-20 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center">
+                        <span className="text-2xl font-bold text-gray-600">
+                          {getInicialNome(modal.usuario.nome)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="text-xl font-bold">{modal.usuario.nome}</h3>
+                      <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium mt-2 ${
+                        tiposUsuario[modal.usuario.tipo as keyof typeof tiposUsuario]?.cor || 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {tiposUsuario[modal.usuario.tipo as keyof typeof tiposUsuario]?.icon}
+                        {tiposUsuario[modal.usuario.tipo as keyof typeof tiposUsuario]?.label}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">E-mail</label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Mail className="h-4 w-4 text-gray-400" />
+                          <span>{modal.usuario.email}</span>
+                        </div>
+                      </div>
+                      
+                      {modal.usuario.telefone && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Telefone</label>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            <span>{modal.usuario.telefone}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Status</label>
+                        <div className="mt-1">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            modal.usuario.status === 'ATIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {modal.usuario.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Data de Cadastro</label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Calendar className="h-4 w-4 text-gray-400" />
+                          <span>{formatDate(modal.usuario.criadoEm)}</span>
+                        </div>
+                      </div>
+                      
+                      {modal.usuario.dataNascimento && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Data de Nascimento</label>
+                          <div className="mt-1">{formatDate(modal.usuario.dataNascimento)}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {modal.usuario.endereco && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Endereço</label>
+                      <div className="mt-1 p-3 bg-gray-50 rounded-lg">
+                        {modal.usuario.endereco}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="border-t pt-6">
+                    <h4 className="font-medium text-lg mb-4">Estatísticas</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex items-center gap-2">
+                          <Package className="h-5 w-5 text-gray-600" />
+                          <span className="text-sm text-gray-600">Total de Compras</span>
+                        </div>
+                        <div className="text-2xl font-bold mt-2">{getTotalCompras(modal.usuario)}</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-5 w-5 text-gray-600" />
+                          <span className="text-sm text-gray-600">Total Gasto</span>
+                        </div>
+                        <div className="text-2xl font-bold mt-2">{formatCurrency(getTotalGasto(modal.usuario))}</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex items-center gap-2">
+                          <Info className="h-5 w-5 text-gray-600" />
+                          <span className="text-sm text-gray-600">Membro desde</span>
+                        </div>
+                        <div className="text-lg font-medium mt-2">
+                          {formatDate(modal.usuario.criadoEm)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(modal.type === 'create' || modal.type === 'edit') && (
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nome *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.nome}
+                        onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        placeholder="Digite o nome completo"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        E-mail *
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        placeholder="exemplo@email.com"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Senha {modal.type === 'create' ? '*' : '(opcional)'}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={formData.senha}
+                          onChange={(e) => setFormData({...formData, senha: e.target.value})} 
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                          placeholder={modal.type === 'create' ? 'Digite a senha (mínimo 6 caracteres)' : 'Deixe em branco para manter a senha atual'}
+                          required={modal.type === 'create'}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <EyeIcon className="h-5 w-5" />
+                          )}
+                        </button>
+                      </div>
+                      {modal.type === 'create' && (
+                        <p className="text-xs text-gray-500 mt-1">A senha deve ter pelo menos 6 caracteres.</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Telefone
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.telefone}
+                        onChange={(e) => setFormData({...formData, telefone: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tipo de Usuário *
+                      </label>
+                      <select
+                        value={formData.tipo}
+                        onChange={(e) => setFormData({...formData, tipo: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        required
+                      >
+                        {Object.entries(tiposUsuario).map(([key, value]) => (
+                          <option key={key} value={key}>
+                            {value.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Data de Nascimento
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.dataNascimento}
+                        onChange={(e) => setFormData({...formData, dataNascimento: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Endereço
+                    </label>
+                    <textarea
+                      value={formData.endereco}
+                      onChange={(e) => setFormData({...formData, endereco: e.target.value})}
+                      rows={3}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                      placeholder="Digite o endereço completo"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {modal.type === 'delete' && modal.usuario && (
+                <div className="text-center">
+                  <Trash2 className="h-16 w-16 text-red-600 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Confirmar exclusão
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Tem certeza que deseja excluir o usuário{" "}
+                    <span className="font-bold">{modal.usuario.nome}</span>?
+                    <br />
+                    Esta ação não pode ser desfeita.
+                  </p>
+                </div>
+              )}
+
+              {modal.type === 'resetPassword' && modal.usuario && (
+                <div className="text-center">
+                  <Key className="h-16 w-16 text-[#D4AF37] mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Resetar Senha
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Deseja resetar a senha do usuário{" "}
+                    <span className="font-bold">{modal.usuario.nome}</span>?
+                    <br />
+                    Uma nova senha será gerada automaticamente.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 p-6 border-t">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              
+              {modal.type === 'view' && (
+                <button
+                  onClick={() => modal.usuario && handleEditarUsuario(modal.usuario)}
+                  className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-2 rounded-lg hover:bg-[#c19b2c]"
+                >
+                  <Edit className="h-4 w-4" />
+                  Editar Usuário
+                </button>
+              )}
+              
+              {(modal.type === 'create' || modal.type === 'edit') && (
+                <button
+                  onClick={salvarUsuario}
+                  disabled={formLoading}
+                  className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-2 rounded-lg hover:bg-[#c19b2c] disabled:opacity-50"
+                >
+                  {formLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : modal.type === 'create' ? (
+                    <UserPlus className="h-4 w-4" />
+                  ) : (
+                    <Edit className="h-4 w-4" />
+                  )}
+                  {formLoading ? 'Salvando...' : modal.type === 'create' ? 'Criar Usuário' : 'Salvar Alterações'}
+                </button>
+              )}
+              
+              {modal.type === 'delete' && (
+                <button
+                  onClick={confirmarExclusao}
+                  disabled={actionLoading === `excluir-${modal.usuario?.id}`}
+                  className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
+                >
+                  {actionLoading === `excluir-${modal.usuario?.id}` ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  {actionLoading === `excluir-${modal.usuario?.id}` ? 'Excluindo...' : 'Excluir Usuário'}
+                </button>
+              )}
+              
+              {modal.type === 'resetPassword' && (
+                <button
+                  onClick={confirmarResetSenha}
+                  disabled={actionLoading === `senha-${modal.usuario?.id}`}
+                  className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-2 rounded-lg hover:bg-[#c19b2c] disabled:opacity-50"
+                >
+                  {actionLoading === `senha-${modal.usuario?.id}` ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Key className="h-4 w-4" />
+                  )}
+                  {actionLoading === `senha-${modal.usuario?.id}` ? 'Resetando...' : 'Resetar Senha'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestão de Usuários</h1>
@@ -315,7 +795,6 @@ export default function AdminUsuarios() {
         </button>
       </div>
 
-      {/* Aviso de erro */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
@@ -325,10 +804,8 @@ export default function AdminUsuarios() {
         </div>
       )}
 
-      {/* Filtros e Busca */}
       <div className="bg-white rounded-xl shadow p-6 mb-6">
         <div className="grid md:grid-cols-4 gap-4">
-          {/* Busca */}
           <div className="md:col-span-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -345,7 +822,6 @@ export default function AdminUsuarios() {
             </div>
           </div>
 
-          {/* Filtro Status */}
           <div>
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -364,7 +840,6 @@ export default function AdminUsuarios() {
             </div>
           </div>
 
-          {/* Filtro Tipo */}
           <div>
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -388,7 +863,6 @@ export default function AdminUsuarios() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl shadow p-4">
           <div className="flex items-center justify-between">
@@ -431,7 +905,6 @@ export default function AdminUsuarios() {
         </div>
       </div>
 
-      {/* Tabela de Usuários */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center p-8">
@@ -498,6 +971,7 @@ export default function AdminUsuarios() {
                           <div className="flex items-center gap-1">
                             <Mail className="h-3 w-3 text-gray-400" />
                             <span className="text-sm">{usuario.email}</span>
+                         
                           </div>
                           {usuario.telefone && (
                             <div className="flex items-center gap-1">
@@ -526,19 +1000,19 @@ export default function AdminUsuarios() {
                       <td className="p-4">
                         <div className="flex items-center gap-2">
                           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            usuario.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            usuario.status === 'ATIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
-                            {usuario.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                            {usuario.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
                           </span>
                           <button
-                            onClick={() => handleAlterarStatus(usuario.id, usuario.nome, usuario.status || 'ativo')}
+                            onClick={() => handleAlterarStatus(usuario.id, usuario.nome, usuario.status || 'ATIVO')}
                             disabled={actionLoading === `status-${usuario.id}`}
-                            className={`p-1 rounded ${usuario.status === 'ativo' ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'} disabled:opacity-50`}
-                            title={usuario.status === 'ativo' ? 'Desativar' : 'Ativar'}
+                            className={`p-1 rounded ${usuario.status === 'ATIVO' ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'} disabled:opacity-50`}
+                            title={usuario.status === 'ATIVO' ? 'Desativar' : 'Ativar'}
                           >
                             {actionLoading === `status-${usuario.id}` ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : usuario.status === 'ativo' ? (
+                            ) : usuario.status === 'ATIVO' ? (
                               <UserX className="h-4 w-4" />
                             ) : (
                               <UserCheck className="h-4 w-4" />
@@ -561,43 +1035,33 @@ export default function AdminUsuarios() {
                       <td className="p-4">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleVisualizarUsuario(usuario.id)}
+                            onClick={() => handleVisualizarUsuario(usuario)}
                             className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                             title="Visualizar"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleEditarUsuario(usuario.id)}
+                            onClick={() => handleEditarUsuario(usuario)}
                             className="p-1 text-green-600 hover:bg-green-50 rounded"
                             title="Editar"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleResetarSenha(usuario.id, usuario.nome)}
-                            disabled={actionLoading === `senha-${usuario.id}`}
-                            className="p-1 text-yellow-600 hover:bg-yellow-50 rounded disabled:opacity-50"
+                            onClick={() => handleResetarSenha(usuario)}
+                            className="p-1 text-yellow-600 hover:bg-yellow-50 rounded"
                             title="Resetar Senha"
                           >
-                            {actionLoading === `senha-${usuario.id}` ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="h-4 w-4" />
-                            )}
+                            <Key className="h-4 w-4" />
                           </button>
                           {usuario.tipo !== 'ADMIN' && (
                             <button
-                              onClick={() => handleExcluirUsuario(usuario.id, usuario.nome)}
-                              disabled={actionLoading === `excluir-${usuario.id}`}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                              onClick={() => handleExcluirUsuario(usuario)}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded"
                               title="Excluir"
                             >
-                              {actionLoading === `excluir-${usuario.id}` ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           )}
                           <button className="p-1 text-gray-600 hover:bg-gray-100 rounded">
