@@ -547,9 +547,7 @@ const ProductsSection = () => {
     },
   });
 
-
   const renderImagem = (produto: any) => {
-
     if (produto.imagem) {
       if (produto.imagem.includes("http")) {
         return (
@@ -868,6 +866,7 @@ const Header = () => {
       <header className="w-full border-b bg-white sticky top-0 z-40">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex h-16 items-center justify-between">
+            {/* LOGO */}
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 bg-[#D4AF37] rounded-full flex items-center justify-center">
                 <span className="font-bold text-white text-lg">S</span>
@@ -880,7 +879,7 @@ const Header = () => {
               </div>
             </div>
 
-            {/* SEARCH */}
+            {/* SEARCH BAR */}
             <div className="hidden md:flex relative w-full max-w-md mx-6">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -892,7 +891,7 @@ const Header = () => {
               />
             </div>
 
-            {/* NAV */}
+            {/* NAVIGATION */}
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-700">
               <a href="#inicio" className="hover:text-[#D4AF37] transition">
                 Início
@@ -910,31 +909,35 @@ const Header = () => {
 
             {/* ACTIONS */}
             <div className="flex items-center gap-4">
+              {/* ÁREA DE AUTENTICAÇÃO */}
               <div className="relative" ref={profileRef}>
-                {logged && user?.role === "ADMIN" ? (
+                {logged ? (
+                  // USUÁRIO LOGADO
                   <div className="flex gap-2 items-center">
+                    {/* Botão de perfil - SEMPRE visível para usuários logados */}
                     <button
                       onClick={() => setProfileOpen(!profileOpen)}
                       className="p-2 rounded-full hover:bg-gray-100"
                     >
                       <CgProfile size={24} />
                     </button>
-                    <Link to={"/dashboard"}>
-                      <Button>Voltar</Button>
-                    </Link>
+
+                    {/* Botão "Voltar" - SÓ para ADMIN */}
+                    {user?.role === "ADMIN" && (
+                      <Link to={"/dashboard"}>
+                        <Button>Voltar</Button>
+                      </Link>
+                    )}
                   </div>
                 ) : (
-                  <>
-                    <button
-                      onClick={() => setProfileOpen(!profileOpen)}
-                      className="p-2 rounded-full hover:bg-gray-100"
-                    >
-                      <CgProfile size={24} />
-                    </button>
-                  </>
+                  // USUÁRIO NÃO LOGADO
+                  <Link to={"/login"}>
+                    <Button>Entrar</Button>
+                  </Link>
                 )}
 
-                {(profileOpen && logged && (
+                {/* MENU DO PERFIL (dropdown) */}
+                {profileOpen && logged && (
                   <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-50">
                     <div className="p-3 border-b">
                       <p className="font-medium">Bem-vindo!</p>
@@ -956,17 +959,10 @@ const Header = () => {
                       Terminar Sessão
                     </button>
                   </div>
-                )) || (
-                  <div className="ml-3 mx-3">
-                    {!logged && (
-                      <Link to={"/login"}>
-                        <Button>Entrar</Button>
-                      </Link>
-                    )}
-                  </div>
                 )}
               </div>
 
+              {/* BOTÃO DO CARRINHO */}
               <button
                 className="relative p-2 rounded-full hover:bg-gray-100"
                 onClick={() => setCartOpen(true)}
@@ -979,42 +975,46 @@ const Header = () => {
                 )}
               </button>
 
-              <button className="md:hidden" onClick={() => setOpen(!open)}>
+              {/* BOTÃO MENU MOBILE */}
+              <button
+                className="md:hidden"
+                onClick={() => setOpen(!open)}
+              >
                 {open ? <X size={24} /> : <Menu size={24} />}
               </button>
             </div>
           </div>
-        </div>
 
-        {/* MOBILE MENU */}
-        {open && (
-          <div className="md:hidden border-t bg-white">
-            <div className="p-4">
-              <input
-                type="search"
-                placeholder="Pesquisar..."
-                className="w-full border rounded-lg px-4 py-2 mb-4"
-              />
-              <div className="space-y-3">
-                <a href="#inicio" className="block py-2">
-                  Início
-                </a>
-                <a href="#produtos" className="block py-2">
-                  Produtos
-                </a>
-                <a href="#categorias" className="block py-2">
-                  Categorias
-                </a>
-                <a href="#contato" className="block py-2">
-                  Contato
-                </a>
+          {/* MENU MOBILE */}
+          {open && (
+            <div className="md:hidden border-t bg-white">
+              <div className="p-4">
+                <input
+                  type="search"
+                  placeholder="Pesquisar..."
+                  className="w-full border rounded-lg px-4 py-2 mb-4"
+                />
+                <div className="space-y-3">
+                  <a href="#inicio" className="block py-2">
+                    Início
+                  </a>
+                  <a href="#produtos" className="block py-2">
+                    Produtos
+                  </a>
+                  <a href="#categorias" className="block py-2">
+                    Categorias
+                  </a>
+                  <a href="#contato" className="block py-2">
+                    Contato
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
-      {/* CART MODAL */}
+      {/* MODAL DO CARRINHO */}
       {cartOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-6 max-h-[80vh] flex flex-col">
@@ -1022,7 +1022,10 @@ const Header = () => {
               <h2 className="text-xl font-bold">
                 Meu Carrinho ({carrinho.length})
               </h2>
-              <button onClick={() => setCartOpen(false)} className="p-1">
+              <button
+                onClick={() => setCartOpen(false)}
+                className="p-1"
+              >
                 <X size={24} />
               </button>
             </div>
@@ -1047,7 +1050,10 @@ const Header = () => {
                     const qtd = quantidades[id] || 1;
 
                     return (
-                      <div key={id} className="flex items-center border-b py-4">
+                      <div
+                        key={id}
+                        className="flex items-center border-b py-4"
+                      >
                         <div className="h-16 w-16 rounded-lg overflow-hidden">
                           <CartProductImage productId={id} />
                         </div>
