@@ -686,7 +686,6 @@ const ProductsSection = () => {
           })}
         </div>
       </div>
-
       {/* Modal de Detalhes do Produto */}
       {produtoSelecionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -712,7 +711,7 @@ const ProductsSection = () => {
                     ))}
                   </div>
                   <span className="text-gray-600">
-                    ({produtoSelecionado.vendas} vendas)
+                    ({produtoSelecionado.vendas || 0} vendas)
                   </span>
                 </div>
 
@@ -734,20 +733,34 @@ const ProductsSection = () => {
                     <div className="flex items-center border rounded-lg">
                       <button
                         onClick={() => handleQuantidade("decrement")}
-                        className="px-4 py-2 hover:bg-gray-100"
+                        disabled={quantidade <= 1}
+                        className={`px-4 py-2 ${
+                          quantidade <= 1
+                            ? "text-gray-400 cursor-not-allowed"
+                            : "hover:bg-gray-100"
+                        }`}
                       >
                         -
                       </button>
-                      <span className="px-4 py-2">{quantidade}</span>
+                      <span className="px-4 py-2 min-w-[3rem] text-center">
+                        {quantidade}
+                      </span>
                       <button
                         onClick={() => handleQuantidade("increment")}
-                        className="px-4 py-2 hover:bg-gray-100"
+                        disabled={
+                          quantidade >= (produtoSelecionado.quantidade || 1)
+                        }
+                        className={`px-4 py-2 ${
+                          quantidade >= (produtoSelecionado.quantidade || 1)
+                            ? "text-gray-400 cursor-not-allowed"
+                            : "hover:bg-gray-100"
+                        }`}
                       >
                         +
                       </button>
                     </div>
                     <div className="text-sm text-gray-600">
-                      {20 - quantidade} unidades disponíveis
+                      {produtoSelecionado.quantidade || 0} unidades disponíveis
                     </div>
                   </div>
 
@@ -757,9 +770,13 @@ const ProductsSection = () => {
                         handleAdicionarAoCarrinho(produtoSelecionado);
                         setProdutoSelecionado(null);
                       }}
-                      className="flex-1 bg-[#D4AF37] text-white py-3 rounded-lg font-semibold hover:bg-[#c19b2c] transition"
+                      className="flex-1 bg-[#D4AF37] text-white py-3 rounded-lg font-semibold hover:bg-[#c19b2c] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={
+                        quantidade <= 0 ||
+                        quantidade > (produtoSelecionado.quantidade || 0)
+                      }
                     >
-                      Adicionar ao Carrinho
+                      Adicionar ao Carrinho ({quantidade})
                     </button>
                     <button
                       onClick={() => setProdutoSelecionado(null)}
@@ -768,6 +785,19 @@ const ProductsSection = () => {
                       Fechar
                     </button>
                   </div>
+
+                  {/* Mensagens de validação */}
+                  {quantidade <= 0 && (
+                    <p className="text-red-500 text-sm mt-2">
+                      A quantidade deve ser pelo menos 1
+                    </p>
+                  )}
+                  {quantidade > (produtoSelecionado.quantidade || 0) && (
+                    <p className="text-red-500 text-sm mt-2">
+                      Não há estoque suficiente. Disponível:{" "}
+                      {produtoSelecionado.quantidade || 0}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -788,6 +818,7 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const user = useAuthStore((state) => state.user);
   const logged = useAuthStore((state) => state.isAuthenticated);
+  const [produtoSelecionado,] = useState<any>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -804,12 +835,15 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleQuantidade = (id: number, action: "increment" | "decrement") => {
-    setQuantidades((prev) => {
-      const atual = prev[id] || 1;
-      const nova =
-        action === "increment" ? atual + 1 : atual > 1 ? atual - 1 : 1;
-      return { ...prev, [id]: nova };
+  const handleQuantidade = (action: "increment" | "decrement") => {
+    const quantidadeDisponivel = produtoSelecionado?.quantidade || 0;
+    setQuantidades((prev: any) => {
+      if(action === "increment"){
+        return prev < quantidadeDisponivel ? prev + 1 : prev;
+      }
+      else {
+        return prev > 1 ? prev - 1 : 1;
+      }
     });
   };
 
@@ -963,8 +997,11 @@ const Header = () => {
               </div>
 
               {/* BOTÃO DO CARRINHO */}
+              <div className="bg-red-500 size-5 text-center relative rounded-full -top-2 left-14 text-white">
+                1
+              </div>
               <button
-                className="relative p-2 rounded-full hover:bg-gray-100"
+                className="relative p-2 rounded-full"
                 onClick={() => setCartOpen(true)}
               >
                 <ShoppingCart size={22} />
@@ -976,10 +1013,7 @@ const Header = () => {
               </button>
 
               {/* BOTÃO MENU MOBILE */}
-              <button
-                className="md:hidden"
-                onClick={() => setOpen(!open)}
-              >
+              <button className="md:hidden" onClick={() => setOpen(!open)}>
                 {open ? <X size={24} /> : <Menu size={24} />}
               </button>
             </div>
@@ -1022,10 +1056,7 @@ const Header = () => {
               <h2 className="text-xl font-bold">
                 Meu Carrinho ({carrinho.length})
               </h2>
-              <button
-                onClick={() => setCartOpen(false)}
-                className="p-1"
-              >
+              <button onClick={() => setCartOpen(false)} className="p-1">
                 <X size={24} />
               </button>
             </div>
@@ -1050,10 +1081,7 @@ const Header = () => {
                     const qtd = quantidades[id] || 1;
 
                     return (
-                      <div
-                        key={id}
-                        className="flex items-center border-b py-4"
-                      >
+                      <div key={id} className="flex items-center border-b py-4">
                         <div className="h-16 w-16 rounded-lg overflow-hidden">
                           <CartProductImage productId={id} />
                         </div>
@@ -1064,14 +1092,14 @@ const Header = () => {
                           </p>
                           <div className="flex items-center gap-2 mt-2">
                             <button
-                              onClick={() => handleQuantidade(id, "decrement")}
+                              onClick={() => handleQuantidade("decrement")}
                               className="w-6 h-6 border rounded"
                             >
                               -
                             </button>
                             <span>{qtd}</span>
                             <button
-                              onClick={() => handleQuantidade(id, "increment")}
+                              onClick={() => handleQuantidade("increment")}
                               className="w-6 h-6 border rounded"
                             >
                               +
