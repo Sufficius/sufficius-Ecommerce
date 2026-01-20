@@ -353,14 +353,12 @@ export default function AdminUsuarios() {
 
       let response;
       if (modal.type === 'create') {
-        console.log('Enviando dados para criar usuário:', usuarioData);
         response = await api.post('/usuarios', usuarioData, {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
       } else if (modal.type === 'edit' && modal.usuario) {
-        console.log('Enviando dados para editar usuário:', usuarioData);
         response = await api.put(`/usuarios/${modal.usuario.id}`, usuarioData, {
           headers: {
             Authorization: `Bearer ${token}`
