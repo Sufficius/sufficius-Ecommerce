@@ -18,7 +18,6 @@
 // });
 
 import axios from "axios";
-// import { toast } from "sonner";
 
 // const apiUrl =  "https://sufficius-ecommerce-back.onrender.com";
 const localUrl = import.meta.env.VITE_API_URL;
@@ -94,51 +93,6 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
-// // ✅ INTERCEPTOR PARA RESPOSTAS (tratar erros 401)
-// api.interceptors.response.use(
-//   (response) => {
-//     return response;
-//   },
-//   (error) => {
-//     console.error('❌ Erro na resposta:', {
-//       url: error.config?.url,
-//       method: error.config?.method,
-//       status: error.response?.status,
-//       statusText: error.response?.statusText,
-//       data: error.response?.data
-//     });
-    
-//     // Se for erro 401 (Unauthorized)
-//     if (error.response?.status === 401) {
-      
-//       // Limpar tokens locais
-//       // localStorage.removeItem('token');
-//       // localStorage.removeItem('authSufficius-token');
-      
-//       // Mostrar mensagem para o usuário
-//       if (typeof window !== 'undefined') {
-//         // Se estiver em uma rota protegida, redirecionar para login
-//         if (window.location.pathname !== '/login') {
-//           toast.error('Sessão expirada. Por favor, faça login novamente.');
-//           window.location.href = '/login';
-//         }
-//       }
-//     }
-    
-//     return Promise.reject(error);
-//   }
-// );
-
-// Função de teste para verificar configuração
-export const testApiConnection = async () => {
-  try {
-    const response = await api.get('/health');
-    return response.data;
-  } catch (error) {
-    console.error('❌ Falha ao conectar com API:', error);
-    return false;
-  }
-};
 
 // Função para verificar token manualmente
 export const verifyToken = () => {
