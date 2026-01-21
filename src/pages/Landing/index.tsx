@@ -617,6 +617,7 @@ const ProductsSection = () => {
       categoria: produto.categoria,
     };
     addItem(cartItem);
+    
     toast.success(`${produto.nome} adicionado ao carrinho!`);
   };
 

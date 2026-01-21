@@ -753,7 +753,7 @@ const EditarProdutoModal = ({
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                   >
                     <option value="">Sem categoria</option>
-                    {categorias.map((cat) => (
+                    {categorias?.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.nome}
                       </option>
@@ -1237,7 +1237,7 @@ export default function AdminProdutos() {
                 className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
               >
                 <option value="todos">Todas categorias</option>
-                {categorias.map((categoria: Categoria) => (
+                {categorias?.map((categoria: Categoria) => (
                   <option key={categoria.id} value={categoria.id}>
                     {categoria.nome}
                   </option>
