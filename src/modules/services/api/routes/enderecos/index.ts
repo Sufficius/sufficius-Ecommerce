@@ -91,14 +91,14 @@ class EnderecosRoute {
   async criarEndereco(endereco: IEnderecoToCreate) {
     try {
       const dados = {
-        nome: endereco.nome.trim(),
+        nome: endereco?.nome?.trim(),
         email: endereco.email.trim(),
         telefone: endereco.telefone.trim(),
         logradouro: endereco.logradouro.trim(),
         numero: endereco.numero.trim(),
         bairro: endereco.bairro.trim(),
         cidade: endereco.cidade.trim(),
-        estado: endereco.estado.trim(),
+        estado: endereco?.estado?.trim(),
         tipo: endereco.tipo || 'CASA',
         principal: endereco.principal || false,
         ...(endereco.complemento && { complemento: endereco.complemento.trim() }),

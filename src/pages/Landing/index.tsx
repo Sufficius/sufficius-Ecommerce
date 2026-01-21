@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Heart,
   LogOut,
+  Loader,
 } from "lucide-react";
 import { CgClose, CgProfile } from "react-icons/cg";
 import { FiShoppingCart } from "react-icons/fi";
@@ -27,9 +28,10 @@ import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { produtosRoute } from "@/modules/services/api/routes/produtos";
 import { useCartStore } from "@/modules/services/store/cart-store";
+import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
 
 // Componente de imagem otimizado com Cloudinary
 interface CloudinaryImageProps {
@@ -602,6 +604,26 @@ const ProductsSection = () => {
     });
   };
 
+  const queryClient = useQueryClient();
+
+  const addCartMutation = useMutation({
+    mutationFn: async ({
+      produtoId,
+      quantidade,
+    }: {
+      produtoId: string;
+      quantidade: number;
+    }) => {
+      return await carrinhosRoute.adicionarItem(produtoId, quantidade);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["carrinho"] });
+    },
+    onError: (error) => {
+      console.error("Erro ao adicionar ao carrinho:", error);
+    },
+  });
+
   const handleAdicionarAoCarrinho = (
     produto: any,
     quantidadeSelecionada: number = 1
@@ -617,7 +639,10 @@ const ProductsSection = () => {
       categoria: produto.categoria,
     };
     addItem(cartItem);
-    
+    addCartMutation.mutate({
+      produtoId: produto.id,
+      quantidade: quantidadeSelecionada,
+    });
     toast.success(`${produto.nome} adicionado ao carrinho!`);
   };
 
@@ -686,10 +711,15 @@ const ProductsSection = () => {
                         <BsEye size={18} />
                       </button>
                       <button
-                        onClick={() => handleAdicionarAoCarrinho(produto, 1)}
+                        onClick={() => handleAdicionarAoCarrinho(produto)}
+                        disabled={addCartMutation.isPending}
                         className="p-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c]"
                       >
-                        <FiShoppingCart size={18} />
+                        {addCartMutation.isPending ? (
+                          <Loader className="animate-spin" />
+                        ) : (
+                          <FiShoppingCart size={18} />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -793,7 +823,9 @@ const ProductsSection = () => {
                         quantidade > (produtoSelecionado.quantidade || 0)
                       }
                     >
-                      Adicionar ao Carrinho ({quantidade})
+                      {addCartMutation.isPending
+                        ? "Adicionando..."
+                        : "Adicionar ao Carrinho"}
                     </button>
                     <button
                       onClick={() => setProdutoSelecionado(null)}

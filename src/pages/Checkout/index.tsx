@@ -193,8 +193,6 @@ export default function CheckoutPage() {
     },
   });
 
-  console.log("C: ", carrinho);
-
 
   useEffect(() => {
     if(carrinho && carrinho.itens && carrinho.itens.length > 0){
@@ -314,6 +312,7 @@ export default function CheckoutPage() {
             : campo === "logradouro"
             ? "endereço"
             : campo;
+            console.log("Erro: ", campo);
         toast.error(`O campo ${nomeCampo} é obrigatório`);
         return false;
       }
