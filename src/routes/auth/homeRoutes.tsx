@@ -1,6 +1,6 @@
 import AdminLayout from "@/(admin)/components/Layout/Layout";
 import ConfiguracoesPage from "@/(admin)/pages/Configuracoes";
-import AdminCupons from "@/(admin)/pages/Cupons";
+// import AdminCupons from "@/(admin)/pages/Cupons";
 import AdminDashboard from "@/(admin)/pages/Dashboard";
 import AdminEstoque from "@/(admin)/pages/Estoque";
 import PagamentosPage from "@/(admin)/pages/Pagamentos";
@@ -41,11 +41,11 @@ export const HomesRoutes: IRouteProps = {
       element: AdminUsuarios,
       visibility: "auth", // Mude para "auth"
     },
-    {
-      path: "/cupons",
-      element: AdminCupons,
-      visibility: "auth", // Mude para "auth"
-    },
+    // {
+    //   path: "/cupons",
+    //   element: AdminCupons,
+    //   visibility: "auth", // Mude para "auth"
+    // },
     {
       path: "/estoque",
       element: AdminEstoque,

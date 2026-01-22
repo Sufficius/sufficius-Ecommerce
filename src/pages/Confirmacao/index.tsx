@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   CheckCircle,
   Package,
@@ -125,7 +125,15 @@ const extrairArrayData = <T,>(data: any, arrayProps: string[] = ['data', 'items'
 
 export default function ConfirmacaoCompra() {
   const navigate = useNavigate();
-  const { id: pedidoId } = useParams();
+  const [searchParams] = useSearchParams();
+  const  pedidoId  = searchParams.get('pedido') || searchParams.get('pedidoId');
+  console.log("Id: ",pedidoId);
+
+  // console.log("📍 URL atual:", location.pathname);
+  // console.log("📌 Parâmetros:", useParams());
+  // console.log("🔍 pedidoId:", pedidoId);
+  // console.log("📂 Query string:", location.search);
+
   const [pedidoSelecionado, setPedidoSelecionado] = useState<IPedido | null>(
     null
   );
@@ -165,6 +173,7 @@ export default function ConfirmacaoCompra() {
     enabled: !!user?.id_usuario,
   });
 
+  
   // Buscar detalhes do pedido específico se tiver ID na URL
   const { data: pedidoDetalhado } = useQuery<IPedido>({
     queryKey: ["pedido", pedidoId],
@@ -180,6 +189,7 @@ export default function ConfirmacaoCompra() {
     },
     enabled: !!pedidoId,
   });
+  console.log(pedidoDetalhado);
 
   // Buscar produtos para as recomendações - CORRIGIDO
   const { data: produtosRecomendadosData } = useQuery({
@@ -415,7 +425,7 @@ export default function ConfirmacaoCompra() {
   };
 
   const handleVerMaisProdutos = () => {
-    navigate("/produtos");
+    navigate("/");
   };
 
   const formatarValor = (valor: number | undefined) => {

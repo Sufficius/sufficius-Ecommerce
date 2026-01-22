@@ -20,6 +20,7 @@ import { pedidosRoute } from "@/modules/services/api/routes/pedidos";
 import { enderecosRoute } from "@/modules/services/api/routes/enderecos";
 import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
 import { useQuery } from "@tanstack/react-query";
+import { useAuthStore } from "@/modules/services/store/auth-store";
 
 // Tipos de dados
 interface ProdutoCarrinho {
@@ -167,6 +168,7 @@ export default function CheckoutPage() {
   const [termosAceitos, setTermosAceitos] = useState(false);
   const [enderecosSalvos, setEnderecosSalvos] = useState<any[]>([]);
   const [usandoEnderecoSalvo, setUsandoEnderecoSalvo] = useState(false);
+  const { user } = useAuthStore((state: any) => state.user);
 
   const { data: carrinho } = useQuery({
     queryKey: ["carrinho"],
@@ -188,14 +190,30 @@ export default function CheckoutPage() {
     },
   });
 
+  // Buscar pedidos do usuário
+  const { data: pedidosData } = useQuery({
+    queryKey: ["pedidosUsuario", user?.id_usuario],
+    queryFn: async () => {
+      try {
+        const response = await pedidosRoute.listarPedidos();
+        return response.data || [];
+      } catch (error) {
+        console.error("Erro ao buscar pedidos:", error);
+        return [];
+      }
+    },
+    enabled: !!user?.id_usuario,
+  });
+
+  console.log("Pedido: ", pedidosData);
+
   const { data: enderecos } = useQuery({
     queryKey: ["endereco"],
     queryFn: async () => {
-      const response = await  enderecosRoute.getEnderecos();
+      const response = await enderecosRoute.getEnderecos();
       return response?.data;
     },
   });
-
 
   useEffect(() => {
     if (carrinho && carrinho.itens && carrinho.itens.length > 0) {
@@ -463,7 +481,6 @@ export default function CheckoutPage() {
         frete: frete,
         total: total,
       };
-
 
       const response = await pedidosRoute.criarPedido(pedidoPayload as any);
       if (response.success) {

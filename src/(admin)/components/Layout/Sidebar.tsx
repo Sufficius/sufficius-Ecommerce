@@ -52,12 +52,6 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       section: "usuarios",
     },
     {
-      icon: <Tag className="h-5 w-5" />,
-      label: "Cupons",
-      path: "/cupons",
-      section: "cupons",
-    },
-    {
       icon: <TrendingUp className="h-5 w-5" />,
       label: "Estoque",
       path: "/estoque",
