@@ -7,7 +7,7 @@ import {
   Package,
   ShoppingBag,
   Users,
-  Tag,
+  // Tag,
   BarChart3,
   Settings,
   LogOut,
