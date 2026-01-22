@@ -1033,9 +1033,9 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {pedidosRecentes.map((pedido: any) => (
-                    <tr key={pedido.id} className="border-b hover:bg-gray-50">
+                    <tr key={pedido.id} className="border-b hover:bg-gray-50 items-center text-center truncate">
                       <td className="p-4 font-medium">{pedido.id}</td>
-                      <td className="p-4">{pedido.cliente}</td>
+                      <td className="p-4 truncate">{pedido.cliente}</td>
                       <td className="p-4 font-medium">
                         {formatCurrency(pedido.valor)}
                       </td>
