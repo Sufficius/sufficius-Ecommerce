@@ -18,6 +18,11 @@ import { useAuthStore } from "@/modules/services/store/auth-store";
 import { api } from "@/modules/services/api/axios";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import {
+  IPedidoResponse,
+  pedidosRoute,
+} from "@/modules/services/api/routes/pedidos";
 
 interface VendasResumo {
   totalVendas: number;
@@ -427,6 +432,14 @@ export default function AdminDashboard() {
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
 
+  const { data: pedidos } = useQuery({
+    queryKey: ["pedidos"],
+    queryFn: async () => {
+      const response = await pedidosRoute.listarPedidos();
+      return response.data as IPedidoResponse[] | unknown;
+    },
+  });
+
   // Função principal para buscar dados das vendas - USANDO APENAS ENDPOINTS EXISTENTES
   const fetchDashboardData = async () => {
     try {
@@ -566,9 +579,7 @@ export default function AdminDashboard() {
           },
         });
 
-
         if (produtosResponse.data?.success) {
-
           // Verificar a estrutura exata
           const responseData = produtosResponse.data;
 
@@ -747,7 +758,6 @@ export default function AdminDashboard() {
 
   const getResumoCards = () => {
     const resumo = dados.resumo;
-
     return [
       {
         titulo: "Vendas Totais",
@@ -759,7 +769,7 @@ export default function AdminDashboard() {
       },
       {
         titulo: "Total de Pedidos",
-        valor: resumo.totalPedidos.toString(),
+        valor: String(Array.isArray(pedidos) && pedidos?.length),
         variacao: "+8.2%",
         positivo: true,
         icone: <ShoppingBag className="h-6 w-6" />,

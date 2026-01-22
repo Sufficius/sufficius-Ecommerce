@@ -93,11 +93,7 @@ class CarrinhosRoute {
         produtoId,
         quantidade
       });
-      
-      console.log('✅ [Frontend] Item adicionado ao carrinho:', {
-        success: response.data.success,
-        totalItens: response.data.data?.totalItens || 0
-      });
+    
       
       return response.data;
     } catch (error: any) {

@@ -157,7 +157,11 @@ export default function AdminLogin() {
     if (googleInitialized.current || !googleClientId) return;
 
     try {
-      if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+      if (
+        !window.google ||
+        !window.google.accounts ||
+        !window.google.accounts.id
+      ) {
         return;
       }
 
@@ -353,7 +357,7 @@ export default function AdminLogin() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const mockUser = {
-        id_user: Date.now().toString(),
+        id_usuario: Date.now().toString(),
         nome: "Usuário Google Teste",
         email: `google_test_${Date.now()}@example.com`,
         BI: `GOOGLE_DEV_${Date.now()}`,

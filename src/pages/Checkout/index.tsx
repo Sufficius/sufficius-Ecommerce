@@ -18,7 +18,6 @@ import { toast } from "sonner";
 import InputMask from "react-input-mask";
 import { pedidosRoute } from "@/modules/services/api/routes/pedidos";
 import { enderecosRoute } from "@/modules/services/api/routes/enderecos";
-import { cuponsRoute } from "@/modules/services/api/routes/cupons";
 import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
 import { useQuery } from "@tanstack/react-query";
 
@@ -33,7 +32,7 @@ interface ProdutoCarrinho {
 }
 
 interface EnderecoEntrega {
-  id?: string;
+  rua: string;
   nome: string;
   email: string;
   telefone: string;
@@ -47,7 +46,7 @@ interface EnderecoEntrega {
 }
 
 interface PagamentoData {
-  metodo: "cartao" | "pix" | "boleto" | "multicaixa";
+  metodo: "cartao" | "mbway" | "dinheiro" | "multicaixa";
   numeroCartao?: string;
   nomeCartao?: string;
   validade?: string;
@@ -57,7 +56,6 @@ interface PagamentoData {
 interface PedidoData {
   enderecoEntrega: EnderecoEntrega;
   pagamento: PagamentoData;
-  cupom?: string;
   observacoes?: string;
 }
 
@@ -145,11 +143,11 @@ export default function CheckoutPage() {
   );
   const [carregando, setCarregando] = useState(false);
   const [carregandoCarrinho, setCarregandoCarrinho] = useState(true);
-  const [verificandoCupom, setVerificandoCupom] = useState(false);
 
   // Dados do formulário
   const [formData, setFormData] = useState<PedidoData>({
     enderecoEntrega: {
+      rua: "",
       nome: "",
       email: "",
       telefone: "",
@@ -166,9 +164,6 @@ export default function CheckoutPage() {
   });
 
   const [, setCarrinho] = useState<ProdutoCarrinho[]>([]);
-  const [cupomAplicado, setCupomAplicado] = useState(false);
-  const [cupomDesconto, setCupomDesconto] = useState(0);
-  const [codigoCupom, setCodigoCupom] = useState("");
   const [termosAceitos, setTermosAceitos] = useState(false);
   const [enderecosSalvos, setEnderecosSalvos] = useState<any[]>([]);
   const [usandoEnderecoSalvo, setUsandoEnderecoSalvo] = useState(false);
@@ -193,12 +188,19 @@ export default function CheckoutPage() {
     },
   });
 
+  const { data: enderecos } = useQuery({
+    queryKey: ["endereco"],
+    queryFn: async () => {
+      const response = await  enderecosRoute.getEnderecos();
+      return response?.data;
+    },
+  });
+
 
   useEffect(() => {
-    if(carrinho && carrinho.itens && carrinho.itens.length > 0){
+    if (carrinho && carrinho.itens && carrinho.itens.length > 0) {
       setCarregandoCarrinho(false);
-    }
-    else{
+    } else {
       setCarregandoCarrinho(false);
     }
     const carregarDados = async () => {
@@ -223,6 +225,7 @@ export default function CheckoutPage() {
             ...prev,
             enderecoEntrega: {
               ...prev.enderecoEntrega,
+              rua: primeiroEndereco.rua || "",
               nome: primeiroEndereco.nome,
               email: primeiroEndereco.email || "",
               telefone: primeiroEndereco.telefone,
@@ -248,12 +251,15 @@ export default function CheckoutPage() {
   }, [carrinho]);
 
   // Cálculos
-  const subtotal = carrinho?.subtotal || carrinho?.itens?.reduce(
-    (acc, item) => acc + item.preco * item.quantidade,
-    0
-  ) || 0;
+  const subtotal =
+    carrinho?.subtotal ||
+    carrinho?.itens?.reduce(
+      (acc, item) => acc + item.preco * item.quantidade,
+      0
+    ) ||
+    0;
   const frete = subtotal > 50000 ? 0 : 1500; // Frete grátis acima de 50.000 Kz
-  const total = (carrinho?.total || (subtotal + frete - cupomDesconto));
+  const total = carrinho?.total || subtotal + frete;
 
   const handleEnderecoChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -305,28 +311,31 @@ export default function CheckoutPage() {
     ];
 
     for (const campo of camposObrigatorios) {
-      if (!formData.enderecoEntrega[campo as keyof EnderecoEntrega]) {
+      const valor = formData.enderecoEntrega[campo as keyof EnderecoEntrega];
+      if (!valor || (typeof valor === "string" && valor.trim() === "")) {
         const nomeCampo =
           campo === "numero"
             ? "número"
             : campo === "logradouro"
             ? "endereço"
             : campo;
-            console.log("Erro: ", campo);
+
         toast.error(`O campo ${nomeCampo} é obrigatório`);
         return false;
       }
     }
 
     // Validar email
+    const email = formData.enderecoEntrega.email;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.enderecoEntrega.email)) {
+    if (!emailRegex.test(email)) {
       toast.error("E-mail inválido");
       return false;
     }
 
     // Validar telefone (Angola: 9 dígitos)
-    const telefoneLimpo = formData.enderecoEntrega.telefone.replace(/\D/g, "");
+    const telefone = formData.enderecoEntrega.telefone;
+    const telefoneLimpo = telefone?.replace(/\D/g, "");
     if (telefoneLimpo.length !== 9) {
       toast.error("Telefone inválido. Use 9 dígitos");
       return false;
@@ -375,35 +384,6 @@ export default function CheckoutPage() {
     }
   };
 
-  const verificarCupom = async () => {
-    if (!codigoCupom.trim()) {
-      toast.error("Digite um código de cupom");
-      return;
-    }
-
-    setVerificandoCupom(true);
-    try {
-      const response = await cuponsRoute.verificarCupom(codigoCupom, subtotal);
-
-      if (response.message && response.message?.codigo) {
-        setCupomDesconto(response.message.desconto);
-        setCupomAplicado(true);
-        setFormData((prev) => ({ ...prev, cupom: codigoCupom }));
-        toast.success(
-          `Cupom aplicado! Desconto de ${response.message.desconto.toLocaleString(
-            "pt-AO"
-          )} KZ`
-        );
-      } else {
-        toast.error(response.message || "Cupom inválido");
-      }
-    } catch (error) {
-      toast.error("Erro ao verificar cupom");
-    } finally {
-      setVerificandoCupom(false);
-    }
-  };
-
   const salvarEndereco = async () => {
     try {
       const response = await enderecosRoute.criarEndereco(
@@ -439,12 +419,33 @@ export default function CheckoutPage() {
     setCarregando(true);
 
     try {
+      const enderecoResponse = await enderecosRoute.criarEndereco({
+        rua: formData.enderecoEntrega.logradouro || "",
+        numero: formData.enderecoEntrega.logradouro,
+        bairro: formData.enderecoEntrega.bairro,
+        cidade: formData.enderecoEntrega.cidade,
+        estado: formData.enderecoEntrega.estado,
+        complemento: formData.enderecoEntrega.complemento || "",
+        email: formData.enderecoEntrega.email,
+        nome: formData.enderecoEntrega.nome,
+        logradouro: formData.enderecoEntrega.logradouro,
+        telefone: formData.enderecoEntrega.telefone,
+        principal: true,
+      });
+
+      if (!enderecoResponse.success) {
+        toast.error("Erro ao salvar endereço", enderecoResponse.message);
+        setCarregando(false);
+        return;
+      }
+
+      const enderecoId = enderecoResponse.data.id || enderecos?.[0]?.id;
       // Preparar dados para a API
       const pedidoPayload = {
+        enderecoId: enderecoId || enderecos?.[0]?.id,
         enderecoEntrega: formData.enderecoEntrega,
         metodoPagamento: formData.pagamento.metodo,
-        cupom: formData.cupom,
-        observacoes: formData.observacoes,
+        observacoes: formData.observacoes || undefined,
         // Se tiver dados do cartão
         ...(formData.pagamento.metodo === "cartao" && {
           dadosCartao: {
@@ -454,27 +455,24 @@ export default function CheckoutPage() {
             cvv: formData.pagamento.cvv,
           },
         }),
-        itens: carrinho.itens.map((item:any) => ({
+        itens: carrinho.itens.map((item: any) => ({
           produtoId: item.id,
           quantidade: item.quantidade,
         })),
-        subtotal:subtotal,
-        desconto:cupomDesconto,
-        frete:frete,
-        total:total,
+        subtotal: subtotal,
+        frete: frete,
+        total: total,
       };
 
-      console.log("Enviando pedido:", pedidoPayload);
 
       const response = await pedidosRoute.criarPedido(pedidoPayload as any);
-
       if (response.success) {
         toast.success("🎉 Pedido realizado com sucesso!");
 
         await carrinhosRoute.limparCarrinho();
         // Redirecionar para página de confirmação
         setTimeout(() => {
-          navigate(`/confirmacao?pedido=${response.page}`);
+          navigate(`/confirmacao?pedido=${carrinho?.itens?.[0]?.produtoId}`);
         }, 1500);
       } else {
         toast.error(response.message || "Erro ao criar pedido");
@@ -870,16 +868,16 @@ export default function CheckoutPage() {
                         desc: "Pagamento instantâneo via referência",
                       },
                       {
-                        id: "pix" as const,
-                        label: "PIX",
+                        id: "mbway" as const,
+                        label: "Mbay",
                         icon: "🏦",
                         desc: "Transferência instantânea",
                       },
                       {
-                        id: "boleto" as const,
-                        label: "Boleto Bancário",
+                        id: "dinheiro" as const,
+                        label: "Dinheiro",
                         icon: "📄",
-                        desc: "Pagamento em qualquer banco",
+                        desc: "Pagamento em cache",
                       },
                     ].map((metodo) => (
                       <div
@@ -1085,7 +1083,7 @@ export default function CheckoutPage() {
                             ? "💳"
                             : formData.pagamento.metodo === "multicaixa"
                             ? "🏧"
-                            : formData.pagamento.metodo === "pix"
+                            : formData.pagamento.metodo === "dinheiro"
                             ? "🏦"
                             : "📄"}
                         </div>
@@ -1095,9 +1093,9 @@ export default function CheckoutPage() {
                               ? "Cartão de Crédito/Débito"
                               : formData.pagamento.metodo === "multicaixa"
                               ? "Multicaixa Express"
-                              : formData.pagamento.metodo === "pix"
-                              ? "PIX"
-                              : "Boleto Bancário"}
+                              : formData.pagamento.metodo === "dinheiro"
+                              ? "Dinheiro"
+                              : "Cache"}
                           </p>
                           {formData.pagamento.metodo === "cartao" &&
                             formData.pagamento.numeroCartao && (
@@ -1249,7 +1247,9 @@ export default function CheckoutPage() {
                         </span>
                       </div>
                       <div>
-                        <div className="font-medium text-sm">{item.produto?.nome}</div>
+                        <div className="font-medium text-sm">
+                          {item.produto?.nome}
+                        </div>
                         <div className="text-xs text-gray-500">
                           Qtd: {item.quantidade}
                         </div>
@@ -1281,15 +1281,6 @@ export default function CheckoutPage() {
                   </span>
                 </div>
 
-                {cupomAplicado && (
-                  <div className="flex justify-between text-green-600">
-                    <span className="font-medium">Desconto Cupom</span>
-                    <span className="font-bold">
-                      - {formatarMoeda(cupomDesconto)}
-                    </span>
-                  </div>
-                )}
-
                 <div className="flex justify-between text-lg font-bold border-t pt-3">
                   <span>Total</span>
                   <span className="text-[#D4AF37]">{formatarMoeda(total)}</span>
@@ -1311,38 +1302,6 @@ export default function CheckoutPage() {
                 <div className="text-xs text-gray-500 mt-1">
                   Para {formData.enderecoEntrega.estado || "sua região"}
                 </div>
-              </div>
-
-              {/* Cupom */}
-              <div className="mt-6">
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={codigoCupom}
-                    onChange={(e) => setCodigoCupom(e.target.value)}
-                    placeholder="Código do cupom"
-                    className="flex-1 border border-gray-300 rounded-l-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50"
-                    disabled={cupomAplicado || verificandoCupom}
-                  />
-                  <button
-                    onClick={verificarCupom}
-                    disabled={verificandoCupom || cupomAplicado}
-                    className="bg-gray-800 text-white px-4 py-3 rounded-r-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {verificandoCupom ? (
-                      <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                    ) : cupomAplicado ? (
-                      "✓"
-                    ) : (
-                      "Aplicar"
-                    )}
-                  </button>
-                </div>
-                {cupomAplicado && (
-                  <p className="text-green-600 text-sm mt-2">
-                    Cupom aplicado com sucesso!
-                  </p>
-                )}
               </div>
 
               {/* Informações */}

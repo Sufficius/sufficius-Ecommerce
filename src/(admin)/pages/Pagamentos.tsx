@@ -55,7 +55,6 @@ interface Pagamento {
     rua: string;
     cidade: string;
     estado: string;
-    cep: string;
   };
 }
 
@@ -102,7 +101,6 @@ export default function PagamentosPage() {
         rua: "Rua das Flores, 123",
         cidade: "Luanda",
         estado: "Luanda",
-        cep: "12345-678",
       },
     },
     {
@@ -475,7 +473,6 @@ export default function PagamentosPage() {
                         {pagamento.enderecoEntrega.cidade},{" "}
                         {pagamento.enderecoEntrega.estado}
                       </div>
-                      <div>CEP: {pagamento.enderecoEntrega.cep}</div>
                     </div>
                   </div>
                 )}

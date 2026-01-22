@@ -22,6 +22,7 @@ interface IEndereco {
 
 interface IEnderecoToCreate {
   nome: string;
+  rua:string;
   email: string;
   telefone: string;
   logradouro: string;
@@ -91,19 +92,22 @@ class EnderecosRoute {
   async criarEndereco(endereco: IEnderecoToCreate) {
     try {
       const dados = {
+        rua: endereco?.logradouro?.trim() || "",
+        numero: endereco?.numero?.trim(),
         nome: endereco?.nome?.trim(),
-        email: endereco.email.trim(),
+        email: endereco.email?.trim(),
         telefone: endereco.telefone.trim(),
         logradouro: endereco.logradouro.trim(),
-        numero: endereco.numero.trim(),
         bairro: endereco.bairro.trim(),
         cidade: endereco.cidade.trim(),
         estado: endereco?.estado?.trim(),
         tipo: endereco.tipo || 'CASA',
-        principal: endereco.principal || false,
+        padrao: endereco.principal || false,
+        ...(endereco.telefone && { telefone: endereco.telefone }),
         ...(endereco.complemento && { complemento: endereco.complemento.trim() }),
         ...(endereco.referencia && { referencia: endereco.referencia.trim() })
       };
+
 
       const response = await api.post("/enderecos", dados);
       return response.data;

@@ -5,7 +5,6 @@ class ItemsCarrinhosRoute {
   async getItemCarrinho() {
     try {
       const response = await api.get("/itemcarrinho");
-      console.log("item Carrinho: ", response.data);
       return response.data
     }
     catch (error: any) {

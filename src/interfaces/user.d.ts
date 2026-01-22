@@ -1,5 +1,5 @@
 interface User {
-    id_user: string;
+    id_usuario: string;
     name: string;
     email: string;
     telefone: string;
@@ -22,7 +22,7 @@ interface IUser {
 interface UserAuth {
     token: string;
     user: {
-        id_user: string,
+        id_usuario: string,
         nome: string,
         email: string,
         phone_number: string,

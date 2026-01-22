@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   CheckCircle,
   Package,
@@ -23,77 +23,311 @@ import {
   Gift,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import {
+  IEnderecoEntrega,
+  IItemPedido,
+  IPagamento,
+  pedidosRoute,
+} from "@/modules/services/api/routes/pedidos";
+import { api } from "@/modules/services/api/axios";
+import { useAuthStore } from "@/modules/services/store/auth-store";
+import { enderecosRoute } from "@/modules/services/api/routes/enderecos";
+import { produtosRoute } from "@/modules/services/api/routes/produtos";
+
+interface IUsuario {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  tipo: string;
+  dataNascimento?: string;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+interface IProduto {
+  id: string;
+  nome: string;
+  descricao?: string;
+  preco: number;
+  quantidadeEstoque: number;
+  imagem?: string | null;
+  categoria?: {
+    id: string;
+    nome: string;
+  };
+}
+
+interface IPedido {
+  id: string;
+  numeroPedido: string;
+  usuarioId: string;
+  enderecoId?: string;
+  status: string;
+  subtotal: number;
+  frete: number;
+  desconto: number;
+  total: number;
+  metodoEnvio: string;
+  codigoRastreio?: string;
+  dataEntrega?: string;
+  entregueEm?: string;
+  metodoPagamento: string;
+  statusPagamento: string;
+  referenciaPagamento?: string;
+  observacoes?: string;
+  criadoEm: string;
+  atualizadoEm: string;
+  usuario?: {
+    id: string;
+    nome: string;
+    email: string;
+  };
+  endereco?: IEnderecoEntrega;
+  itens?: IItemPedido[];
+  pagamentos?: IPagamento[];
+}
+
+interface IEnderecoCompleto extends IEnderecoEntrega {
+  usuario?: {
+    nome: string;
+    email: string;
+    telefone: string;
+  };
+}
+
+// Função helper para extrair array de qualquer formato
+const extrairArrayData = <T,>(data: any, arrayProps: string[] = ['data', 'items', 'results']): T[] => {
+  if (!data) return [];
+  
+  // Se já é um array
+  if (Array.isArray(data)) {
+    return data as T[];
+  }
+  
+  // Se é um objeto, procurar por propriedades de array
+  if (data && typeof data === 'object') {
+    for (const prop of arrayProps) {
+      if (prop in data && Array.isArray(data[prop])) {
+        return data[prop] as T[];
+      }
+    }
+    
+    // Se o objeto parece ser um item único (tem propriedade id)
+    if ('id' in data) {
+      return [data] as T[];
+    }
+  }
+  
+  return [];
+};
 
 export default function ConfirmacaoCompra() {
   const navigate = useNavigate();
-  const [pedido, setPedido] = useState<any>(null);
-  const [etapaEntrega, setEtapaEntrega] = useState(0); // 0: processando, 1: preparando, 2: enviado, 3: entregue
+  const { id: pedidoId } = useParams();
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<IPedido | null>(
+    null
+  );
+  const [etapaEntrega, setEtapaEntrega] = useState(0);
+  const [produtosDetalhados, setProdutosDetalhados] = useState<IProduto[]>([]);
 
+  const user = useAuthStore((state) => state.user);
+  const logged = useAuthStore((state) => state.isAuthenticated);
+
+  // Buscar usuário logado
+  const { data: usuarioLogado } = useQuery<IUsuario>({
+    queryKey: ["usuarioLogado"],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/usuarios");
+        return response.data?.data || response.data;
+      } catch (error) {
+        console.error("Erro ao buscar usuário:", error);
+        return undefined;
+      }
+    },
+    enabled: logged,
+  });
+
+  // Buscar pedidos do usuário
+  const { data: pedidosData, isLoading: isLoadingPedidos } = useQuery({
+    queryKey: ["pedidosUsuario", user?.id_usuario],
+    queryFn: async () => {
+      try {
+        const response = await pedidosRoute.listarPedidos();
+        return extrairArrayData<IPedido>(response.data, ['data', 'pedidos', 'itens']);
+      } catch (error) {
+        console.error("Erro ao buscar pedidos:", error);
+        return [];
+      }
+    },
+    enabled: !!user?.id_usuario,
+  });
+
+  // Buscar detalhes do pedido específico se tiver ID na URL
+  const { data: pedidoDetalhado } = useQuery<IPedido>({
+    queryKey: ["pedido", pedidoId],
+    queryFn: async () => {
+      if (!pedidoId) return null;
+      try {
+        const response = await api.get(`/pedidos/${pedidoId}`);
+        return response.data?.data || response.data;
+      } catch (error) {
+        console.error(`Erro ao buscar pedido ${pedidoId}:`, error);
+        return null;
+      }
+    },
+    enabled: !!pedidoId,
+  });
+
+  // Buscar produtos para as recomendações - CORRIGIDO
+  const { data: produtosRecomendadosData } = useQuery({
+    queryKey: ["produtosRecomendados"],
+    queryFn: async () => {
+      try {
+        const response = await produtosRoute.listarProdutos();
+        return extrairArrayData<IProduto>(response.data, ['data', 'produtos', 'items']);
+      } catch (error) {
+        console.error("Erro ao buscar produtos recomendados:", error);
+        return [];
+      }
+    },
+    enabled: true,
+  });
+
+  // Garantir que produtosRecomendados sempre seja um array
+  const produtosRecomendados = Array.isArray(produtosRecomendadosData) 
+    ? produtosRecomendadosData 
+    : [];
+
+  // Buscar endereços do usuário
+  const { data: enderecosData = [] } = useQuery<IEnderecoCompleto[]>({
+    queryKey: ["enderecosUsuario", user?.id_usuario],
+    queryFn: async () => {
+      try {
+        const response = await enderecosRoute.listarEnderecos();
+        return extrairArrayData<IEnderecoCompleto>(response.data, ['data', 'enderecos']);
+      } catch (error) {
+        console.log("Endereços não disponíveis");
+        return [];
+      }
+    },
+    enabled: !!user?.id_usuario,
+  });
+
+  // Buscar detalhes dos produtos do pedido
   useEffect(() => {
-    const dadosPedido = {
-      numero: "SC20241125001",
-      data: new Date().toLocaleDateString("pt-BR"),
-      hora: new Date().toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      status: "CONFIRMADO",
-      metodoPagamento: "Cartão de Crédito",
-      ultimosDigitos: "4242",
-      total: 12997.9,
-      desconto: 0,
-      frete: 0,
-      subtotal: 12997.9,
-      cliente: {
-        nome: "João Silva",
-        email: "joao.silva@email.com",
-        telefone: "(11) 99999-9999",
-      },
-      endereco: {
-        rua: "Rua das Flores",
-        numero: "123",
-        complemento: "Apartamento 45",
-        bairro: "Jardim América",
-        cidade: "São Paulo",
-        estado: "SP",
-        cep: "01234-567",
-      },
-      produtos: [
-        {
-          id: 1,
-          nome: "Smartphone Premium",
-          preco: 8999,
-          quantidade: 1,
-          imagem: "📱",
-          categoria: "Eletrônicos",
-        },
-        {
-          id: 2,
-          nome: "Fone Bluetooth Premium",
-          preco: 1999,
-          quantidade: 2,
-          imagem: "🎧",
-          categoria: "Áudio",
-        },
-      ],
-      codigoRastreio: "BR123456789SP",
-      previsaoEntrega: new Date(
-        Date.now() + 3 * 24 * 60 * 60 * 1000
-      ).toLocaleDateString("pt-BR"),
+    const buscarProdutosDetalhados = async () => {
+      if (!pedidoSelecionado?.itens || pedidoSelecionado.itens.length === 0) {
+        setProdutosDetalhados([]);
+        return;
+      }
+
+      try {
+        const produtosPromises = pedidoSelecionado.itens.map(async (item) => {
+          try {
+            const response = await api.get(`/produtos/${item.produtoId}`);
+            const produtoData = response.data?.data || response.data;
+            
+            // Garantir que temos um objeto de produto válido
+            return {
+              id: item.produtoId,
+              nome: produtoData?.nome || item.produto?.nome || "Produto não encontrado",
+              descricao: produtoData?.descricao,
+              preco: produtoData?.preco || item.precoUnitario || 0,
+              quantidadeEstoque: produtoData?.quantidadeEstoque || item.quantidade || 1,
+              imagem: produtoData?.imagem,
+              categoria: produtoData?.categoria || { id: "1", nome: "Categoria" },
+            };
+          } catch (error) {
+            console.error(`Erro ao buscar produto ${item.produtoId}:`, error);
+            // Retornar dados básicos do item do pedido
+            return {
+              id: item.produtoId,
+              nome: item.produto?.nome || "Produto não encontrado",
+              preco: item.precoUnitario || 0,
+              quantidadeEstoque: item.quantidade || 1,
+              imagem: null,
+              categoria: { id: "1", nome: "Categoria" },
+            };
+          }
+        });
+
+        const produtos = await Promise.all(produtosPromises);
+        setProdutosDetalhados(produtos?.filter((p:any) => p !== null)
+        .map((produto: any)=> ({
+        id: produto.id,
+        nome:produto.nome,
+        descricao:produto.descricao,
+        preco:produto.preco,
+        quantidadeEstoque: produto.quantidadeEstoque,
+        imagem: produto.imagem || undefined,
+        categoria: produto.categoria
+        }))
+        );
+      } catch (error) {
+        console.error("Erro ao buscar produtos detalhados:", error);
+        setProdutosDetalhados([]);
+      }
     };
 
-    setPedido(dadosPedido);
+    buscarProdutosDetalhados();
+  }, [pedidoSelecionado]);
 
-    // Simular progresso da entrega
-    const interval = setInterval(() => {
-      setEtapaEntrega((prev) => {
-        if (prev < 3) return prev + 1;
-        return prev;
-      });
-    }, 3000);
+  // Selecionar pedido - CORRIGIDO
+  useEffect(() => {
+    // Pedido detalhado tem prioridade
+    if (pedidoDetalhado) {
+      setPedidoSelecionado(pedidoDetalhado);
+      atualizarEtapaEntrega(pedidoDetalhado.status);
+      return;
+    }
 
-    return () => clearInterval(interval);
-  }, []);
+    // Se não temos pedidosData ou usuário, sair
+    if (!pedidosData || !user?.id_usuario) return;
+
+    // Filtrar pedidos do usuário logado
+    const pedidosDoUsuario = pedidosData.filter(
+      (pedido: IPedido) => pedido.usuarioId === user.id_usuario
+    );
+
+    // Ordenar por data (mais recente primeiro)
+    const pedidosOrdenados = pedidosDoUsuario.sort(
+      (a: IPedido, b: IPedido) =>
+        new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime()
+    );
+
+    // Selecionar o pedido mais recente
+    if (pedidosOrdenados.length > 0) {
+      setPedidoSelecionado(pedidosOrdenados[0]);
+      atualizarEtapaEntrega(pedidosOrdenados[0].status);
+    }
+  }, [pedidosData, pedidoDetalhado, user]);
+
+  const atualizarEtapaEntrega = (status: string) => {
+    let etapaInicial = 0;
+    switch (status) {
+      case "PAGAMENTO_PENDENTE":
+        etapaInicial = 0;
+        break;
+      case "EM_PROCESSAMENTO":
+      case "AGUARDANDO_PAGAMENTO":
+        etapaInicial = 1;
+        break;
+      case "ENVIADO":
+      case "EM_TRANSITO":
+        etapaInicial = 2;
+        break;
+      case "ENTREGUE":
+      case "CONCLUIDO":
+        etapaInicial = 3;
+        break;
+      default:
+        etapaInicial = 0;
+    }
+    setEtapaEntrega(etapaInicial);
+  };
 
   const etapasEntrega = [
     {
@@ -122,24 +356,52 @@ export default function ConfirmacaoCompra() {
     },
   ];
 
-  const handleDownloadComprovante = () => {
-    toast.success("Comprovante baixado com sucesso!");
-    // Aqui você implementaria o download real do PDF
+  const handleDownloadComprovante = async () => {
+    if (!pedidoSelecionado) return;
+
+    try {
+      const response = await api.get(
+        `/pedidos/${pedidoSelecionado.id}/comprovante`,
+        {
+          responseType: "blob",
+        }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `comprovante-${pedidoSelecionado.numeroPedido}.pdf`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success("Comprovante baixado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao baixar comprovante:", error);
+      toast.error("Erro ao baixar comprovante");
+    }
   };
 
   const handleCompartilhar = async () => {
-    if (navigator.share) {
+    if (!pedidoSelecionado) return;
+
+    const shareData = {
+      title: `Meu pedido #${pedidoSelecionado.numeroPedido}`,
+      text: `Acabei de fazer um pedido na Sufficius Commerce! Pedido #${pedidoSelecionado.numeroPedido}`,
+      url: window.location.href,
+    };
+
+    if (navigator.share && navigator.canShare(shareData)) {
       try {
-        await navigator.share({
-          title: `Meu pedido #${pedido.numero}`,
-          text: `Acabei de fazer um pedido na Sufficius Commerce! Pedido #${pedido.numero}`,
-          url: window.location.href,
-        });
+        await navigator.share(shareData);
         toast.success("Compartilhado com sucesso!");
       } catch (error) {
-        toast.error(
-          `Erro ao compartilhar o pedido: ${(error as Error).message}`
-        );
+        console.error("Erro ao compartilhar:", error);
+        navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copiado para a área de transferência!");
       }
     } else {
       navigator.clipboard.writeText(window.location.href);
@@ -148,24 +410,93 @@ export default function ConfirmacaoCompra() {
   };
 
   const handleAvaliar = () => {
-    navigate("/avaliar");
+    if (!pedidoSelecionado) return;
+    navigate(`/avaliar/${pedidoSelecionado.id}`);
   };
 
   const handleVerMaisProdutos = () => {
-    navigate("/");
+    navigate("/produtos");
   };
 
-  const formatarValor = (valor: number) => {
-    return valor.toLocaleString("pt-BR", {
+  const formatarValor = (valor: number | undefined) => {
+    if (!valor) return "KZ 0,00";
+    const valorEmKwanza = valor / 100;
+    return valorEmKwanza.toLocaleString("pt-BR", {
       style: "currency",
-      currency: "BRL",
+      currency: "AOA",
+      minimumFractionDigits: 2,
     });
   };
 
-  if (!pedido) {
+  const formatarData = (dataString?: string) => {
+    if (!dataString) return "Data não disponível";
+    const data = new Date(dataString);
+    return data.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const formatarDataHora = (dataString?: string) => {
+    if (!dataString) return "Data não disponível";
+    const data = new Date(dataString);
+    return data.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const calcularPrevisaoEntrega = (dataCriacao: string) => {
+    const data = new Date(dataCriacao);
+    data.setDate(data.getDate() + 3);
+    return formatarData(data.toISOString());
+  };
+
+  // Obter URL da imagem do Cloudinary
+  const getImageUrl = (imagePath?: string, size: number = 150) => {
+    if (!imagePath) return null;
+
+    let cleanedPath = imagePath;
+    if (cleanedPath.startsWith("/")) {
+      cleanedPath = cleanedPath.substring(1);
+    }
+
+    const cloudName = "sufficius-commerce";
+    const transformations = `c_fill,w_${size},h_${size},q_auto,f_auto`;
+
+    return `https://res.cloudinary.com/${cloudName}/image/upload/${transformations}/${cleanedPath}`;
+  };
+
+  // Encontrar endereço do pedido
+  const enderecoPedido =
+    pedidoSelecionado?.endereco ||
+    (pedidoSelecionado?.enderecoId
+      ? enderecosData.find((e) => e.id === pedidoSelecionado.enderecoId)
+      : undefined);
+
+  if (isLoadingPedidos) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D4AF37]"></div>
+      </div>
+    );
+  }
+
+  if (!pedidoSelecionado) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <Package className="h-16 w-16 text-gray-400 mb-4" />
+        <h2 className="text-2xl font-bold text-gray-700 mb-2">
+          Nenhum pedido encontrado
+        </h2>
+        <p className="text-gray-600 mb-6">Você ainda não fez nenhum pedido.</p>
+        <button
+          onClick={() => navigate("/produtos")}
+          className="px-6 py-3 bg-[#D4AF37] text-white rounded-lg font-semibold hover:bg-[#c19b2c] transition"
+        >
+          Ver Produtos
+        </button>
       </div>
     );
   }
@@ -213,22 +544,23 @@ export default function ConfirmacaoCompra() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold mb-2">
-                  Compra realizada com sucesso!
+                  {pedidoSelecionado.status === "ENTREGUE"
+                    ? "Pedido entregue com sucesso!"
+                    : "Compra realizada com sucesso!"}
                 </h1>
                 <p className="text-green-100">
-                  Seu pedido #{pedido.numero} foi confirmado e já está sendo
-                  processado.
+                  {`Seu pedido ${pedidoSelecionado.numeroPedido} foi confirmado e já está sendo processado.`}
                 </p>
               </div>
             </div>
-
             <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
               <div className="text-sm mb-1">Código do Pedido</div>
               <div className="text-2xl font-mono font-bold">
-                {pedido.numero}
+                {pedidoSelecionado.numeroPedido}
               </div>
               <div className="text-sm mt-1">
-                {pedido.data} às {pedido.hora}
+                {formatarData(pedidoSelecionado.criadoEm)} às{" "}
+                {formatarDataHora(pedidoSelecionado.criadoEm)}
               </div>
             </div>
           </div>
@@ -289,7 +621,9 @@ export default function ConfirmacaoCompra() {
                     <span className="font-medium">Previsão de Entrega</span>
                   </div>
                   <div className="text-2xl font-bold text-[#D4AF37]">
-                    {pedido.previsaoEntrega}
+                    {pedidoSelecionado.dataEntrega
+                      ? formatarData(pedidoSelecionado.dataEntrega)
+                      : calcularPrevisaoEntrega(pedidoSelecionado.criadoEm)}
                   </div>
                   <div className="text-sm text-gray-600 mt-1">
                     Entre 2-4 dias úteis
@@ -302,11 +636,21 @@ export default function ConfirmacaoCompra() {
                     <span className="font-medium">Código de Rastreio</span>
                   </div>
                   <div className="text-2xl font-mono font-bold">
-                    {pedido.codigoRastreio}
+                    {pedidoSelecionado.codigoRastreio || "Aguardando código..."}
                   </div>
-                  <button className="text-sm text-[#D4AF37] font-medium mt-1 hover:underline">
-                    Acompanhar envio →
-                  </button>
+                  {pedidoSelecionado.codigoRastreio && (
+                    <button
+                      onClick={() =>
+                        window.open(
+                          `https://www.correios.com.br/enviar-e-receber/ferramentas/rastreamento?objetos=${pedidoSelecionado.codigoRastreio}`,
+                          "_blank"
+                        )
+                      }
+                      className="text-sm text-[#D4AF37] font-medium mt-1 hover:underline"
+                    >
+                      Acompanhar envio →
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -334,41 +678,68 @@ export default function ConfirmacaoCompra() {
                     </tr>
                   </thead>
                   <tbody>
-                    {pedido.produtos.map((produto: any) => (
-                      <tr
-                        key={produto.id}
-                        className="border-b hover:bg-gray-50"
-                      >
-                        <td className="py-4">
-                          <div className="flex items-center">
-                            <div className="h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center text-2xl mr-4">
-                              {produto.imagem}
-                            </div>
-                            <div>
-                              <div className="font-medium">{produto.nome}</div>
-                              <div className="text-sm text-gray-500">
-                                {produto.categoria}
+                    {pedidoSelecionado.itens?.map((item, index) => {
+                      const produtoDetalhado = produtosDetalhados[index];
+                      const itemTotal = (item.precoUnitario || 0) * (item.quantidade || 0);
+                      const imageUrl = getImageUrl(produtoDetalhado?.imagem || undefined || "");
+
+                      return (
+                        <tr
+                          key={`${item.produtoId}-${index}`}
+                          className="border-b hover:bg-gray-50"
+                        >
+                          <td className="py-4">
+                            <div className="flex items-center">
+                              <div className="h-16 w-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center mr-4">
+                                {imageUrl ? (
+                                  <img
+                                    src={imageUrl}
+                                    alt={item.produto?.nome || `Produto ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none";
+                                      e.currentTarget.parentElement!.innerHTML = `
+                                        <div class="w-full h-full bg-gray-100 flex items-center justify-center">
+                                          <span class="text-gray-400 text-xs">${item.produto?.nome || `Produto ${index + 1}`}</span>
+                                        </div>
+                                      `;
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <span className="text-gray-400 text-xs">
+                                      Sem imagem
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-medium">
+                                  {item.produto?.nome || `Produto ${index + 1}`}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {produtoDetalhado?.categoria?.nome ||
+                                    "Categoria não informada"}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-4">
-                          <div className="font-medium">
-                            {produto.quantidade}
-                          </div>
-                        </td>
-                        <td className="py-4">
-                          <div className="font-medium">
-                            {formatarValor(produto.preco)}
-                          </div>
-                        </td>
-                        <td className="py-4">
-                          <div className="font-bold text-[#D4AF37]">
-                            {formatarValor(produto.preco * produto.quantidade)}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="py-4">
+                            <div className="font-medium">{item.quantidade || 0}</div>
+                          </td>
+                          <td className="py-4">
+                            <div className="font-medium">
+                              {formatarValor(item.precoUnitario)}
+                            </div>
+                          </td>
+                          <td className="py-4">
+                            <div className="font-bold text-[#D4AF37]">
+                              {formatarValor(itemTotal)}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -378,28 +749,36 @@ export default function ConfirmacaoCompra() {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subtotal</span>
-                    <span>{formatarValor(pedido.subtotal)}</span>
+                    <span>{formatarValor(pedidoSelecionado.subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Frete</span>
-                    <span className="text-green-600">Grátis</span>
+                    <span>
+                      {pedidoSelecionado.frete === 0 ? (
+                        <span className="text-green-600">Grátis</span>
+                      ) : (
+                        formatarValor(pedidoSelecionado.frete)
+                      )}
+                    </span>
                   </div>
-                  {pedido.desconto > 0 && (
+                  {pedidoSelecionado.desconto > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Desconto</span>
-                      <span>- {formatarValor(pedido.desconto)}</span>
+                      <span>- {formatarValor(pedidoSelecionado.desconto)}</span>
                     </div>
                   )}
                   <div className="border-t pt-3">
                     <div className="flex justify-between text-xl font-bold">
                       <span>Total</span>
                       <span className="text-[#D4AF37]">
-                        {formatarValor(pedido.total)}
+                        {formatarValor(pedidoSelecionado.total)}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-600 mt-1 text-right">
-                      Em 12x de {formatarValor(pedido.total / 12)}
-                    </div>
+                    {pedidoSelecionado.total > 0 && (
+                      <div className="text-sm text-gray-600 mt-1 text-right">
+                        Em 12x de {formatarValor(pedidoSelecionado.total / 12)}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -413,23 +792,35 @@ export default function ConfirmacaoCompra() {
                   <MapPin className="h-5 w-5 mr-2 text-[#D4AF37]" />
                   Endereço de Entrega
                 </h3>
-                <div className="space-y-2">
-                  <div className="font-medium">{pedido.cliente.nome}</div>
-                  <div>
-                    {pedido.endereco.rua}, {pedido.endereco.numero}
-                    {pedido.endereco.complemento &&
-                      ` - ${pedido.endereco.complemento}`}
+                {enderecoPedido ? (
+                  <div className="space-y-2">
+                    <div className="font-medium">{enderecoPedido.nome}</div>
+                    <div>
+                      {enderecoPedido.logradouro}, {enderecoPedido.numero}
+                      {enderecoPedido.complemento &&
+                        `, ${enderecoPedido.complemento}`}
+                    </div>
+                    <div>{enderecoPedido.bairro}</div>
+                    <div>
+                      {enderecoPedido.cidade} - {enderecoPedido.estado}
+                    </div>
                   </div>
-                  <div>{pedido.endereco.bairro}</div>
-                  <div>
-                    {pedido.endereco.cidade} - {pedido.endereco.estado}
+                ) : (
+                  <div className="text-gray-500">
+                    {usuarioLogado ? (
+                      <div className="space-y-2">
+                        <div className="font-medium">{usuarioLogado.nome}</div>
+                        <div>{usuarioLogado.email}</div>
+                        <div>Telefone: {usuarioLogado.telefone}</div>
+                        <p className="text-sm mt-2">
+                          Endereço a ser definido na entrega
+                        </p>
+                      </div>
+                    ) : (
+                      "Informações de endereço não disponíveis"
+                    )}
                   </div>
-                  <div>CEP: {pedido.endereco.cep}</div>
-                </div>
-                <button className="mt-4 text-[#D4AF37] font-medium hover:underline flex items-center">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  Ver no mapa
-                </button>
+                )}
               </div>
 
               {/* Método de Pagamento */}
@@ -443,15 +834,29 @@ export default function ConfirmacaoCompra() {
                     <CreditCard className="h-6 w-6 text-[#D4AF37]" />
                   </div>
                   <div>
-                    <div className="font-medium">{pedido.metodoPagamento}</div>
-                    <div className="text-sm text-gray-600">
-                      Final {pedido.ultimosDigitos} • Em 12x sem juros
+                    <div className="font-medium capitalize">
+                      {pedidoSelecionado.metodoPagamento
+                        .toLowerCase()
+                        .replace(/_/g, " ")}
                     </div>
+                    <div className="text-sm text-gray-600 capitalize">
+                      Status:{" "}
+                      {pedidoSelecionado.statusPagamento
+                        .toLowerCase()
+                        .replace(/_/g, " ")}
+                    </div>
+                    {pedidoSelecionado.referenciaPagamento && (
+                      <div className="text-sm text-gray-600 mt-1">
+                        Ref: {pedidoSelecionado.referenciaPagamento}
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="text-sm text-gray-600">
-                  Comprovante de pagamento enviado para: {pedido.cliente.email}
-                </div>
+                {usuarioLogado && (
+                  <div className="text-sm text-gray-600">
+                    Comprovante enviado para: {usuarioLogado.email}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -473,13 +878,15 @@ export default function ConfirmacaoCompra() {
                 Compartilhar Pedido
               </button>
 
-              <button
-                onClick={handleAvaliar}
-                className="flex-1 min-w-[200px] border border-[#D4AF37] text-[#D4AF37] py-3 rounded-xl font-medium hover:bg-[#D4AF37]/5 transition flex items-center justify-center"
-              >
-                <Star className="h-5 w-5 mr-2" />
-                Avaliar Compra
-              </button>
+              {pedidoSelecionado.status === "ENTREGUE" && (
+                <button
+                  onClick={handleAvaliar}
+                  className="flex-1 min-w-[200px] border border-[#D4AF37] text-[#D4AF37] py-3 rounded-xl font-medium hover:bg-[#D4AF37]/5 transition flex items-center justify-center"
+                >
+                  <Star className="h-5 w-5 mr-2" />
+                  Avaliar Compra
+                </button>
+              )}
             </div>
           </div>
 
@@ -495,7 +902,9 @@ export default function ConfirmacaoCompra() {
                   <div>
                     <div className="font-medium">Confirmação por e-mail</div>
                     <div className="text-sm text-gray-600">
-                      Enviado para {pedido.cliente.email}
+                      {usuarioLogado
+                        ? `Enviado para ${usuarioLogado.email}`
+                        : "E-mail não disponível"}
                     </div>
                   </div>
                 </div>
@@ -505,7 +914,9 @@ export default function ConfirmacaoCompra() {
                   <div>
                     <div className="font-medium">Notificações por SMS</div>
                     <div className="text-sm text-gray-600">
-                      Atualizações no {pedido.cliente.telefone}
+                      {usuarioLogado
+                        ? `Atualizações no ${usuarioLogado.telefone}`
+                        : "Telefone não disponível"}
                     </div>
                   </div>
                 </div>
@@ -528,19 +939,33 @@ export default function ConfirmacaoCompra() {
               </h3>
 
               <div className="space-y-3 mb-6">
-                <button className="w-full text-left p-3 bg-white/10 rounded-lg hover:bg-white/20 transition">
+                <button
+                  onClick={() =>
+                    window.open(
+                      `https://www.correios.com.br/enviar-e-receber/ferramentas/rastreamento`,
+                      "_blank"
+                    )
+                  }
+                  className="w-full text-left p-3 bg-white/10 rounded-lg hover:bg-white/20 transition"
+                >
                   <div className="font-medium">Acompanhar pedido</div>
                   <div className="text-sm text-gray-300">
                     Status e localização
                   </div>
                 </button>
 
-                <button className="w-full text-left p-3 bg-white/10 rounded-lg hover:bg-white/20 transition">
+                <button
+                  onClick={() => navigate("/contato")}
+                  className="w-full text-left p-3 bg-white/10 rounded-lg hover:bg-white/20 transition"
+                >
                   <div className="font-medium">Alterar entrega</div>
                   <div className="text-sm text-gray-300">Data ou endereço</div>
                 </button>
 
-                <button className="w-full text-left p-3 bg-white/10 rounded-lg hover:bg-white/20 transition">
+                <button
+                  onClick={() => (window.location.href = "tel:08001234567")}
+                  className="w-full text-left p-3 bg-white/10 rounded-lg hover:bg-white/20 transition"
+                >
                   <div className="font-medium">Falar com suporte</div>
                   <div className="text-sm text-gray-300">
                     24h por dia, 7 dias
@@ -565,27 +990,52 @@ export default function ConfirmacaoCompra() {
               </h3>
 
               <div className="space-y-4">
-                <div className="flex items-center p-3 border rounded-lg hover:border-[#D4AF37] transition cursor-pointer">
-                  <div className="h-12 w-12 bg-gray-100 rounded flex items-center justify-center text-xl mr-3">
-                    ⌚
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium">Smartwatch Pro</div>
-                    <div className="text-sm text-gray-600">KZ 1.599,00</div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
-                </div>
+                {produtosRecomendados.length > 0 ? (
+                  produtosRecomendados.slice(0, 2).map((produto) => {
+                    const imageUrl = getImageUrl(produto.imagem || undefined || "", 50);
 
-                <div className="flex items-center p-3 border rounded-lg hover:border-[#D4AF37] transition cursor-pointer">
-                  <div className="h-12 w-12 bg-gray-100 rounded flex items-center justify-center text-xl mr-3">
-                    🎮
+                    return (
+                      <div
+                        key={produto.id}
+                        className="flex items-center p-3 border rounded-lg hover:border-[#D4AF37] transition cursor-pointer"
+                        onClick={() => navigate(`/produtos/${produto.id}`)}
+                      >
+                        <div className="h-12 w-12 bg-gray-100 rounded overflow-hidden flex items-center justify-center mr-3">
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={produto.nome}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                e.currentTarget.parentElement!.innerHTML = `
+                                  <div class="w-full h-full bg-gray-100 flex items-center justify-center">
+                                    <ShoppingBag class="h-6 w-6 text-gray-400" />
+                                  </div>
+                                `;
+                              }}
+                            />
+                          ) : (
+                            <ShoppingBag className="h-6 w-6 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-sm line-clamp-1">
+                            {produto.nome}
+                          </div>
+                          <div className="text-sm text-[#D4AF37] font-semibold">
+                            {formatarValor(produto.preco)}
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center text-gray-500 py-4">
+                    <p>Carregando recomendações...</p>
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium">Controle Gamer</div>
-                    <div className="text-sm text-gray-600">KZ 399,00</div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
-                </div>
+                )}
 
                 <button
                   onClick={handleVerMaisProdutos}
@@ -622,7 +1072,7 @@ export default function ConfirmacaoCompra() {
               </div>
               <h3 className="font-bold mb-2">Entrega Rápida</h3>
               <p className="text-gray-600">
-                Entregamos em todo o Brasil em até 4 dias úteis.
+                Entregamos em toda Angola em até 4 dias úteis.
               </p>
             </div>
 
@@ -653,7 +1103,8 @@ export default function ConfirmacaoCompra() {
             <div className="text-center md:text-right">
               <p className="text-gray-400">Obrigado por comprar conosco! 🎉</p>
               <p className="text-sm text-gray-500 mt-1">
-                Seu pedido #{pedido.numero} está sendo processado com cuidado.
+                Seu pedido #{pedidoSelecionado.numeroPedido} está sendo
+                processado com cuidado.
               </p>
             </div>
           </div>

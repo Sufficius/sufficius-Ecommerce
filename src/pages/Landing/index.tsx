@@ -863,18 +863,32 @@ const Header = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
   const user = useAuthStore((state) => state.user);
   const logged = useAuthStore((state) => state.isAuthenticated);
+  const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
   const {
-    items: carrinho,
     removeItem,
     updateQuantity,
     clearCart,
     getTotal,
-    getTotalItems,
+    getTotalItemsDoUsuario,
+    setCurrentUser,
+    getItemsDoUsuarioAtual,
   } = useCartStore();
+
+  useEffect(() => {
+    if (user) {
+      setCurrentUser(user.id_usuario);
+    } else {
+      setCurrentUser(null);
+    }
+  }, [user, setCurrentUser]);
+
+  const totalItens = user ? getTotalItemsDoUsuario(user.id_usuario) : 0;
+  const carrinho = getItemsDoUsuarioAtual();
 
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -913,14 +927,34 @@ const Header = () => {
       toast.error("Nenhum produto no carrinho!");
       return;
     }
+    if (!logged) {
+      toast.error("Faça login para finalizar a compra");
+      navigate("/login");
+      return;
+    }
     setCartOpen(false);
     navigate("/checkout");
   };
 
-  const logout = useAuthStore((state) => state.logout);
-
   const handleLogout = async () => {
     await logout();
+    setProfileOpen(false);
+    setCurrentUser(null);
+    navigate("/");
+  };
+
+  const getImageUrl = (imagePath: string | undefined) => {
+    if (!imagePath) return null;
+
+    let cleanedPath = imagePath;
+    if (cleanedPath.startsWith("/")) {
+      cleanedPath = cleanedPath.substring(1);
+    }
+
+    const cloudName = "sufficius-commerce";
+    const transformations = "c_fill,w_150,h_150,q_auto,f_auto";
+
+    return `https://res.cloudinary.com/${cloudName}/image/upload/${transformations}/${cleanedPath}`;
   };
 
   return (
@@ -987,7 +1021,7 @@ const Header = () => {
                     {/* Botão "Voltar" - SÓ para ADMIN */}
                     {user?.role === "ADMIN" && (
                       <Link to={"/dashboard"}>
-                        <Button>Voltar</Button>
+                        <Button>Dashboard</Button>
                       </Link>
                     )}
                   </div>
@@ -1030,9 +1064,9 @@ const Header = () => {
                 onClick={() => setCartOpen(true)}
               >
                 <ShoppingCart size={22} />
-                {getTotalItems() > 0 && (
+                {totalItens > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {getTotalItems()}
+                    {totalItens}
                   </span>
                 )}
               </button>
@@ -1066,6 +1100,15 @@ const Header = () => {
                   <a href="#contato" className="block py-2">
                     Contato
                   </a>
+                  {!logged && (
+                    <Link
+                      to="/login"
+                      className="block py-2"
+                      onClick={() => setOpen(false)}
+                    >
+                      <Button className="w-full">Entrar</Button>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
@@ -1078,15 +1121,13 @@ const Header = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-6 max-h-[80vh] flex flex-col">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">
-                Meu Carrinho ({getTotalItems()})
-              </h2>
+              <h2 className="text-xl font-bold">Meu Carrinho ({totalItens})</h2>
               <button onClick={() => setCartOpen(false)} className="p-1">
                 <X size={24} />
               </button>
             </div>
 
-            {carrinho.length === 0 ? (
+            {totalItens === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
                 <ShoppingCart className="h-16 w-16 mb-4" />
                 <p>Seu carrinho está vazio</p>
@@ -1101,15 +1142,8 @@ const Header = () => {
               <>
                 <div className="flex-1 overflow-y-auto">
                   {carrinho.map((item) => {
-                    let imagePath = item.imagem;
-                    if (imagePath && imagePath.startsWith("/")) {
-                      imagePath = imagePath.substring(1);
-                    }
-                    const cloudName = "sufficius-commerce";
-                    const transformations = "c_fill,w_150,h_150,q_auto,f_auto";
-                    const imageUrl = imagePath
-                      ? `https://res.cloudinary.com/${cloudName}/image/upload/${transformations}/${imagePath}`
-                      : null;
+                    const imageUrl = getImageUrl(item.imagem);
+                    const itemTotal = item.preco * item.quantidadeSelecionada;
 
                     return (
                       <div
@@ -1172,7 +1206,7 @@ const Header = () => {
                         </div>
                         <div className="text-right ml-2">
                           <p className="font-semibold">
-                            KZ{" "}
+                            KZ {itemTotal.toLocaleString()}
                             {(
                               item.preco * item.quantidadeSelecionada
                             ).toLocaleString()}
@@ -1198,16 +1232,20 @@ const Header = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        clearCart();
-                        toast.success("Carrinho limpo com sucesso!");
+                        if (carrinho.length > 0) {
+                          clearCart();
+                          toast.success("Carrinho limpo com sucesso!");
+                        }
                       }}
                       className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 transition"
+                      disabled={carrinho.length === 0}
                     >
                       Limpar
                     </button>
                     <button
                       onClick={finalizarCompra}
                       className="w-full bg-[#D4AF37] text-white py-3 rounded-lg font-semibold hover:bg-[#c19b2c] transition"
+                     disabled={carrinho.length === 0}
                     >
                       Finalizar Compra
                     </button>

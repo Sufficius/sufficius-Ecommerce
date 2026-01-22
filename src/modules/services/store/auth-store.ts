@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { create } from "zustand";
 
 interface User {
-    id_user: string;
+    id_usuario: string;
     nome: string;
     email: string;
     role: string;

@@ -1,7 +1,7 @@
 // src/services/pedidos.service.ts
 import { api } from "../../axios";
 
-interface IItemPedido {
+export interface IItemPedido {
   id: string;
   pedidoId: string;
   produtoId: string;
@@ -23,7 +23,7 @@ interface IItemPedido {
   };
 }
 
-interface IEnderecoEntrega {
+export interface IEnderecoEntrega {
   id?: string;
   nome: string;
   email: string;
@@ -37,7 +37,7 @@ interface IEnderecoEntrega {
   referencia?: string;
 }
 
-interface IPagamento {
+export interface IPagamento {
   id: string;
   pedidoId: string;
   metodoPagamento: string;
@@ -80,10 +80,10 @@ interface IPedido {
 }
 
 interface IPedidoToCreate {
+  enderecoId?:string;
   enderecoEntrega: IEnderecoEntrega;
   metodoPagamento: string;
   observacoes?: string;
-  cupom?: string;
   dadosCartao?: {
     numero: string;
     nome: string;
@@ -101,7 +101,7 @@ interface IListarPedidosParams {
   ordenar?: 'criadoEm_desc' | 'criadoEm_asc' | 'total_desc' | 'total_asc';
 }
 
-interface IPedidoResponse {
+export interface IPedidoResponse {
   success: boolean;
   data?: IPedido | IPedido[];
   message?: string;
@@ -114,6 +114,13 @@ class PedidosRoute {
   // Criar novo pedido
   async criarPedido(pedidoData: IPedidoToCreate): Promise<IPedidoResponse> {
     try {
+
+       if (!pedidoData.enderecoId && !pedidoData.enderecoEntrega) {
+      return {
+        success: false,
+        message: "É necessário fornecer um endereço (ID ou dados completos)"
+      };
+    }
       // Validações básicas
       if (!pedidoData.enderecoEntrega) {
         return {
@@ -192,7 +199,7 @@ class PedidosRoute {
         }
       }
 
-      const response = await api.post("/pedidos", pedidoData);
+      const response = await api.post("/pedidos/criar", pedidoData);
       return response.data;
     } catch (error: any) {
       console.error('❌ Erro ao criar pedido:', error);
