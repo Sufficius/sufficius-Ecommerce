@@ -16,6 +16,8 @@ import {
   RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/modules/services/api/axios";
 
 export default function AdminEstoque() {
   const [busca, setBusca] = useState("");
@@ -23,120 +25,31 @@ export default function AdminEstoque() {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 10;
 
-  // Dados de exemplo
-  const produtosEstoque = [
-    {
-      id: 1,
-      nome: "iPhone 15 Pro",
-      sku: "SC-PH-001",
-      categoria: "Smartphones",
-      estoqueAtual: 45,
-      estoqueMinimo: 10,
-      estoqueIdeal: 50,
-      status: "normal",
-      ultimaMovimentacao: "Hoje, 14:30",
-      movimentacao: "+5"
-    },
-    {
-      id: 2,
-      nome: "Notebook Dell XPS 15",
-      sku: "SC-NB-002",
-      categoria: "Notebooks",
-      estoqueAtual: 12,
-      estoqueMinimo: 5,
-      estoqueIdeal: 20,
-      status: "baixo",
-      ultimaMovimentacao: "Ontem, 11:15",
-      movimentacao: "-2"
-    },
-    {
-      id: 3,
-      nome: "AirPods Pro 2",
-      sku: "SC-AP-003",
-      categoria: "Áudio",
-      estoqueAtual: 89,
-      estoqueMinimo: 20,
-      estoqueIdeal: 100,
-      status: "normal",
-      ultimaMovimentacao: "Hoje, 09:45",
-      movimentacao: "+10"
-    },
-    {
-      id: 4,
-      nome: "Monitor Samsung 4K",
-      sku: "SC-MN-004",
-      categoria: "Monitores",
-      estoqueAtual: 23,
-      estoqueMinimo: 5,
-      estoqueIdeal: 30,
-      status: "normal",
-      ultimaMovimentacao: "15/11, 16:20",
-      movimentacao: "-3"
-    },
-    {
-      id: 5,
-      nome: "Console PlayStation 5",
-      sku: "SC-GM-005",
-      categoria: "Games",
-      estoqueAtual: 8,
-      estoqueMinimo: 5,
-      estoqueIdeal: 15,
-      status: "baixo",
-      ultimaMovimentacao: "14/11, 10:10",
-      movimentacao: "-1"
-    },
-    {
-      id: 6,
-      nome: "Smartwatch Apple",
-      sku: "SC-SW-006",
-      categoria: "Wearables",
-      estoqueAtual: 34,
-      estoqueMinimo: 10,
-      estoqueIdeal: 40,
-      status: "normal",
-      ultimaMovimentacao: "13/11, 13:45",
-      movimentacao: "+15"
-    },
-    {
-      id: 7,
-      nome: "Teclado Mecânico RGB",
-      sku: "SC-TC-007",
-      categoria: "Periféricos",
-      estoqueAtual: 0,
-      estoqueMinimo: 5,
-      estoqueIdeal: 25,
-      status: "esgotado",
-      ultimaMovimentacao: "12/11, 15:30",
-      movimentacao: "-10"
-    },
-    {
-      id: 8,
-      nome: "Mouse Gamer Pro",
-      sku: "SC-MS-008",
-      categoria: "Periféricos",
-      estoqueAtual: 67,
-      estoqueMinimo: 10,
-      estoqueIdeal: 50,
-      status: "excesso",
-      ultimaMovimentacao: "12/11, 11:00",
-      movimentacao: "+20"
+
+  const {data: estoque} = useQuery({
+    queryKey: ["estoque"],
+    queryFn: async () => {
+      const response = await api.get("/produtos");
+      return response.data;
     }
-  ];
+  });
+
+  console.log("Estoque: ", estoque?.data?.produtos);
+
 
   // Filtrar produtos
-  const produtosFiltrados = produtosEstoque.filter(produto => {
-    const buscaMatch = produto.nome.toLowerCase().includes(busca.toLowerCase()) ||
-                      produto.sku.toLowerCase().includes(busca.toLowerCase());
+  const produtosFiltrados = estoque?.data?.produtos?.filter((produto: any) => {
+    const buscaMatch = produto.nome.toLowerCase().includes(busca.toLowerCase())
     const statusMatch = filtroStatus === "todos" || produto.status === filtroStatus;
     
     return buscaMatch && statusMatch;
   });
 
   // Paginação
-  const totalPaginas = Math.ceil(produtosFiltrados.length / itensPorPagina);
+  const totalPaginas = Math.ceil(produtosFiltrados?.length / itensPorPagina);
   const inicio = (paginaAtual - 1) * itensPorPagina;
   const fim = inicio + itensPorPagina;
-  const produtosPagina = produtosFiltrados.slice(inicio, fim);
+  const produtosPagina = produtosFiltrados?.slice(inicio, fim);
 
   const getStatusInfo = (status: string) => {
     const info: any = {
@@ -168,10 +81,10 @@ export default function AdminEstoque() {
   };
 
   // Calcular estatísticas
-  const totalProdutos = produtosEstoque.length;
-  const produtosBaixoEstoque = produtosEstoque.filter(p => p.status === "baixo" || p.status === "esgotado").length;
-  const valorTotalEstoque = produtosEstoque.reduce((acc, p) => acc + (p.estoqueAtual * 1000), 0); // Simulação
-  const produtosMovimentacaoPositiva = produtosEstoque.filter(p => p.movimentacao.startsWith("+")).length;
+  const totalProdutos = estoque?.data?.produtos?.length;
+  const produtosBaixoEstoque = estoque?.data?.produtos?.filter((p: any) => p.status === "baixo" || p.status === "esgotado").length;
+  const valorTotalEstoque = estoque?.data?.produtos?.reduce((acc: any, p: any) => acc + (p.preco), 0); // Simulação
+  const produtosMovimentacaoPositiva = estoque?.data?.produtos?.filter((p: any) => p.movimentacao?.startsWith("+")).length;
 
   return (
     <div className="py-8">
@@ -208,7 +121,7 @@ export default function AdminEstoque() {
                 type="text"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar por produto ou SKU..."
+                placeholder="Buscar por produto..."
                 className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
               />
             </div>
@@ -257,7 +170,7 @@ export default function AdminEstoque() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Valor Total</p>
-              <p className="text-2xl font-bold">KZ {valorTotalEstoque.toLocaleString()}</p>
+              <p className="text-2xl font-bold">KZ {valorTotalEstoque?.toLocaleString()}</p>
             </div>
             <TrendingUp className="h-8 w-8 text-green-500" />
           </div>
@@ -289,29 +202,28 @@ export default function AdminEstoque() {
               </tr>
             </thead>
             <tbody>
-              {produtosPagina.map(produto => {
+              {produtosPagina?.map((produto: any) => {
                 const statusInfo = getStatusInfo(produto.status);
-                const percentual = (produto.estoqueAtual / produto.estoqueIdeal) * 100;
+                const percentual = (produto.quantidade / 1) * 100;
                 
                 return (
                   <tr key={produto.id} className="border-b hover:bg-gray-50">
                     <td className="p-4">
                       <div>
                         <div className="font-medium">{produto.nome}</div>
-                        <div className="text-sm text-gray-500">SKU: {produto.sku}</div>
                         <div className="text-xs text-gray-400">{produto.categoria}</div>
                       </div>
                     </td>
                     <td className="p-4">
                       <div>
                         <div className={`font-bold text-lg ${
-                          produto.estoqueAtual === 0 
+                          produto.quantidade === 0 
                             ? 'text-red-600' 
-                            : produto.estoqueAtual < produto.estoqueMinimo
+                            : produto.quantidade < 1
                             ? 'text-yellow-600'
                             : 'text-green-600'
                         }`}>
-                          {produto.estoqueAtual} unidades
+                          {produto.quantidade} unidades
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                           <div 
@@ -325,12 +237,12 @@ export default function AdminEstoque() {
                           />
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          Ideal: {produto.estoqueIdeal} unidades
+                          Ideal: {produto.quantidade} unidades
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
-                      <div className="font-medium">{produto.estoqueMinimo} unidades</div>
+                      <div className="font-medium">{1} unidades</div>
                     </td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusInfo.cor} flex items-center gap-1`}>
@@ -342,15 +254,15 @@ export default function AdminEstoque() {
                       <div>
                         <div className="text-sm">{produto.ultimaMovimentacao}</div>
                         <div className={`text-xs font-medium ${
-                          produto.movimentacao.startsWith('+') 
+                          produto.movimentacao?.startsWith('+') 
                             ? 'text-green-600' 
                             : 'text-red-600'
                         }`}>
-                          {produto.movimentacao.startsWith('+') 
+                          {produto.movimentacao?.startsWith('+') 
                             ? <TrendingUp className="h-3 w-3 inline mr-1" />
                             : <TrendingDown className="h-3 w-3 inline mr-1" />
                           }
-                          {produto.movimentacao} unidades
+                          {produto.quantidade} unidades
                         </div>
                       </div>
                     </td>
@@ -360,7 +272,7 @@ export default function AdminEstoque() {
                           <button
                             onClick={() => handleRemoverEstoque(produto.id, 1)}
                             className="p-1 hover:bg-gray-100"
-                            disabled={produto.estoqueAtual <= 0}
+                            disabled={produto.quantidade <= 0}
                           >
                             <Minus className="h-4 w-4" />
                           </button>
@@ -368,7 +280,7 @@ export default function AdminEstoque() {
                             onClick={() => handleAtualizarEstoque(produto.id)}
                             className="px-2 py-1 text-sm hover:bg-gray-100"
                           >
-                            {produto.estoqueAtual}
+                            {produto.quantidade}
                           </button>
                           <button
                             onClick={() => handleAdicionarEstoque(produto.id, 1)}
@@ -408,7 +320,7 @@ export default function AdminEstoque() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               
-              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1)?.map(num => (
                 <button
                   key={num}
                   onClick={() => setPaginaAtual(num)}
@@ -448,15 +360,14 @@ export default function AdminEstoque() {
           </div>
           
           <div className="grid md:grid-cols-2 gap-4">
-            {produtosEstoque
-              .filter(p => p.status === "baixo" || p.status === "esgotado")
-              .slice(0, 4)
-              .map(produto => (
+            {estoque?.data?.produtos
+              ?.filter((p: any) => p.status === "baixo" || p.status === "esgotado")
+              ?.slice(0, 4)
+              ?.map((produto: any) => (
                 <div key={produto.id} className="bg-white p-3 rounded-lg border">
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="font-medium">{produto.nome}</div>
-                      <div className="text-sm text-gray-600">SKU: {produto.sku}</div>
                     </div>
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                       produto.status === 'esgotado' 
@@ -467,8 +378,8 @@ export default function AdminEstoque() {
                     </span>
                   </div>
                   <div className="mt-2 text-sm">
-                    Estoque atual: <span className="font-bold">{produto.estoqueAtual}</span> / 
-                    Mínimo: <span className="font-bold">{produto.estoqueMinimo}</span>
+                    Estoque atual: <span className="font-bold">{produto.quantidade}</span> / 
+                    Mínimo: <span className="font-bold">{1}</span>
                   </div>
                 </div>
               ))

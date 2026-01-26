@@ -29,6 +29,8 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/modules/services/api/axios";
 
 interface Pagamento {
   id: string;
@@ -42,7 +44,7 @@ interface Pagamento {
   data: Date;
   valor: number;
   metodo: string;
-  status: "pago" | "pendente" | "estornado" | "cancelado" | "atrasado";
+  status: "pago" | "pendente" | "cancelado";
   gateway: string;
   parcelas: number;
   ultimaAtualizacao: Date;
@@ -59,6 +61,16 @@ interface Pagamento {
 }
 
 export default function PagamentosPage() {
+  const { data: pagamento } = useQuery({
+    queryKey: ["pagamento"],
+    queryFn: async () => {
+      const response = await api.get("/pagamentos");
+      return response.data;
+    },
+  });
+
+  console.log("Pagamento: ", pagamento);
+
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([
     {
       id: "PAY-001",
@@ -114,7 +126,7 @@ export default function PagamentosPage() {
       data: new Date(2024, 2, 13, 9, 15),
       valor: 45000,
       metodo: "Boleto",
-      status: "atrasado",
+      status: "cancelado",
       gateway: "PagSeguro",
       parcelas: 1,
       ultimaAtualizacao: new Date(2024, 2, 10, 9, 15),
@@ -131,7 +143,7 @@ export default function PagamentosPage() {
       data: new Date(2024, 2, 12, 16, 45),
       valor: 120000,
       metodo: "Cartão de Débito",
-      status: "estornado",
+      status: "pendente",
       gateway: "Stripe",
       parcelas: 1,
       ultimaAtualizacao: new Date(2024, 2, 13, 11, 20),
@@ -185,12 +197,6 @@ export default function PagamentosPage() {
       .reduce((acc, p) => acc + p.valor, 0),
     pendente: pagamentos
       .filter((p) => p.status === "pendente")
-      .reduce((acc, p) => acc + p.valor, 0),
-    atrasado: pagamentos
-      .filter((p) => p.status === "atrasado")
-      .reduce((acc, p) => acc + p.valor, 0),
-    estornado: pagamentos
-      .filter((p) => p.status === "estornado")
       .reduce((acc, p) => acc + p.valor, 0),
     cancelado: pagamentos
       .filter((p) => p.status === "cancelado")
@@ -286,23 +292,11 @@ export default function PagamentosPage() {
           icone: <Clock className="h-4 w-4" />,
           texto: "Pendente",
         };
-      case "estornado":
-        return {
-          cor: "bg-purple-100 text-purple-800",
-          icone: <ArrowUpDown className="h-4 w-4" />,
-          texto: "Estornado",
-        };
       case "cancelado":
         return {
           cor: "bg-red-100 text-red-800",
           icone: <XCircle className="h-4 w-4" />,
           texto: "Cancelado",
-        };
-      case "atrasado":
-        return {
-          cor: "bg-orange-100 text-orange-800",
-          icone: <AlertCircle className="h-4 w-4" />,
-          texto: "Atrasado",
         };
     }
   };
@@ -323,23 +317,16 @@ export default function PagamentosPage() {
 
   const handleAprovarPagamento = (id: string) => {
     setPagamentos(
-      pagamentos.map((p) => (p.id === id ? { ...p, status: "pago" } : p))
+      pagamentos.map((p) => (p.id === id ? { ...p, status: "pago" } : p)),
     );
     toast.success("Pagamento aprovado!");
   };
 
   const handleCancelarPagamento = (id: string) => {
     setPagamentos(
-      pagamentos.map((p) => (p.id === id ? { ...p, status: "cancelado" } : p))
+      pagamentos.map((p) => (p.id === id ? { ...p, status: "cancelado" } : p)),
     );
     toast.success("Pagamento cancelado!");
-  };
-
-  const handleEstornarPagamento = (id: string) => {
-    setPagamentos(
-      pagamentos.map((p) => (p.id === id ? { ...p, status: "estornado" } : p))
-    );
-    toast.success("Pagamento estornado!");
   };
 
   const ModalDetalhesPagamento = ({
@@ -574,18 +561,6 @@ export default function PagamentosPage() {
                   </button>
                 </>
               )}
-              {pagamento.status === "pago" && (
-                <button
-                  onClick={() => {
-                    handleEstornarPagamento(pagamento.id);
-                    onClose();
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                >
-                  <ArrowUpDown className="h-4 w-4" />
-                  Estornar Pagamento
-                </button>
-              )}
               <button
                 onClick={onClose}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -690,12 +665,6 @@ export default function PagamentosPage() {
 
         <div className="bg-white rounded-xl shadow p-4">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-600">Atrasados</div>
-              <div className="text-2xl font-bold">
-                Kz {estatisticas.atrasado.toLocaleString()}
-              </div>
-            </div>
             <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
               <AlertCircle className="h-6 w-6 text-orange-600" />
             </div>
@@ -708,12 +677,6 @@ export default function PagamentosPage() {
 
         <div className="bg-white rounded-xl shadow p-4">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-600">Estornados</div>
-              <div className="text-2xl font-bold">
-                Kz {estatisticas.estornado.toLocaleString()}
-              </div>
-            </div>
             <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <ArrowUpDown className="h-6 w-6 text-purple-600" />
             </div>
@@ -764,12 +727,12 @@ export default function PagamentosPage() {
                       metodo.nome === "Cartão de Crédito"
                         ? "bg-blue-100"
                         : metodo.nome === "PIX"
-                        ? "bg-green-100"
-                        : metodo.nome === "Boleto"
-                        ? "bg-yellow-100"
-                        : metodo.nome === "Cartão de Débito"
-                        ? "bg-purple-100"
-                        : "bg-gray-100"
+                          ? "bg-green-100"
+                          : metodo.nome === "Boleto"
+                            ? "bg-yellow-100"
+                            : metodo.nome === "Cartão de Débito"
+                              ? "bg-purple-100"
+                              : "bg-gray-100"
                     }`}
                   >
                     <CreditCard
@@ -777,12 +740,12 @@ export default function PagamentosPage() {
                         metodo.nome === "Cartão de Crédito"
                           ? "text-blue-600"
                           : metodo.nome === "PIX"
-                          ? "text-green-600"
-                          : metodo.nome === "Boleto"
-                          ? "text-yellow-600"
-                          : metodo.nome === "Cartão de Débito"
-                          ? "text-purple-600"
-                          : "text-gray-600"
+                            ? "text-green-600"
+                            : metodo.nome === "Boleto"
+                              ? "text-yellow-600"
+                              : metodo.nome === "Cartão de Débito"
+                                ? "text-purple-600"
+                                : "text-gray-600"
                       }`}
                     />
                   </div>
@@ -803,12 +766,12 @@ export default function PagamentosPage() {
                     metodo.nome === "Cartão de Crédito"
                       ? "bg-blue-500"
                       : metodo.nome === "PIX"
-                      ? "bg-green-500"
-                      : metodo.nome === "Boleto"
-                      ? "bg-yellow-500"
-                      : metodo.nome === "Cartão de Débito"
-                      ? "bg-purple-500"
-                      : "bg-gray-500"
+                        ? "bg-green-500"
+                        : metodo.nome === "Boleto"
+                          ? "bg-yellow-500"
+                          : metodo.nome === "Cartão de Débito"
+                            ? "bg-purple-500"
+                            : "bg-gray-500"
                   }`}
                   style={{ width: `${metodo.porcentagem}%` }}
                 />

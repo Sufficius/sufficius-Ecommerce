@@ -25,7 +25,7 @@ import {
   Package,
   DollarSign,
   Eye as EyeIcon,
-  EyeOff
+  EyeOff,
 } from "lucide-react";
 import { api } from "@/modules/services/api/axios";
 import { useAuthStore } from "@/modules/services/store/auth-store";
@@ -38,7 +38,7 @@ interface Usuario {
   email: string;
   telefone?: string;
   tipo: string;
-  status?: string;
+  status: "ATIVO" | "INATIVO";
   criadoEm: string;
   atualizadoEm: string;
   foto?: string;
@@ -55,7 +55,7 @@ interface Paginacao {
 }
 
 interface ModalData {
-  type: 'create' | 'edit' | 'view' | 'delete' | 'resetPassword' | null;
+  type: "create" | "edit" | "view" | "delete" | "resetPassword" | null;
   usuario?: Usuario;
 }
 
@@ -65,38 +65,50 @@ export default function AdminUsuarios() {
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [itensPorPagina] = useState(10);
-  
+
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [paginacao, setPaginacao] = useState<Paginacao>({
     total: 0,
     page: 1,
     limit: 10,
-    totalPages: 1
+    totalPages: 1,
   });
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalData>({ type: null });
-  
+
   const [formData, setFormData] = useState({
-    nome: '',
-    email: '',
-    senha: '',
-    telefone: '',
-    tipo: 'CLIENTE',
-    dataNascimento: '',
-    endereco: ''
+    nome: "",
+    email: "",
+    senha: "",
+    telefone: "",
+    tipo: "CLIENTE",
+    dataNascimento: "",
+    endereco: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
-  
+
   const token = useAuthStore((state) => state.token);
 
   const tiposUsuario = {
-    ADMIN: { label: "Administrador", cor: "bg-red-100 text-red-800", icon: <Shield className="h-4 w-4" /> },
-    OPERADOR: { label: "Operador", cor: "bg-blue-100 text-blue-800", icon: <UserCheck className="h-4 w-4" /> },
-    CLIENTE: { label: "Cliente", cor: "bg-green-100 text-green-800", icon: <UserCheck className="h-4 w-4" /> }
+    ADMIN: {
+      label: "Administrador",
+      cor: "bg-red-100 text-red-800",
+      icon: <Shield className="h-4 w-4" />,
+    },
+    OPERADOR: {
+      label: "Operador",
+      cor: "bg-blue-100 text-blue-800",
+      icon: <UserCheck className="h-4 w-4" />,
+    },
+    CLIENTE: {
+      label: "Cliente",
+      cor: "bg-green-100 text-green-800",
+      icon: <UserCheck className="h-4 w-4" />,
+    },
   };
 
   const fetchUsuarios = async () => {
@@ -109,13 +121,13 @@ export default function AdminUsuarios() {
         limit: itensPorPagina.toString(),
       });
 
-      if (busca) params.append('busca', busca);
-      if (filtroTipo !== 'todos') params.append('tipo', filtroTipo);
+      if (busca) params.append("busca", busca);
+      if (filtroTipo !== "todos") params.append("tipo", filtroTipo);
 
       const response = await api.get(`/usuarios?${params.toString()}`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.data.success) {
@@ -123,15 +135,20 @@ export default function AdminUsuarios() {
         setPaginacao({
           total: response.data.pagination?.total || response.data.data.length,
           page: response.data.pagination?.page || paginaAtual,
-          limit:response.data.pagination?.limit || itensPorPagina,
-          totalPages: response.data.pagination?.totalPages || Math.ceil((response.data.pagination?.total || response.data.data.length) / itensPorPagina)
+          limit: response.data.pagination?.limit || itensPorPagina,
+          totalPages:
+            response.data.pagination?.totalPages ||
+            Math.ceil(
+              (response.data.pagination?.total || response.data.data.length) /
+                itensPorPagina,
+            ),
         });
       } else {
-        throw new Error('Erro ao carregar usuários');
+        throw new Error("Erro ao carregar usuários");
       }
     } catch (err: any) {
-      console.error('Erro ao buscar usuários:', err);
-      setError(err.response?.data?.error || 'Erro ao carregar usuários');
+      console.error("Erro ao buscar usuários:", err);
+      setError(err.response?.data?.error || "Erro ao carregar usuários");
     } finally {
       setLoading(false);
     }
@@ -139,7 +156,7 @@ export default function AdminUsuarios() {
 
   useEffect(() => {
     if (!token) {
-      setError('Faça login para acessar os usuários');
+      setError("Faça login para acessar os usuários");
       setLoading(false);
       return;
     }
@@ -150,37 +167,39 @@ export default function AdminUsuarios() {
   const calcularEstatisticas = () => {
     return {
       totalUsuarios: usuarios.length,
-      totalClientes: usuarios.filter(u => u.tipo === 'CLIENTE').length,
-      totalAdmins: usuarios.filter(u => u.tipo === 'ADMIN').length,
-      totalAtivos: usuarios.filter(u => !u.status || u.status === 'ativo').length,
-      totalInativos: usuarios.filter(u => u.status === 'inativo').length
+      totalClientes: usuarios.filter((u) => u.tipo === "CLIENTE").length,
+      totalAdmins: usuarios.filter((u) => u.tipo === "ADMIN").length,
+      totalAtivos: usuarios.filter((u) => !u.status || u.status === "ATIVO")
+        .length,
+      totalInativos: usuarios.filter((u) => u.status === "INATIVO").length,
     };
   };
 
+
   const estatisticas = calcularEstatisticas();
 
-  const openModal = (type: ModalData['type'], usuario?: Usuario) => {
-    if (usuario && type !== 'create') {
-      if (type === 'edit') {
+  const openModal = (type: ModalData["type"], usuario?: Usuario) => {
+    if (usuario && type !== "create") {
+      if (type === "edit") {
         setFormData({
           nome: usuario.nome,
           email: usuario.email,
-          senha: '',
-          telefone: usuario.telefone || '',
+          senha: "",
+          telefone: usuario.telefone || "",
           tipo: usuario.tipo,
-          dataNascimento: usuario.dataNascimento || '',
-          endereco: usuario.endereco || ''
+          dataNascimento: usuario.dataNascimento || "",
+          endereco: usuario.endereco || "",
         });
       }
-    } else if (type === 'create') {
+    } else if (type === "create") {
       setFormData({
-        nome: '',
-        email: '',
-        senha: '',
-        telefone: '',
-        tipo: 'CLIENTE',
-        dataNascimento: '',
-        endereco: ''
+        nome: "",
+        email: "",
+        senha: "",
+        telefone: "",
+        tipo: "CLIENTE",
+        dataNascimento: "",
+        endereco: "",
       });
     }
     setModal({ type, usuario });
@@ -192,23 +211,23 @@ export default function AdminUsuarios() {
   };
 
   const handleNovoUsuario = () => {
-    openModal('create');
+    openModal("create");
   };
 
   const handleEditarUsuario = (usuario: Usuario) => {
-    openModal('edit', usuario);
+    openModal("edit", usuario);
   };
 
   const handleVisualizarUsuario = (usuario: Usuario) => {
-    openModal('view', usuario);
+    openModal("view", usuario);
   };
 
   const handleExcluirUsuario = (usuario: Usuario) => {
-    openModal('delete', usuario);
+    openModal("delete", usuario);
   };
 
   const handleResetarSenha = (usuario: Usuario) => {
-    openModal('resetPassword', usuario);
+    openModal("resetPassword", usuario);
   };
 
   const confirmarExclusao = async () => {
@@ -218,17 +237,17 @@ export default function AdminUsuarios() {
       setActionLoading(`excluir-${modal.usuario.id}`);
       const response = await api.delete(`/usuarios/${modal.usuario.id}`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.data.success) {
-        toast.success('Usuário excluído com sucesso!');
+        toast.success("Usuário excluído com sucesso!");
         fetchUsuarios();
         closeModal();
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Erro ao excluir usuário');
+      toast.error(err.response?.data?.message || "Erro ao excluir usuário");
     } finally {
       setActionLoading(null);
     }
@@ -239,11 +258,15 @@ export default function AdminUsuarios() {
 
     try {
       setActionLoading(`senha-${modal.usuario.id}`);
-      const response = await api.post(`/usuarios/${modal.usuario.id}/resetar-senha`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await api.post(
+        `/usuarios/${modal.usuario.id}/resetar-senha`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (response.data.success) {
         const novaSenha = response.data.data.novaSenha;
@@ -251,64 +274,81 @@ export default function AdminUsuarios() {
         closeModal();
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Erro ao resetar senha');
+      toast.error(err.response?.data?.message || "Erro ao resetar senha");
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleAlterarStatus = async (id: string, nome: string, statusAtual: string) => {
-    const novoStatus = statusAtual === 'ativo' ? 'inativo' : 'ativo';
-    if (!confirm(`Alterar status do usuário "${nome}" para ${novoStatus}?`)) {
-      return;
-    }
+  const handleAlterarStatus = async (id: string, statusAtual: string) => {
+    const novoStatus =
+      statusAtual === "ATIVO"
+        ? "Ativo"
+        : statusAtual === "INATIVO"
+          ? "Inativo"
+          : statusAtual;
 
     try {
-      setActionLoading(`status-${id}`);
-      const response = await api.put(`/usuarios/${id}/status`, {
-        status: novoStatus
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      setActionLoading(`${id}`);
+      const response = await api.put(
+        `/usuarios/${id}/status`,
+        {
+          status: novoStatus,
+        },
+        
+      );
+
 
       if (response.data.success) {
-        toast.success('Status alterado com sucesso!');
+        toast.success("Status alterado com sucesso!");
         fetchUsuarios();
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Erro ao alterar status');
+      toast.error(err.response?.data?.message || "Erro ao alterar status");
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleAlterarTipo = async (id: string, nome: string, tipoAtual: string) => {
-    const tipos = ['CLIENTE', 'OPERADOR', 'ADMIN'];
+  const handleAlterarTipo = async (
+    id: string,
+    nome: string,
+    tipoAtual: string,
+  ) => {
+    const tipos = ["CLIENTE", "OPERADOR", "ADMIN"];
     const currentIndex = tipos.indexOf(tipoAtual);
     const novoTipo = tipos[(currentIndex + 1) % tipos.length];
-    
-    if (!confirm(`Alterar tipo do usuário "${nome}" para ${tiposUsuario[novoTipo as keyof typeof tiposUsuario]?.label || novoTipo}?`)) {
+
+    if (
+      !confirm(
+        `Alterar tipo do usuário "${nome}" para ${tiposUsuario[novoTipo as keyof typeof tiposUsuario]?.label || novoTipo}?`,
+      )
+    ) {
       return;
     }
 
     try {
       setActionLoading(`tipo-${id}`);
-      const response = await api.put(`/usuarios/${id}/tipo`, {
-        tipo: novoTipo
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await api.put(
+        `/usuarios/${id}/tipo`,
+        {
+          tipo: novoTipo,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (response.data.success) {
-        toast.success('Tipo de usuário alterado com sucesso!');
+        toast.success("Tipo de usuário alterado com sucesso!");
         fetchUsuarios();
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Erro ao alterar tipo de usuário');
+      toast.error(
+        err.response?.data?.message || "Erro ao alterar tipo de usuário",
+      );
     } finally {
       setActionLoading(null);
     }
@@ -319,19 +359,19 @@ export default function AdminUsuarios() {
       setFormLoading(true);
 
       if (!formData.nome || !formData.email || !formData.tipo) {
-        toast.error('Nome, e-mail e tipo são obrigatórios');
+        toast.error("Nome, e-mail e tipo são obrigatórios");
         setFormLoading(false);
         return;
       }
 
-      if (modal.type === 'create' && !formData.senha) {
-        toast.error('Senha é obrigatória para novo usuário');
+      if (modal.type === "create" && !formData.senha) {
+        toast.error("Senha é obrigatória para novo usuário");
         setFormLoading(false);
         return;
       }
 
-      if (modal.type === 'create' && formData.senha.length < 6) {
-        toast.error('Senha deve ter pelo menos 6 caracteres');
+      if (modal.type === "create" && formData.senha.length < 6) {
+        toast.error("Senha deve ter pelo menos 6 caracteres");
         setFormLoading(false);
         return;
       }
@@ -342,42 +382,45 @@ export default function AdminUsuarios() {
         telefone: formData.telefone || undefined,
         tipo: formData.tipo,
         dataNascimento: formData.dataNascimento || undefined,
-        endereco: formData.endereco || undefined
+        endereco: formData.endereco || undefined,
       };
 
-      if (modal.type === 'create') {
+      if (modal.type === "create") {
         usuarioData.senha = formData.senha;
-      } else if (modal.type === 'edit' && formData.senha) {
+      } else if (modal.type === "edit" && formData.senha) {
         usuarioData.senha = formData.senha;
       }
 
       let response;
-      if (modal.type === 'create') {
-        response = await api.post('/usuarios', usuarioData, {
+      if (modal.type === "create") {
+        response = await api.post("/usuarios", usuarioData, {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
-      } else if (modal.type === 'edit' && modal.usuario) {
+      } else if (modal.type === "edit" && modal.usuario) {
         response = await api.put(`/usuarios/${modal.usuario.id}`, usuarioData, {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
       }
 
       if (response?.data.success) {
         toast.success(
-          modal.type === 'create' 
-            ? 'Usuário criado com sucesso!' 
-            : 'Usuário atualizado com sucesso!'
+          modal.type === "create"
+            ? "Usuário criado com sucesso!"
+            : "Usuário atualizado com sucesso!",
         );
         fetchUsuarios();
         closeModal();
       }
     } catch (err: any) {
-      console.error('Erro detalhado:', err);
-      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Erro ao salvar usuário';
+      console.error("Erro detalhado:", err);
+      const errorMessage =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "Erro ao salvar usuário";
       toast.error(errorMessage);
     } finally {
       setFormLoading(false);
@@ -394,7 +437,10 @@ export default function AdminUsuarios() {
 
   const getTotalGasto = (usuario: Usuario) => {
     if (!usuario.pedidos) return 0;
-    return usuario.pedidos.reduce((total, pedido) => total + (pedido.total || 0), 0);
+    return usuario.pedidos.reduce(
+      (total, pedido) => total + (pedido.total || 0),
+      0,
+    );
   };
 
   if (loading && usuarios.length === 0) {
@@ -415,17 +461,27 @@ export default function AdminUsuarios() {
           <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b">
               <div className="flex items-center gap-3">
-                {modal.type === 'create' && <UserPlus className="h-6 w-6 text-[#D4AF37]" />}
-                {modal.type === 'edit' && <Edit className="h-6 w-6 text-[#D4AF37]" />}
-                {modal.type === 'view' && <Eye className="h-6 w-6 text-[#D4AF37]" />}
-                {modal.type === 'delete' && <Trash2 className="h-6 w-6 text-red-600" />}
-                {modal.type === 'resetPassword' && <Key className="h-6 w-6 text-[#D4AF37]" />}
+                {modal.type === "create" && (
+                  <UserPlus className="h-6 w-6 text-[#D4AF37]" />
+                )}
+                {modal.type === "edit" && (
+                  <Edit className="h-6 w-6 text-[#D4AF37]" />
+                )}
+                {modal.type === "view" && (
+                  <Eye className="h-6 w-6 text-[#D4AF37]" />
+                )}
+                {modal.type === "delete" && (
+                  <Trash2 className="h-6 w-6 text-red-600" />
+                )}
+                {modal.type === "resetPassword" && (
+                  <Key className="h-6 w-6 text-[#D4AF37]" />
+                )}
                 <h2 className="text-xl font-bold">
-                  {modal.type === 'create' && 'Novo Usuário'}
-                  {modal.type === 'edit' && 'Editar Usuário'}
-                  {modal.type === 'view' && 'Detalhes do Usuário'}
-                  {modal.type === 'delete' && 'Excluir Usuário'}
-                  {modal.type === 'resetPassword' && 'Resetar Senha'}
+                  {modal.type === "create" && "Novo Usuário"}
+                  {modal.type === "edit" && "Editar Usuário"}
+                  {modal.type === "view" && "Detalhes do Usuário"}
+                  {modal.type === "delete" && "Excluir Usuário"}
+                  {modal.type === "resetPassword" && "Resetar Senha"}
                 </h2>
               </div>
               <button
@@ -437,7 +493,7 @@ export default function AdminUsuarios() {
             </div>
 
             <div className="p-6">
-              {modal.type === 'view' && modal.usuario && (
+              {modal.type === "view" && modal.usuario && (
                 <div className="space-y-6">
                   <div className="flex items-center gap-4">
                     {modal.usuario.foto ? (
@@ -454,12 +510,26 @@ export default function AdminUsuarios() {
                       </div>
                     )}
                     <div>
-                      <h3 className="text-xl font-bold">{modal.usuario.nome}</h3>
-                      <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium mt-2 ${
-                        tiposUsuario[modal.usuario.tipo as keyof typeof tiposUsuario]?.cor || 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {tiposUsuario[modal.usuario.tipo as keyof typeof tiposUsuario]?.icon}
-                        {tiposUsuario[modal.usuario.tipo as keyof typeof tiposUsuario]?.label}
+                      <h3 className="text-xl font-bold">
+                        {modal.usuario.nome}
+                      </h3>
+                      <div
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium mt-2 ${
+                          tiposUsuario[
+                            modal.usuario.tipo as keyof typeof tiposUsuario
+                          ]?.cor || "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {
+                          tiposUsuario[
+                            modal.usuario.tipo as keyof typeof tiposUsuario
+                          ]?.icon
+                        }
+                        {
+                          tiposUsuario[
+                            modal.usuario.tipo as keyof typeof tiposUsuario
+                          ]?.label
+                        }
                       </div>
                     </div>
                   </div>
@@ -467,16 +537,20 @@ export default function AdminUsuarios() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-4">
                       <div>
-                        <label className="text-sm font-medium text-gray-600">E-mail</label>
+                        <label className="text-sm font-medium text-gray-600">
+                          E-mail
+                        </label>
                         <div className="flex items-center gap-2 mt-1">
                           <Mail className="h-4 w-4 text-gray-400" />
                           <span>{modal.usuario.email}</span>
                         </div>
                       </div>
-                      
+
                       {modal.usuario.telefone && (
                         <div>
-                          <label className="text-sm font-medium text-gray-600">Telefone</label>
+                          <label className="text-sm font-medium text-gray-600">
+                            Telefone
+                          </label>
                           <div className="flex items-center gap-2 mt-1">
                             <Phone className="h-4 w-4 text-gray-400" />
                             <span>{modal.usuario.telefone}</span>
@@ -487,28 +561,44 @@ export default function AdminUsuarios() {
 
                     <div className="space-y-4">
                       <div>
-                        <label className="text-sm font-medium text-gray-600">Status</label>
+                        <label className="text-sm font-medium text-gray-600">
+                          Status
+                        </label>
                         <div className="mt-1">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            modal.usuario.status === 'ATIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {modal.usuario.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-medium ${
+                              modal.usuario.status === "ATIVO"
+                                ? "bg-green-100 text-green-800"
+                                : modal.usuario.status === "INATIVO"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {modal.usuario.status === "ATIVO"
+                              ? "Ativo"
+                              : "Inativo"}
                           </span>
                         </div>
                       </div>
-                      
+
                       <div>
-                        <label className="text-sm font-medium text-gray-600">Data de Cadastro</label>
+                        <label className="text-sm font-medium text-gray-600">
+                          Data de Cadastro
+                        </label>
                         <div className="flex items-center gap-2 mt-1">
                           <Calendar className="h-4 w-4 text-gray-400" />
                           <span>{formatDate(modal.usuario.criadoEm)}</span>
                         </div>
                       </div>
-                      
+
                       {modal.usuario.dataNascimento && (
                         <div>
-                          <label className="text-sm font-medium text-gray-600">Data de Nascimento</label>
-                          <div className="mt-1">{formatDate(modal.usuario.dataNascimento)}</div>
+                          <label className="text-sm font-medium text-gray-600">
+                            Data de Nascimento
+                          </label>
+                          <div className="mt-1">
+                            {formatDate(modal.usuario.dataNascimento)}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -516,7 +606,9 @@ export default function AdminUsuarios() {
 
                   {modal.usuario.endereco && (
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Endereço</label>
+                      <label className="text-sm font-medium text-gray-600">
+                        Endereço
+                      </label>
                       <div className="mt-1 p-3 bg-gray-50 rounded-lg">
                         {modal.usuario.endereco}
                       </div>
@@ -529,21 +621,31 @@ export default function AdminUsuarios() {
                       <div className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center gap-2">
                           <Package className="h-5 w-5 text-gray-600" />
-                          <span className="text-sm text-gray-600">Total de Compras</span>
+                          <span className="text-sm text-gray-600">
+                            Total de Compras
+                          </span>
                         </div>
-                        <div className="text-2xl font-bold mt-2">{getTotalCompras(modal.usuario)}</div>
+                        <div className="text-2xl font-bold mt-2">
+                          {getTotalCompras(modal.usuario)}
+                        </div>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center gap-2">
                           <DollarSign className="h-5 w-5 text-gray-600" />
-                          <span className="text-sm text-gray-600">Total Gasto</span>
+                          <span className="text-sm text-gray-600">
+                            Total Gasto
+                          </span>
                         </div>
-                        <div className="text-2xl font-bold mt-2">{formatCurrency(getTotalGasto(modal.usuario))}</div>
+                        <div className="text-2xl font-bold mt-2">
+                          {formatCurrency(getTotalGasto(modal.usuario))}
+                        </div>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center gap-2">
                           <Info className="h-5 w-5 text-gray-600" />
-                          <span className="text-sm text-gray-600">Membro desde</span>
+                          <span className="text-sm text-gray-600">
+                            Membro desde
+                          </span>
                         </div>
                         <div className="text-lg font-medium mt-2">
                           {formatDate(modal.usuario.criadoEm)}
@@ -554,7 +656,7 @@ export default function AdminUsuarios() {
                 </div>
               )}
 
-              {(modal.type === 'create' || modal.type === 'edit') && (
+              {(modal.type === "create" || modal.type === "edit") && (
                 <div className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -564,13 +666,15 @@ export default function AdminUsuarios() {
                       <input
                         type="text"
                         value={formData.nome}
-                        onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, nome: e.target.value })
+                        }
                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                         placeholder="Digite o nome completo"
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         E-mail *
@@ -578,7 +682,9 @@ export default function AdminUsuarios() {
                       <input
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                         placeholder="exemplo@email.com"
                         required
@@ -589,16 +695,22 @@ export default function AdminUsuarios() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Senha {modal.type === 'create' ? '*' : '(opcional)'}
+                        Senha {modal.type === "create" ? "*" : "(opcional)"}
                       </label>
                       <div className="relative">
                         <input
-                          type={showPassword ? 'text' : 'password'}
+                          type={showPassword ? "text" : "password"}
                           value={formData.senha}
-                          onChange={(e) => setFormData({...formData, senha: e.target.value})} 
+                          onChange={(e) =>
+                            setFormData({ ...formData, senha: e.target.value })
+                          }
                           className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                          placeholder={modal.type === 'create' ? 'Digite a senha (mínimo 6 caracteres)' : 'Deixe em branco para manter a senha atual'}
-                          required={modal.type === 'create'}
+                          placeholder={
+                            modal.type === "create"
+                              ? "Digite a senha (mínimo 6 caracteres)"
+                              : "Deixe em branco para manter a senha atual"
+                          }
+                          required={modal.type === "create"}
                         />
                         <button
                           type="button"
@@ -612,11 +724,13 @@ export default function AdminUsuarios() {
                           )}
                         </button>
                       </div>
-                      {modal.type === 'create' && (
-                        <p className="text-xs text-gray-500 mt-1">A senha deve ter pelo menos 6 caracteres.</p>
+                      {modal.type === "create" && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          A senha deve ter pelo menos 6 caracteres.
+                        </p>
                       )}
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Telefone
@@ -624,7 +738,9 @@ export default function AdminUsuarios() {
                       <input
                         type="tel"
                         value={formData.telefone}
-                        onChange={(e) => setFormData({...formData, telefone: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, telefone: e.target.value })
+                        }
                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                         placeholder="(11) 99999-9999"
                       />
@@ -638,7 +754,9 @@ export default function AdminUsuarios() {
                       </label>
                       <select
                         value={formData.tipo}
-                        onChange={(e) => setFormData({...formData, tipo: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, tipo: e.target.value })
+                        }
                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                         required
                       >
@@ -649,7 +767,7 @@ export default function AdminUsuarios() {
                         ))}
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Data de Nascimento
@@ -657,7 +775,12 @@ export default function AdminUsuarios() {
                       <input
                         type="date"
                         value={formData.dataNascimento}
-                        onChange={(e) => setFormData({...formData, dataNascimento: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            dataNascimento: e.target.value,
+                          })
+                        }
                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                       />
                     </div>
@@ -669,7 +792,9 @@ export default function AdminUsuarios() {
                     </label>
                     <textarea
                       value={formData.endereco}
-                      onChange={(e) => setFormData({...formData, endereco: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, endereco: e.target.value })
+                      }
                       rows={3}
                       className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                       placeholder="Digite o endereço completo"
@@ -678,7 +803,7 @@ export default function AdminUsuarios() {
                 </div>
               )}
 
-              {modal.type === 'delete' && modal.usuario && (
+              {modal.type === "delete" && modal.usuario && (
                 <div className="text-center">
                   <Trash2 className="h-16 w-16 text-red-600 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -693,7 +818,7 @@ export default function AdminUsuarios() {
                 </div>
               )}
 
-              {modal.type === 'resetPassword' && modal.usuario && (
+              {modal.type === "resetPassword" && modal.usuario && (
                 <div className="text-center">
                   <Key className="h-16 w-16 text-[#D4AF37] mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -716,18 +841,20 @@ export default function AdminUsuarios() {
               >
                 Cancelar
               </button>
-              
-              {modal.type === 'view' && (
+
+              {modal.type === "view" && (
                 <button
-                  onClick={() => modal.usuario && handleEditarUsuario(modal.usuario)}
+                  onClick={() =>
+                    modal.usuario && handleEditarUsuario(modal.usuario)
+                  }
                   className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-2 rounded-lg hover:bg-[#c19b2c]"
                 >
                   <Edit className="h-4 w-4" />
                   Editar Usuário
                 </button>
               )}
-              
-              {(modal.type === 'create' || modal.type === 'edit') && (
+
+              {(modal.type === "create" || modal.type === "edit") && (
                 <button
                   onClick={salvarUsuario}
                   disabled={formLoading}
@@ -735,16 +862,20 @@ export default function AdminUsuarios() {
                 >
                   {formLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : modal.type === 'create' ? (
+                  ) : modal.type === "create" ? (
                     <UserPlus className="h-4 w-4" />
                   ) : (
                     <Edit className="h-4 w-4" />
                   )}
-                  {formLoading ? 'Salvando...' : modal.type === 'create' ? 'Criar Usuário' : 'Salvar Alterações'}
+                  {formLoading
+                    ? "Salvando..."
+                    : modal.type === "create"
+                      ? "Criar Usuário"
+                      : "Salvar Alterações"}
                 </button>
               )}
-              
-              {modal.type === 'delete' && (
+
+              {modal.type === "delete" && (
                 <button
                   onClick={confirmarExclusao}
                   disabled={actionLoading === `excluir-${modal.usuario?.id}`}
@@ -755,11 +886,13 @@ export default function AdminUsuarios() {
                   ) : (
                     <Trash2 className="h-4 w-4" />
                   )}
-                  {actionLoading === `excluir-${modal.usuario?.id}` ? 'Excluindo...' : 'Excluir Usuário'}
+                  {actionLoading === `excluir-${modal.usuario?.id}`
+                    ? "Excluindo..."
+                    : "Excluir Usuário"}
                 </button>
               )}
-              
-              {modal.type === 'resetPassword' && (
+
+              {modal.type === "resetPassword" && (
                 <button
                   onClick={confirmarResetSenha}
                   disabled={actionLoading === `senha-${modal.usuario?.id}`}
@@ -770,7 +903,9 @@ export default function AdminUsuarios() {
                   ) : (
                     <Key className="h-4 w-4" />
                   )}
-                  {actionLoading === `senha-${modal.usuario?.id}` ? 'Resetando...' : 'Resetar Senha'}
+                  {actionLoading === `senha-${modal.usuario?.id}`
+                    ? "Resetando..."
+                    : "Resetar Senha"}
                 </button>
               )}
             </div>
@@ -780,10 +915,12 @@ export default function AdminUsuarios() {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestão de Usuários</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Gestão de Usuários
+          </h1>
           <p className="text-gray-600">Gerencie usuários e permissões</p>
         </div>
-        
+
         <button
           onClick={handleNovoUsuario}
           className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-3 rounded-lg hover:bg-[#c19b2c] transition"
@@ -912,11 +1049,13 @@ export default function AdminUsuarios() {
         ) : usuarios.length === 0 ? (
           <div className="text-center p-8">
             <UserCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum usuário encontrado</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Nenhum usuário encontrado
+            </h3>
             <p className="text-gray-600 mb-4">
-              {busca || filtroTipo !== 'todos' || filtroStatus !== 'todos'
-                ? 'Tente ajustar seus filtros de busca'
-                : 'Comece adicionando seu primeiro usuário!'}
+              {busca || filtroTipo !== "todos" || filtroStatus !== "todos"
+                ? "Tente ajustar seus filtros de busca"
+                : "Comece adicionando seu primeiro usuário!"}
             </p>
             <button
               onClick={handleNovoUsuario}
@@ -931,17 +1070,31 @@ export default function AdminUsuarios() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">Usuário</th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">Contato</th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">Tipo</th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">Status</th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">Cadastro</th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">Compras</th>
-                    <th className="text-left p-4 text-sm font-medium text-gray-700">Ações</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">
+                      Usuário
+                    </th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">
+                      Contato
+                    </th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">
+                      Tipo
+                    </th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">
+                      Status
+                    </th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">
+                      Cadastro
+                    </th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">
+                      Compras
+                    </th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-700">
+                      Ações
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {usuarios.map(usuario => (
+                  {usuarios.map((usuario) => (
                     <tr key={usuario.id} className="border-b hover:bg-gray-50">
                       <td className="p-4">
                         <div className="flex items-center">
@@ -960,7 +1113,9 @@ export default function AdminUsuarios() {
                           )}
                           <div>
                             <div className="font-medium">{usuario.nome}</div>
-                            <div className="text-sm text-gray-500">ID: {usuario.id.slice(0, 8)}...</div>
+                            <div className="text-sm text-gray-500">
+                              ID: {usuario.id.slice(0, 8)}...
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -969,48 +1124,74 @@ export default function AdminUsuarios() {
                           <div className="flex items-center gap-1">
                             <Mail className="h-3 w-3 text-gray-400" />
                             <span className="text-sm">{usuario.email}</span>
-                         
                           </div>
                           {usuario.telefone && (
                             <div className="flex items-center gap-1">
                               <Phone className="h-3 w-3 text-gray-400" />
-                              <span className="text-sm">{usuario.telefone}</span>
+                              <span className="text-sm">
+                                {usuario.telefone}
+                              </span>
                             </div>
                           )}
                         </div>
                       </td>
                       <td className="p-4">
                         <button
-                          onClick={() => handleAlterarTipo(usuario.id, usuario.nome, usuario.tipo)}
+                          onClick={() =>
+                            handleAlterarTipo(
+                              usuario.id,
+                              usuario.nome,
+                              usuario.tipo,
+                            )
+                          }
                           disabled={actionLoading === `tipo-${usuario.id}`}
                           className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            tiposUsuario[usuario.tipo as keyof typeof tiposUsuario]?.cor || 'bg-gray-100 text-gray-800'
+                            tiposUsuario[
+                              usuario.tipo as keyof typeof tiposUsuario
+                            ]?.cor || "bg-gray-100 text-gray-800"
                           } flex items-center gap-1 hover:opacity-80 disabled:opacity-50`}
                         >
                           {actionLoading === `tipo-${usuario.id}` ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
-                            tiposUsuario[usuario.tipo as keyof typeof tiposUsuario]?.icon || <UserCheck className="h-4 w-4" />
+                            tiposUsuario[
+                              usuario.tipo as keyof typeof tiposUsuario
+                            ]?.icon || <UserCheck className="h-4 w-4" />
                           )}
-                          {tiposUsuario[usuario.tipo as keyof typeof tiposUsuario]?.label || usuario.tipo}
+                          {tiposUsuario[
+                            usuario.tipo as keyof typeof tiposUsuario
+                          ]?.label || usuario.tipo}
                         </button>
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            usuario.status === 'ATIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {usuario.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-medium ${
+                              usuario.status === "ATIVO"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {usuario.status === "ATIVO" ? "Ativo" : "Inativo"}
                           </span>
                           <button
-                            onClick={() => handleAlterarStatus(usuario.id, usuario.nome, usuario.status || 'ATIVO')}
+                            onClick={() =>
+                              handleAlterarStatus(
+                                usuario.id,
+                                usuario.status || "ATIVO",
+                              )
+                            }
                             disabled={actionLoading === `status-${usuario.id}`}
-                            className={`p-1 rounded ${usuario.status === 'ATIVO' ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'} disabled:opacity-50`}
-                            title={usuario.status === 'ATIVO' ? 'Desativar' : 'Ativar'}
+                            className={`p-1 rounded ${usuario.status === "ATIVO" ? "text-green-600 hover:bg-green-50" : "text-red-600 hover:bg-red-50"} disabled:opacity-50`}
+                            title={
+                              usuario.status === "ATIVO"
+                                ? "Desativar"
+                                : "Ativar"
+                            }
                           >
                             {actionLoading === `status-${usuario.id}` ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : usuario.status === 'ATIVO' ? (
+                            ) : usuario.status === "ATIVO" ? (
                               <UserX className="h-4 w-4" />
                             ) : (
                               <UserCheck className="h-4 w-4" />
@@ -1026,8 +1207,12 @@ export default function AdminUsuarios() {
                       </td>
                       <td className="p-4">
                         <div>
-                          <div className="font-medium">{getTotalCompras(usuario)} pedidos</div>
-                          <div className="text-sm text-gray-500">{formatCurrency(getTotalGasto(usuario))}</div>
+                          <div className="font-medium">
+                            {getTotalCompras(usuario)} pedidos
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {formatCurrency(getTotalGasto(usuario))}
+                          </div>
                         </div>
                       </td>
                       <td className="p-4">
@@ -1053,7 +1238,7 @@ export default function AdminUsuarios() {
                           >
                             <Key className="h-4 w-4" />
                           </button>
-                          {usuario.tipo !== 'ADMIN' && (
+                          {usuario.tipo !== "ADMIN" && (
                             <button
                               onClick={() => handleExcluirUsuario(usuario)}
                               className="p-1 text-red-600 hover:bg-red-50 rounded"
@@ -1077,46 +1262,55 @@ export default function AdminUsuarios() {
             {paginacao.totalPages > 1 && (
               <div className="flex items-center justify-between p-4 border-t">
                 <div className="text-sm text-gray-600">
-                  Mostrando {((paginaAtual - 1) * itensPorPagina) + 1}-{Math.min(paginaAtual * itensPorPagina, paginacao.total)} de {paginacao.total} usuários
+                  Mostrando {(paginaAtual - 1) * itensPorPagina + 1}-
+                  {Math.min(paginaAtual * itensPorPagina, paginacao.total)} de{" "}
+                  {paginacao.total} usuários
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
+                    onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
                     disabled={paginaAtual === 1}
                     className="p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  
-                  {Array.from({ length: Math.min(5, paginacao.totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (paginacao.totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (paginaAtual <= 3) {
-                      pageNum = i + 1;
-                    } else if (paginaAtual >= paginacao.totalPages - 2) {
-                      pageNum = paginacao.totalPages - 4 + i;
-                    } else {
-                      pageNum = paginaAtual - 2 + i;
-                    }
-                    
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setPaginaAtual(pageNum)}
-                        className={`w-8 h-8 flex items-center justify-center rounded ${
-                          paginaAtual === pageNum
-                            ? 'bg-[#D4AF37] text-white'
-                            : 'border hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                  
+
+                  {Array.from(
+                    { length: Math.min(5, paginacao.totalPages) },
+                    (_, i) => {
+                      let pageNum;
+                      if (paginacao.totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (paginaAtual <= 3) {
+                        pageNum = i + 1;
+                      } else if (paginaAtual >= paginacao.totalPages - 2) {
+                        pageNum = paginacao.totalPages - 4 + i;
+                      } else {
+                        pageNum = paginaAtual - 2 + i;
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setPaginaAtual(pageNum)}
+                          className={`w-8 h-8 flex items-center justify-center rounded ${
+                            paginaAtual === pageNum
+                              ? "bg-[#D4AF37] text-white"
+                              : "border hover:bg-gray-50"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    },
+                  )}
+
                   <button
-                    onClick={() => setPaginaAtual(p => Math.min(paginacao.totalPages, p + 1))}
+                    onClick={() =>
+                      setPaginaAtual((p) =>
+                        Math.min(paginacao.totalPages, p + 1),
+                      )
+                    }
                     disabled={paginaAtual === paginacao.totalPages}
                     className="p-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   >
