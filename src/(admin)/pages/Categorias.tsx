@@ -2,43 +2,38 @@
 
 import { useState } from "react";
 import { PieChart, ShoppingBag, Tag } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { categoriaRoutes } from "@/modules/services/api/routes/categorias";
+import { api } from "@/modules/services/api/axios";
 
-export default function CategoryChart() {
+export default function CategoryPage() {
   const [periodo, setPeriodo] = useState("mes");
-  
-  // Dados por categoria
-  const dadosCategorias: Record<string, Array<{ nome: string; valor: number; cor: string }>> = {
-    hoje: [
-      { nome: "Eletrônicos", valor: 18500, cor: "bg-blue-500" },
-      { nome: "Moda", valor: 12500, cor: "bg-pink-500" },
-      { nome: "Casa", valor: 8900, cor: "bg-green-500" },
-      { nome: "Beleza", valor: 6700, cor: "bg-purple-500" },
-      { nome: "Outros", valor: 4500, cor: "bg-gray-500" }
-    ],
-    mes: [
-      { nome: "Eletrônicos", valor: 425800, cor: "bg-blue-500" },
-      { nome: "Moda", valor: 289500, cor: "bg-pink-500" },
-      { nome: "Casa", valor: 198200, cor: "bg-green-500" },
-      { nome: "Beleza", valor: 156700, cor: "bg-purple-500" },
-      { nome: "Outros", valor: 89500, cor: "bg-gray-500" }
-    ],
-    ano: [
-      { nome: "Eletrônicos", valor: 3850000, cor: "bg-blue-500" },
-      { nome: "Moda", valor: 2450000, cor: "bg-pink-500" },
-      { nome: "Casa", valor: 1890000, cor: "bg-green-500" },
-      { nome: "Beleza", valor: 1250000, cor: "bg-purple-500" },
-      { nome: "Outros", valor: 850000, cor: "bg-gray-500" }
-    ]
-  };
 
-  const categorias = dadosCategorias[periodo];
-  const total = categorias.reduce((acc, cat) => acc + cat.valor, 0);
+  const {data: categoria} = useQuery({
+    queryKey: ["categorias"],
+    queryFn: async () => {
+      const response = categoriaRoutes.getAllCategoria();
+      return response;
+    }
+  });
 
-  // Calcular ângulos para o gráfico de pizza
+const categoriaId = categoria?.map(c => c.id);
+
+  const {data: vendas}= useQuery({
+    queryKey: ["vendas"],
+    queryFn: async () =>  {
+      const response = await api.get("/vendas/dashboard");
+      return response.data.data?.total?.vendas
+    }
+  });
+
+
+  const total = vendas ?? 0;
+
   const calcularAngulos = () => {
     let anguloAcumulado = 0;
-    return categorias.map(cat => {
-      const porcentagem = (cat.valor / total) * 100;
+    return categoriaId?.map((cat: any) => {
+      const porcentagem = (cat.valor / (total ?? 0)) * 100;
       const angulo = (porcentagem / 100) * 360;
       const resultado = {
         ...cat,
@@ -54,10 +49,20 @@ export default function CategoryChart() {
   const dadosComAngulos = calcularAngulos();
 
   return (
-    <div className="h-96">
-      <div className="flex items-center justify-between mb-6">
+    <div className="my-8 mb-8">
+      <div className="flex items-center justify-between mb-8">
+       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    Categorias
+                  </h1>
+                  <p className="text-gray-600">
+                    Gerencie as suas categorias como quiseres
+                  </p>
+                </div>
+              </div>
         <div>
-          <div className="text-2xl font-bold">KZ {total.toLocaleString()}</div>
+          <div className="text-2xl font-bold">KZ {total?.toLocaleString()}</div>
           <div className="flex items-center text-sm">
             <Tag className="h-4 w-4 text-[#D4AF37] mr-1" />
             <span className="text-gray-600">Vendas por categoria</span>
@@ -82,9 +87,9 @@ export default function CategoryChart() {
       </div>
 
       {/* Gráfico de pizza e legenda lado a lado */}
-      <div className="grid lg:grid-cols-2 gap-8 h-64">
+      <div className="grid lg:grid-cols-2 gap-8 ">
         {/* Gráfico de pizza */}
-        <div className="relative h-64">
+        <div className="relative">
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="relative h-48 w-48">
               {/* Anel externo */}
@@ -92,7 +97,7 @@ export default function CategoryChart() {
               
               {/* Fatias da pizza */}
               <svg className="absolute inset-0" viewBox="0 0 100 100">
-                {dadosComAngulos.map((cat, index) => {
+                {dadosComAngulos?.map((cat, index) => {
                   const raio = 40;
                   const x1 = 50 + raio * Math.cos((cat.anguloInicio - 90) * (Math.PI / 180));
                   const y1 = 50 + raio * Math.sin((cat.anguloInicio - 90) * (Math.PI / 180));
@@ -105,7 +110,7 @@ export default function CategoryChart() {
                     <path
                       key={index}
                       d={`M 50 50 L ${x1} ${y1} A ${raio} ${raio} 0 ${grandeArco} 1 ${x2} ${y2} Z`}
-                      fill={cat.cor.replace('bg-', '').replace('-500', '')}
+                      fill={cat?.cor?.replace('bg-', '')?.replace('-500', '')}
                       fillOpacity="0.8"
                       stroke="white"
                       strokeWidth="2"
@@ -128,7 +133,7 @@ export default function CategoryChart() {
           {/* Total no centro (opcional) */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
             <div className="text-lg font-bold">
-              {categorias.length} categorias
+              {categoria?.length} categorias
             </div>
           </div>
         </div>
@@ -138,7 +143,7 @@ export default function CategoryChart() {
           <h4 className="font-bold text-gray-900">Distribuição por Categoria</h4>
           
           <div className="space-y-3">
-            {dadosComAngulos.map((cat, index) => (
+            {dadosComAngulos?.map((cat, index) => (
               <div key={index} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg cursor-pointer group">
                 <div className="flex items-center gap-3">
                   <div className={`h-3 w-3 rounded-full ${cat.cor}`}></div>
@@ -151,7 +156,7 @@ export default function CategoryChart() {
                 </div>
                 
                 <div className="text-right">
-                  <div className="font-bold">KZ {cat.valor.toLocaleString()}</div>
+                  <div className="font-bold">KZ {cat.valor?.toLocaleString()}</div>
                   <div className="text-sm text-gray-500">
                     {periodo === "hoje" ? "hoje" : periodo === "mes" ? "este mês" : "este ano"}
                   </div>
@@ -164,9 +169,9 @@ export default function CategoryChart() {
           <div className="grid grid-cols-2 gap-4 pt-4 border-t">
             <div className="text-center">
               <div className="text-sm text-gray-500">Categoria Top</div>
-              <div className="font-bold">{dadosComAngulos[0].nome}</div>
+              <div className="font-bold">{dadosComAngulos?.[0]?.nome}</div>
               <div className="text-xs text-gray-500">
-                {dadosComAngulos[0].porcentagem.toFixed(1)}% do total
+                {dadosComAngulos?.[0]?.porcentagem.toFixed(1)}% do total
               </div>
             </div>
             <div className="text-center">
@@ -185,8 +190,8 @@ export default function CategoryChart() {
           <div>
             <div className="font-medium text-blue-900">Insight do Mês</div>
             <div className="text-sm text-blue-700">
-              A categoria <strong>{dadosComAngulos[0].nome}</strong> representa{" "}
-              <strong>{dadosComAngulos[0].porcentagem.toFixed(1)}%</strong> das vendas totais. 
+              A categoria <strong>{dadosComAngulos?.[0]?.nome}</strong> representa{" "}
+              <strong>{dadosComAngulos?.[0]?.porcentagem?.toFixed(1)}%</strong> das vendas totais. 
               Considere aumentar o investimento nesta categoria.
             </div>
           </div>

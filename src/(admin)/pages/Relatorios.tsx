@@ -16,8 +16,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/modules/services/api/axios";
 
 interface Metricas {
   receitaTotal: number;
@@ -75,15 +73,6 @@ export default function RelatoriosPage() {
     taxaConversao: 3.2,
   });
 
-  const {data: vendasAvancadas} = useQuery({
-    queryKey: ["vendasAvancadas"],
-    queryFn: async () =>  {
-      const response = await api.get("/vendas/estatisticas-avancadas");
-      return response.data;
-    }
-  })
-
-  console.log("Vendas: ",vendasAvancadas)
 
   const [relatorioVendas] = useState<RelatorioVendas[]>([
     {

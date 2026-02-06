@@ -425,6 +425,7 @@ export default function AdminDashboard() {
     produtosMaisVendidos: [],
     pedidos: [],
   });
+
   const [loading, setLoading] = useState(true);
   const [exportando, setExportando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -439,6 +440,7 @@ export default function AdminDashboard() {
       return response.data as IPedidoResponse[] | unknown;
     },
   });
+
 
   // Função principal para buscar dados das vendas - USANDO APENAS ENDPOINTS EXISTENTES
   const fetchDashboardData = async () => {
@@ -805,11 +807,19 @@ export default function AdminDashboard() {
   };
 
   const getProdutosTop = () => {
-    return dados.produtosMaisVendidos.map((produto) => ({
+
+    const produtosTop = dados.produtosMaisVendidos.map((produto) => ({
       nome: produto.nome || "Produto",
       vendas: produto.quantidade || 0,
       total: produto.total || 0,
     }));
+
+    if(dados.resumo.totalVendas === 0){
+      return [];
+    }
+    else{
+      return produtosTop;
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -1076,9 +1086,9 @@ export default function AdminDashboard() {
             </span>
           </div>
           <div className="p-6">
-            {produtosTop.length > 0 ? (
+            {produtosTop?.length > 0 ? (
               <div className="space-y-4">
-                {produtosTop.map((produto, index) => (
+                {produtosTop?.map((produto, index) => (
                   <div
                     key={index}
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
@@ -1113,7 +1123,7 @@ export default function AdminDashboard() {
                 <Package className="h-12 w-12 mx-auto mb-2 text-gray-300" />
                 <p>Nenhum produto encontrado</p>
                 <p className="text-sm mt-1">
-                  Usando dados simulados temporariamente
+                  Não tem ainda produto mais vendido!
                 </p>
               </div>
             )}

@@ -25,10 +25,10 @@ import { CgClose, CgProfile } from "react-icons/cg";
 import { FiShoppingCart } from "react-icons/fi";
 import { BsEye } from "react-icons/bs";
 import { toast } from "sonner";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { Button } from "@/components/ui/button";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { produtosRoute } from "@/modules/services/api/routes/produtos";
 import { useCartStore } from "@/modules/services/store/cart-store";
 import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
@@ -531,15 +531,101 @@ const ProductsSection = () => {
   const [quantidade, setQuantidade] = useState(1);
   const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null);
 
-  const addItem = useCartStore((state) => state.addItem);
+  const searchParams = useSearchParams();
+  const category = searchParams[0].get("category") || "";
+
+  const { data: produtosFiltrados } = useQuery({
+    queryKey: ["produtosFiltrados", category],
+    queryFn: async () => {
+      if (category === "all") {
+        const response = await produtosRoute.getProdutos();
+        return response.data;
+      } else {
+        // Use um método apropriado para filtrar por categoria
+        const response = await produtosRoute.getPorCategoria(category);
+        return response.data;
+      }
+    },
+  });
+
+  // const { data: categories } = useQuery({
+  //   queryKey: ["allCategories"],
+  //   queryFn: async () => {
+  //     const response = await categoriaRoutes.getAllCategoria();
+  //     return [
+  //       {
+  //         id: "all",
+  //         nome: "Todos os Produtos",
+  //         description: "Exibe todos os produtos disponíveis.",
+  //       },
+  //       ...response,
+  //     ];
+  //   },
+  // });
+
+  console.log("Por Categorias: ", produtosFiltrados);
 
   const { data: produtos } = useQuery({
-    queryKey: ["produtos"],
+    queryKey: ["produtos", "allProducts", category !== "all" ? category : null],
     queryFn: async () => {
       const response = await produtosRoute.getProdutos();
       return response.data;
     },
   });
+
+  const [, setAddingProductId] = useState<string | null>(null);
+
+  const addToCartMutation = useMutation({
+    mutationFn: async (cartData: { produtoId: string; quantidade: number }) => {
+      const response = await carrinhosRoute.adicionarItem(cartData);
+      return response;
+    },
+    onSuccess: () => {
+      setAddingProductId(null);
+      toast.success("Produto adicionado ao carrinho com sucesso!");
+    },
+    onError: (e: any) => {
+      setAddingProductId(null);
+      const errorMessage =
+        e.response?.data?.message ||
+        "Ocorreu um erro ao adicionar o produto ao carrinho.";
+      toast.error("Erro ao adicionar produto ao carrinho", errorMessage);
+    },
+  });
+
+  const handleAddCartValue = async (produtoId: string, quantidade: number) => {
+    setAddingProductId(produtoId);
+
+    try {
+      // const response = await addToCartMutation.mutate({
+      //   produtoId,
+      //   quantidade,
+      // });
+      const produtoAdicionado = produtos?.produtos?.find(
+        (p: any) => p.id === produtoId,
+      );
+
+      if (produtoAdicionado) {
+        const { addItem } = useCartStore.getState();
+        const cartItem = {
+          id: produtoAdicionado.id,
+          nome: produtoAdicionado.nome,
+          preco: produtoAdicionado.preco,
+          quantidade: produtoAdicionado.quantidade || 0,
+          quantidadeSelecionada: quantidade,
+          imagem: produtoAdicionado.imagem,
+          descricao: produtoAdicionado.descricao,
+        };
+        addItem(cartItem);
+      }
+    } catch (error) {
+      toast.error("Erro ao adicionar produto ao carrinho");
+    } finally {
+      setAddingProductId(null);
+    }
+  };
+
+  console.log("Produtos disponíveis: ", produtos);
 
   const renderImagem = (produto: any) => {
     if (produto.imagem) {
@@ -551,7 +637,7 @@ const ProductsSection = () => {
             className="w-full h-full object-cover"
             onError={(e) => {
               console.error(
-                `Erro ao carregar imagem completa: ${produto.imagem}`
+                `Erro ao carregar imagem completa: ${produto.imagem}`,
               );
               e.currentTarget.style.display = "none";
               e.currentTarget.parentElement!.innerHTML = `
@@ -604,47 +690,48 @@ const ProductsSection = () => {
     });
   };
 
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
 
-  const addCartMutation = useMutation({
-    mutationFn: async ({
-      produtoId,
-      quantidade,
-    }: {
-      produtoId: string;
-      quantidade: number;
-    }) => {
-      return await carrinhosRoute.adicionarItem(produtoId, quantidade);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["carrinho"] });
-    },
-    onError: (error) => {
-      console.error("Erro ao adicionar ao carrinho:", error);
-    },
-  });
+  // const addCartMutation = useMutation({
+  //   mutationFn: async ({
+  //     produtoId,
+  //     quantidade,
+  //   }: {
+  //     produtoId: string;
+  //     quantidade: number;
+  //   }) => {
+  //     return await carrinhosRoute.adicionarItem(produtoId, quantidade);
+  //   },
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ["carrinho"] });
+  //   },
+  //   onError: (error) => {
+  //     console.error("Erro ao adicionar ao carrinho:", error);
+  //   },
+  // });
 
-  const handleAdicionarAoCarrinho = (
-    produto: any,
-    quantidadeSelecionada: number = 1
-  ) => {
-    const cartItem = {
-      id: produto.id,
-      nome: produto.nome,
-      descricao: produto.descricao,
-      preco: produto.preco,
-      quantidade: produto.quantidade || 0,
-      quantidadeSelecionada: quantidadeSelecionada,
-      imagem: produto.imagem,
-      categoria: produto.categoria,
-    };
-    addItem(cartItem);
-    addCartMutation.mutate({
-      produtoId: produto.id,
-      quantidade: quantidadeSelecionada,
-    });
-    toast.success(`${produto.nome} adicionado ao carrinho!`);
-  };
+  // const handleAdicionarAoCarrinho = (
+  //   produto: any,
+  //   quantidadeSelecionada: number = 1,
+  // ) => {
+  //   const cartItem = {
+  //     id: produto.id,
+  //     nome: produto.nome,
+  //     descricao: produto.descricao,
+  //     preco: produto.preco,
+  //     quantidade: produto.quantidade || 0,
+  //     quantidadeSelecionada: quantidadeSelecionada,
+  //     imagem: produto.imagem,
+  //     categoria: produto.categoria,
+  //   };
+  //   addItem(cartItem);
+  //   addToCartMutation.mutate({
+  //     userId: user_Id,
+  //     produtoId: produto.id,
+  //     quantidade: quantidadeSelecionada,
+  //   });
+  //   toast.success(`${produto.nome} adicionado ao carrinho!`);
+  // };
 
   return (
     <section className="py-16 bg-white">
@@ -711,11 +798,13 @@ const ProductsSection = () => {
                         <BsEye size={18} />
                       </button>
                       <button
-                        onClick={() => handleAdicionarAoCarrinho(produto)}
-                        disabled={addCartMutation.isPending}
+                        onClick={() =>
+                          handleAddCartValue(produto.id, quantidade)
+                        }
+                        disabled={addToCartMutation.isPending}
                         className="p-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c]"
                       >
-                        {addCartMutation.isPending ? (
+                        {addToCartMutation.isPending ? (
                           <Loader className="animate-spin" />
                         ) : (
                           <FiShoppingCart size={18} />
@@ -810,10 +899,7 @@ const ProductsSection = () => {
                   <div className="flex gap-3">
                     <button
                       onClick={() => {
-                        handleAdicionarAoCarrinho(
-                          produtoSelecionado,
-                          quantidade
-                        );
+                        handleAddCartValue(produtoSelecionado.id, quantidade);
                         setProdutoSelecionado(null);
                         setQuantidade(1);
                       }}
@@ -823,7 +909,7 @@ const ProductsSection = () => {
                         quantidade > (produtoSelecionado.quantidade || 0)
                       }
                     >
-                      {addCartMutation.isPending
+                      {addToCartMutation.isPending
                         ? "Adicionando..."
                         : "Adicionar ao Carrinho"}
                     </button>
@@ -1245,7 +1331,7 @@ const Header = () => {
                     <button
                       onClick={finalizarCompra}
                       className="w-full bg-[#D4AF37] text-white py-3 rounded-lg font-semibold hover:bg-[#c19b2c] transition"
-                     disabled={carrinho.length === 0}
+                      disabled={carrinho.length === 0}
                     >
                       Finalizar Compra
                     </button>

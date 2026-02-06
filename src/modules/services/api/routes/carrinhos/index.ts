@@ -18,6 +18,11 @@ interface IItemCarrinho {
   };
 }
 
+interface ICriarCarrinho {
+  produtoId: string;
+  quantidade: number;
+}
+
 interface ICarrinho {
   id: string;
   usuarioId: string;
@@ -44,14 +49,14 @@ class CarrinhosRoute {
       return response.data;
     } catch (error: any) {
       console.error('❌ [Frontend] Erro ao obter carrinho:', error);
-      
+
       if (error.response?.status === 401) {
         return {
           success: false,
           message: "Sessão expirada. Faça login novamente."
         };
       }
-      
+
       // Em caso de erro, retornar carrinho vazio
       return {
         success: true,
@@ -71,55 +76,46 @@ class CarrinhosRoute {
   }
 
   // Adicionar item ao carrinho
-  async adicionarItem(produtoId: string, quantidade: number = 1): Promise<IRespostaCarrinho> {
+  async adicionarItem(data: ICriarCarrinho) {
     try {
-      console.log(`➕ [Frontend] Adicionando produto ${produtoId} (quantidade: ${quantidade}) ao carrinho`);
-      
-      if (!produtoId) {
-        return {
-          success: false,
-          message: "ID do produto é obrigatório"
-        };
-      }
-      
-      if (!quantidade || quantidade < 1) {
-        return {
-          success: false,
-          message: "Quantidade deve ser maior que zero"
-        };
-      }
+          console.log('📤 [Frontend] Enviando para /carrinho/item:', data); // Adicione log para debug
 
-      const response = await api.post("/carrinho/item", {
-        produtoId,
-        quantidade
-      });
-    
-      
+      const response = await api.post("/carrinho/item", data);
+
+          console.log('🔍 [DEBUG] Tentando acessar dados de diferentes formas:');
+    console.log('   1. response.data.data:', response.data.data);
+    console.log('   2. response.data?.data:', response.data?.data);
+    console.log('   3. response["data"]["data"]:', response.data && response.data.data);
+    console.log('   4. JSON.stringify:', JSON.stringify(response.data, null, 2));
+
+       console.log('📥 [Frontend] Resposta recebida:', response.data); // Adicione log para debug
+
+
       return response.data;
     } catch (error: any) {
       console.error('❌ [Frontend] Erro ao adicionar item ao carrinho:', error);
-      
+
       if (error.response?.status === 401) {
         return {
           success: false,
           message: "Sessão expirada. Faça login novamente."
         };
       }
-      
+
       if (error.response?.status === 404) {
         return {
           success: false,
           message: "Produto não encontrado"
         };
       }
-      
+
       if (error.response?.status === 422) {
         return {
           success: false,
           message: "Quantidade solicitada maior que o estoque disponível"
         };
       }
-      
+
       return {
         success: false,
         message: error.response?.data?.message || "Erro ao adicionar item ao carrinho"
@@ -130,15 +126,13 @@ class CarrinhosRoute {
   // Atualizar quantidade de um item no carrinho
   async atualizarItem(produtoId: string, quantidade: number): Promise<IRespostaCarrinho> {
     try {
-      console.log(`✏️ [Frontend] Atualizando item ${produtoId} para quantidade: ${quantidade}`);
-      
       if (!produtoId) {
         return {
           success: false,
           message: "ID do produto é obrigatório"
         };
       }
-      
+
       if (quantidade < 0) {
         return {
           success: false,
@@ -152,35 +146,31 @@ class CarrinhosRoute {
       }
 
       const response = await api.put(`/carrinho/item/${produtoId}`, { quantidade });
-      console.log('✅ [Frontend] Item atualizado:', {
-        success: response.data.success,
-        totalItens: response.data.data?.totalItens || 0
-      });
       return response.data;
     } catch (error: any) {
       console.error(`❌ [Frontend] Erro ao atualizar item ${produtoId} no carrinho:`, error);
-      
+
       if (error.response?.status === 401) {
         return {
           success: false,
           message: "Sessão expirada. Faça login novamente."
         };
       }
-      
+
       if (error.response?.status === 404) {
         return {
           success: false,
           message: "Item não encontrado no carrinho"
         };
       }
-      
+
       if (error.response?.status === 422) {
         return {
           success: false,
           message: "Quantidade solicitada maior que o estoque disponível"
         };
       }
-      
+
       return {
         success: false,
         message: error.response?.data?.message || "Erro ao atualizar item no carrinho"
@@ -191,8 +181,7 @@ class CarrinhosRoute {
   // Remover item do carrinho
   async removerItem(produtoId: string): Promise<IRespostaCarrinho> {
     try {
-      console.log(`🗑️ [Frontend] Removendo item ${produtoId} do carrinho`);
-      
+
       if (!produtoId) {
         return {
           success: false,
@@ -201,28 +190,24 @@ class CarrinhosRoute {
       }
 
       const response = await api.delete(`/carrinho/item/${produtoId}`);
-      console.log('✅ [Frontend] Item removido:', {
-        success: response.data.success,
-        totalItens: response.data.data?.totalItens || 0
-      });
       return response.data;
     } catch (error: any) {
       console.error(`❌ [Frontend] Erro ao remover item ${produtoId} do carrinho:`, error);
-      
+
       if (error.response?.status === 401) {
         return {
           success: false,
           message: "Sessão expirada. Faça login novamente."
         };
       }
-      
+
       if (error.response?.status === 404) {
         return {
           success: false,
           message: "Item não encontrado no carrinho"
         };
       }
-      
+
       return {
         success: false,
         message: error.response?.data?.message || "Erro ao remover item do carrinho"
@@ -233,20 +218,18 @@ class CarrinhosRoute {
   // Limpar todo o carrinho
   async limparCarrinho(): Promise<IRespostaCarrinho> {
     try {
-      console.log('🧹 [Frontend] Limpando carrinho');
       const response = await api.delete("/carrinho/limpar");
-      console.log('✅ [Frontend] Carrinho limpo:', response.data.success);
       return response.data;
     } catch (error: any) {
       console.error('❌ [Frontend] Erro ao limpar carrinho:', error);
-      
+
       if (error.response?.status === 401) {
         return {
           success: false,
           message: "Sessão expirada. Faça login novamente."
         };
       }
-      
+
       return {
         success: false,
         message: error.response?.data?.message || "Erro ao limpar carrinho"
@@ -257,13 +240,11 @@ class CarrinhosRoute {
   // Obter quantidade total de itens no carrinho
   async getQuantidadeTotal(): Promise<{ success: boolean; quantidade: number; message?: string }> {
     try {
-      console.log('🔢 [Frontend] Obtendo quantidade total do carrinho');
       const response = await api.get("/carrinho/quantidade");
-      console.log('✅ [Frontend] Quantidade obtida:', response.data.quantidade);
       return response.data;
     } catch (error: any) {
       console.error('❌ [Frontend] Erro ao obter quantidade do carrinho:', error);
-      
+
       if (error.response?.status === 401) {
         return {
           success: false,
@@ -271,7 +252,7 @@ class CarrinhosRoute {
           message: "Sessão expirada. Faça login novamente."
         };
       }
-      
+
       return {
         success: false,
         quantidade: 0,
@@ -299,14 +280,14 @@ class CarrinhosRoute {
       return response.data;
     } catch (error: any) {
       console.error('❌ [Frontend] Erro ao verificar disponibilidade do carrinho:', error);
-      
+
       if (error.response?.status === 401) {
         return {
           success: false,
           message: "Sessão expirada. Faça login novamente."
         };
       }
-      
+
       return {
         success: false,
         message: error.response?.data?.message || "Erro ao verificar disponibilidade"
@@ -315,20 +296,20 @@ class CarrinhosRoute {
   }
 
   // Sincronizar carrinho local com o servidor
-  async sincronizarCarrinho(itensLocal: Array<{produtoId: string, quantidade: number}>): Promise<IRespostaCarrinho> {
+  async sincronizarCarrinho(itensLocal: Array<{ produtoId: string, quantidade: number }>): Promise<IRespostaCarrinho> {
     try {
       const response = await api.post("/carrinho/sincronizar", { itens: itensLocal });
       return response.data;
     } catch (error: any) {
       console.error('❌ [Frontend] Erro ao sincronizar carrinho:', error);
-      
+
       if (error.response?.status === 401) {
         return {
           success: false,
           message: "Sessão expirada. Faça login novamente."
         };
       }
-      
+
       return {
         success: false,
         message: error.response?.data?.message || "Erro ao sincronizar carrinho"
@@ -337,20 +318,20 @@ class CarrinhosRoute {
   }
 
   // Adicionar múltiplos itens de uma vez
-  async adicionarMultiplosItens(itens: Array<{produtoId: string, quantidade: number}>): Promise<IRespostaCarrinho> {
+  async adicionarMultiplosItens(itens: Array<{ produtoId: string, quantidade: number }>): Promise<IRespostaCarrinho> {
     try {
       const response = await api.post("/carrinho/itens", { itens });
       return response.data;
     } catch (error: any) {
       console.error('❌ [Frontend] Erro ao adicionar múltiplos itens ao carrinho:', error);
-      
+
       if (error.response?.status === 401) {
         return {
           success: false,
           message: "Sessão expirada. Faça login novamente."
         };
       }
-      
+
       return {
         success: false,
         message: error.response?.data?.message || "Erro ao adicionar itens"

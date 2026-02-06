@@ -7,14 +7,13 @@ import {
   Package,
   ShoppingBag,
   Users,
-  // Tag,
   BarChart3,
-  Settings,
   LogOut,
   TrendingUp,
   CreditCard,
   Shield,
   Home,
+  Tag,
 } from "lucide-react";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 
@@ -70,10 +69,10 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       section: "relatorios",
     },
     {
-      icon: <Settings className="h-5 w-5" />,
-      label: "Configurações",
-      path: "/configuracoes",
-      section: "configuracoes",
+      icon: <Tag className="h-5 w-5" />,
+      label: "Categorias",
+      path: "/categorias",
+      section: "categorias",
     },
   ];
 

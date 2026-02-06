@@ -1,5 +1,6 @@
 import AdminLayout from "@/(admin)/components/Layout/Layout";
-import ConfiguracoesPage from "@/(admin)/pages/Configuracoes";
+import CategoryPage from "@/(admin)/pages/Categorias";
+// import ConfiguracoesPage from "@/(admin)/pages/Configuracoes";
 // import AdminCupons from "@/(admin)/pages/Cupons";
 import AdminDashboard from "@/(admin)/pages/Dashboard";
 import AdminEstoque from "@/(admin)/pages/Estoque";
@@ -62,8 +63,8 @@ export const HomesRoutes: IRouteProps = {
       visibility: "auth", // Mude para "auth"
     },
     {
-      path: "/configuracoes",
-      element: ConfiguracoesPage,
+      path: "/categorias",
+      element: CategoryPage,
       visibility: "auth", // Mude para "auth"
     },
     {

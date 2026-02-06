@@ -34,8 +34,6 @@ export default function AdminEstoque() {
     }
   });
 
-  console.log("Estoque: ", estoque?.data?.produtos);
-
 
   // Filtrar produtos
   const produtosFiltrados = estoque?.data?.produtos?.filter((produto: any) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   CheckCircle,
   Package,
@@ -59,7 +59,7 @@ interface IProduto {
   };
 }
 
-interface IPedido {
+export interface IPedido {
   id: string;
   numeroPedido: string;
   usuarioId: string;
@@ -125,14 +125,6 @@ const extrairArrayData = <T,>(data: any, arrayProps: string[] = ['data', 'items'
 
 export default function ConfirmacaoCompra() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const  pedidoId  = searchParams.get('pedido') || searchParams.get('pedidoId');
-  console.log("Id: ",pedidoId);
-
-  // console.log("📍 URL atual:", location.pathname);
-  // console.log("📌 Parâmetros:", useParams());
-  // console.log("🔍 pedidoId:", pedidoId);
-  // console.log("📂 Query string:", location.search);
 
   const [pedidoSelecionado, setPedidoSelecionado] = useState<IPedido | null>(
     null
@@ -173,23 +165,35 @@ export default function ConfirmacaoCompra() {
     enabled: !!user?.id_usuario,
   });
 
+   const {data:pedidoId} = useQuery({
+      queryKey: ["id", user?.id_usuario],
+      queryFn: async () => {
+        const response = await pedidosRoute.getById(user?.id_usuario ?? "");
+        return extrairArrayData<IPedido>(response.data, ['data', 'pedidos', 'itens']);
+      }
+     })
+
+  const pedido_Id = pedidoId
+
+  console.log("Pedido ID: ", pedido_Id);
+
   
   // Buscar detalhes do pedido específico se tiver ID na URL
   const { data: pedidoDetalhado } = useQuery<IPedido>({
-    queryKey: ["pedido", pedidoId],
+    queryKey: ["pedido", pedido_Id],
     queryFn: async () => {
-      if (!pedidoId) return null;
+      if (!pedido_Id) return null;
       try {
-        const response = await api.get(`/pedidos/${pedidoId}`);
+        const response = await api.get(`/pedidos/${pedido_Id}`);
         return response.data?.data || response.data;
       } catch (error) {
-        console.error(`Erro ao buscar pedido ${pedidoId}:`, error);
+        console.error(`Erro ao buscar pedido ${pedido_Id}:`, error);
         return null;
       }
     },
-    enabled: !!pedidoId,
+    enabled: !!pedido_Id,
   });
-  console.log(pedidoDetalhado);
+  console.log("Pedido: ",pedidoDetalhado);
 
   // Buscar produtos para as recomendações - CORRIGIDO
   const { data: produtosRecomendadosData } = useQuery({
@@ -431,7 +435,7 @@ export default function ConfirmacaoCompra() {
   const formatarValor = (valor: number | undefined) => {
     if (!valor) return "KZ 0,00";
     const valorEmKwanza = valor / 100;
-    return valorEmKwanza.toLocaleString("pt-BR", {
+    return valorEmKwanza?.toLocaleString("pt-BR", {
       style: "currency",
       currency: "AOA",
       minimumFractionDigits: 2,
@@ -460,7 +464,7 @@ export default function ConfirmacaoCompra() {
   const calcularPrevisaoEntrega = (dataCriacao: string) => {
     const data = new Date(dataCriacao);
     data.setDate(data.getDate() + 3);
-    return formatarData(data.toISOString());
+    return formatarData(data?.toLocaleDateString());
   };
 
   // Obter URL da imagem do Cloudinary
@@ -846,13 +850,13 @@ export default function ConfirmacaoCompra() {
                   <div>
                     <div className="font-medium capitalize">
                       {pedidoSelecionado.metodoPagamento
-                        .toLowerCase()
+                        ?.toLowerCase()
                         .replace(/_/g, " ")}
                     </div>
                     <div className="text-sm text-gray-600 capitalize">
                       Status:{" "}
                       {pedidoSelecionado.statusPagamento
-                        .toLowerCase()
+                        ?.toLowerCase()
                         .replace(/_/g, " ")}
                     </div>
                     {pedidoSelecionado.referenciaPagamento && (

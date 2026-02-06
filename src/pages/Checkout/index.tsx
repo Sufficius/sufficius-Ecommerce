@@ -21,6 +21,8 @@ import { enderecosRoute } from "@/modules/services/api/routes/enderecos";
 import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/modules/services/store/auth-store";
+import { IPedido } from "../Confirmacao";
+import { api } from "@/modules/services/api/axios";
 
 // Tipos de dados
 interface ProdutoCarrinho {
@@ -59,6 +61,35 @@ interface PedidoData {
   pagamento: PagamentoData;
   observacoes?: string;
 }
+
+// Função helper para extrair array de qualquer formato
+const extrairArrayData = <T,>(
+  data: any,
+  arrayProps: string[] = ["data", "items", "results"],
+): T[] => {
+  if (!data) return [];
+
+  // Se já é um array
+  if (Array.isArray(data)) {
+    return data as T[];
+  }
+
+  // Se é um objeto, procurar por propriedades de array
+  if (data && typeof data === "object") {
+    for (const prop of arrayProps) {
+      if (prop in data && Array.isArray(data[prop])) {
+        return data[prop] as T[];
+      }
+    }
+
+    // Se o objeto parece ser um item único (tem propriedade id)
+    if ("id" in data) {
+      return [data] as T[];
+    }
+  }
+
+  return [];
+};
 
 // Componentes reutilizáveis
 const InfoBox = ({
@@ -105,8 +136,8 @@ const ProgressStep = ({
           isActive
             ? "bg-[#D4AF37] text-white shadow-lg"
             : isCompleted
-            ? "bg-green-500 text-white"
-            : "bg-gray-100 text-gray-400"
+              ? "bg-green-500 text-white"
+              : "bg-gray-100 text-gray-400"
         }`}
       >
         {isCompleted ? (
@@ -140,7 +171,7 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
 
   const [etapa, setEtapa] = useState<"endereco" | "pagamento" | "confirmacao">(
-    "endereco"
+    "endereco",
   );
   const [carregando, setCarregando] = useState(false);
   const [carregandoCarrinho, setCarregandoCarrinho] = useState(true);
@@ -190,13 +221,16 @@ export default function CheckoutPage() {
     },
   });
 
-  // Buscar pedidos do usuário
   const { data: pedidosData } = useQuery({
     queryKey: ["pedidosUsuario", user?.id_usuario],
     queryFn: async () => {
       try {
         const response = await pedidosRoute.listarPedidos();
-        return response.data || [];
+        return extrairArrayData<IPedido>(response.data, [
+          "data",
+          "pedidos",
+          "itens",
+        ]);
       } catch (error) {
         console.error("Erro ao buscar pedidos:", error);
         return [];
@@ -204,6 +238,43 @@ export default function CheckoutPage() {
     },
     enabled: !!user?.id_usuario,
   });
+
+  const { data: pedidoId } = useQuery({
+    queryKey: ["id", user?.id_usuario],
+    queryFn: async () => {
+      const response = await pedidosRoute.getById(user?.id_usuario);
+      return extrairArrayData<IPedido>(response.data, [
+        "data",
+        "pedidos",
+        "itens",
+      ]);
+    },
+  });
+  const pedido_Id = pedidoId;
+
+   // Buscar detalhes do pedido específico se tiver ID na URL
+      const { data: pedidoDetalhado } = useQuery<IPedido>({
+        queryKey: ["pedido", pedido_Id],
+        queryFn: async () => {
+          if (!pedido_Id) return null;
+          try {
+            const response = await api.get(`/pedidos/${pedido_Id}`);
+            return response.data?.data || response.data;
+          } catch (error) {
+            console.error(`Erro ao buscar pedido ${pedido_Id}:`, error);
+            return null;
+          }
+        },
+        enabled: !!pedido_Id,
+      });
+      console.log("Pedido: ", pedidoDetalhado);
+
+  console.log("Pedido ID: ", pedidoId);
+
+
+  console.log("ID: ", pedido_Id);
+
+  // const pedidoId = pedidosData.?.map((p: any)=>p.id);
 
   console.log("Pedido: ", pedidosData);
 
@@ -229,7 +300,7 @@ export default function CheckoutPage() {
         const carrinhoResponse = await carrinhosRoute.getCarrinho();
         if (carrinhoResponse.success) {
           setCarrinho(
-            Array.isArray(carrinhoResponse?.data) ? carrinhoResponse.data : []
+            Array.isArray(carrinhoResponse?.data) ? carrinhoResponse.data : [],
           );
         }
 
@@ -273,14 +344,14 @@ export default function CheckoutPage() {
     carrinho?.subtotal ||
     carrinho?.itens?.reduce(
       (acc, item) => acc + item.preco * item.quantidade,
-      0
+      0,
     ) ||
     0;
   const frete = subtotal > 50000 ? 0 : 1500; // Frete grátis acima de 50.000 Kz
   const total = carrinho?.total || subtotal + frete;
 
   const handleEnderecoChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -294,7 +365,7 @@ export default function CheckoutPage() {
   };
 
   const handlePagamentoChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -335,8 +406,8 @@ export default function CheckoutPage() {
           campo === "numero"
             ? "número"
             : campo === "logradouro"
-            ? "endereço"
-            : campo;
+              ? "endereço"
+              : campo;
 
         toast.error(`O campo ${nomeCampo} é obrigatório`);
         return false;
@@ -405,7 +476,7 @@ export default function CheckoutPage() {
   const salvarEndereco = async () => {
     try {
       const response = await enderecosRoute.criarEndereco(
-        formData.enderecoEntrega
+        formData.enderecoEntrega,
       );
 
       if (response.success) {
@@ -489,7 +560,7 @@ export default function CheckoutPage() {
         await carrinhosRoute.limparCarrinho();
         // Redirecionar para página de confirmação
         setTimeout(() => {
-          navigate(`/confirmacao?pedido=${carrinho?.itens?.[0]?.produtoId}`);
+          navigate(`/confirmacao?pedido=${pedidoDetalhado?.numeroPedido}`);
         }, 1500);
       } else {
         toast.error(response.message || "Erro ao criar pedido");
@@ -507,7 +578,7 @@ export default function CheckoutPage() {
     if (limpo.length === 9) {
       return `+244 ${limpo.slice(0, 3)} ${limpo.slice(3, 6)} ${limpo.slice(
         6,
-        9
+        9,
       )}`;
     }
     return telefone;
@@ -1099,20 +1170,20 @@ export default function CheckoutPage() {
                           {formData.pagamento.metodo === "cartao"
                             ? "💳"
                             : formData.pagamento.metodo === "multicaixa"
-                            ? "🏧"
-                            : formData.pagamento.metodo === "dinheiro"
-                            ? "🏦"
-                            : "📄"}
+                              ? "🏧"
+                              : formData.pagamento.metodo === "dinheiro"
+                                ? "🏦"
+                                : "📄"}
                         </div>
                         <div>
                           <p className="font-medium">
                             {formData.pagamento.metodo === "cartao"
                               ? "Cartão de Crédito/Débito"
                               : formData.pagamento.metodo === "multicaixa"
-                              ? "Multicaixa Express"
-                              : formData.pagamento.metodo === "dinheiro"
-                              ? "Dinheiro"
-                              : "Cache"}
+                                ? "Multicaixa Express"
+                                : formData.pagamento.metodo === "dinheiro"
+                                  ? "Dinheiro"
+                                  : "Cache"}
                           </p>
                           {formData.pagamento.metodo === "cartao" &&
                             formData.pagamento.numeroCartao && (

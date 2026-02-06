@@ -296,7 +296,7 @@ export default function AdminPedidos() {
 
   const handleAlterarStatus = async (id: string, novoStatus: string) => {
     if (
-      !confirm(
+      !(
         `Alterar status do pedido para ${
           statusPedidos[novoStatus as keyof typeof statusPedidos]?.label ||
           novoStatus

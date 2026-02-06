@@ -29,8 +29,6 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/modules/services/api/axios";
 
 interface Pagamento {
   id: string;
@@ -61,15 +59,6 @@ interface Pagamento {
 }
 
 export default function PagamentosPage() {
-  const { data: pagamento } = useQuery({
-    queryKey: ["pagamento"],
-    queryFn: async () => {
-      const response = await api.get("/pagamentos");
-      return response.data;
-    },
-  });
-
-  console.log("Pagamento: ", pagamento);
 
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([
     {
