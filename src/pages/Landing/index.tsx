@@ -21,11 +21,11 @@ import {
   LogOut,
   Loader,
 } from "lucide-react";
-import { CgClose, CgProfile } from "react-icons/cg";
+import { CgProfile } from "react-icons/cg";
 import { FiShoppingCart } from "react-icons/fi";
 import { BsEye } from "react-icons/bs";
 import { toast } from "sonner";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -33,9 +33,7 @@ import { produtosRoute } from "@/modules/services/api/routes/produtos";
 import { useCartStore } from "@/modules/services/store/cart-store";
 import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
 
-// Componente de imagem otimizado com Cloudinary
-interface CloudinaryImageProps {
-  publicId?: string;
+interface ImageProps {
   alt: string;
   width?: number;
   height?: number;
@@ -44,51 +42,29 @@ interface CloudinaryImageProps {
   priority?: boolean;
 }
 
-const CloudinaryImage = ({
-  publicId,
+const Image = ({
   alt,
   width = 800,
   height = 600,
   className = "",
   loading = "lazy",
   priority = false,
-}: CloudinaryImageProps) => {
+}: ImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
 
-  // Configuração do Cloudinary
-  const cloudName =
-    import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "sufficius-commerce";
+const {data: p} = useQuery({
+  queryKey: ["p"],
+  queryFn: async () => {
+    const response = await  produtosRoute.getProdutos();
+    return response;
+  }
+});
 
-  const normalizedPublicId = (id: string | undefined): string => {
-    if (!id) return "placeholder";
-
-    if (id.includes("res.cloudinary.com")) {
-      const parts = id.split("/upload/");
-      return parts.length > 1 ? parts[1] : parts[0];
-    }
-    return id.startsWith("/") ? id.substring(1) : id;
-  };
-
-  const normalizeId = normalizedPublicId(publicId);
-  const isFullPublicId =
-    normalizeId.includes("/") || normalizeId.startsWith("v");
-  const finalPublicId = isFullPublicId
-    ? normalizeId
-    : `placeholder/${normalizeId}`;
-
-  // Transformações otimizadas
-  const transformations = "c_scale,w_800,h_600,q_auto,f_auto";
-
-  const src = `https://res.cloudinary.com/${cloudName}/image/upload/${transformations}/${finalPublicId}`;
-
-  // Placeholder em base64 para blur effect
-  const placeholder =
-    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmMWYxIi8+PC9zdmc+";
+  const src = p?.map((p: any) => p.foto);
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      {/* Placeholder */}
       <div
         className={`absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 transition-opacity duration-500 ${
           isLoaded ? "opacity-0" : "opacity-100"
@@ -97,7 +73,7 @@ const CloudinaryImage = ({
 
       {/* Imagem otimizada */}
       <img
-        src={isLoaded ? src : placeholder}
+        src={src as any || undefined}
         alt={alt}
         loading={priority ? "eager" : loading}
         width={width}
@@ -106,7 +82,6 @@ const CloudinaryImage = ({
           setIsLoaded(true);
         }}
         onError={() => {
-          console.error(`Erro ao carregar imagem ${alt}:`, src);
           setIsError(true);
           setIsLoaded(true);
         }}
@@ -127,8 +102,7 @@ const CloudinaryImage = ({
 };
 
 const HeroImage = () => (
-  <CloudinaryImage
-    publicId="v1768212665/image4_kyqknt.jpg"
+  <Image
     alt="Nova Coleção de Produtos"
     width={600}
     height={400}
@@ -145,22 +119,8 @@ const CategoryImage = ({
   category: string;
   className?: string;
 }) => {
-  const imageMap: Record<string, string> = {
-    Eletrônicos: "v1768212665/img2_jxkmz3.jpg",
-    Moda: "v1768212665/img3_frqidi.jpg",
-    "Casa & Jardim": "v1768212665/image13_bgsomn.jpg",
-    Beleza: "v1768212665/image6_s6uyn9.jpg",
-    Esportes: "v1768212665/image7_qyn6if.jpg",
-    Livros: "v1768212665/image12_fv8ifg.jpg",
-    Áudio: "sufficius-commerce/categoria-audio",
-    "TV & Vídeo": "sufficius-commerce/categoria-tv-video",
-    Games: "sufficius-commerce/categoria-games",
-    Wearables: "sufficius-commerce/categoria-wearables",
-  };
-
   return (
-    <CloudinaryImage
-      publicId={imageMap[category] || "v1768212665/image3_g6gaai.jpg"}
+    <Image
       alt={category}
       width={200}
       height={128}
@@ -171,19 +131,9 @@ const CategoryImage = ({
 
 // Imagem de testimonial
 const TestimonialAvatar = ({ id }: { id: number }) => {
-  const imageMap = {
-    1: "v1768212665/image3_g6gaai.jpg",
-    2: "v1768212665/img4_bsfuoz.jpg",
-    3: "v1768212665/image5_p7b819.jpg",
-  };
-
   return (
     <div className="h-10 w-10 rounded-full overflow-hidden">
-      <CloudinaryImage
-        publicId={
-          imageMap[id as keyof typeof imageMap] ||
-          "v1768212665/image3_g6gaai.jpg"
-        }
+      <Image
         alt={`Cliente ${id}`}
         width={40}
         height={40}
@@ -192,37 +142,6 @@ const TestimonialAvatar = ({ id }: { id: number }) => {
     </div>
   );
 };
-
-// const CartProductImage = ({ produto }: { produto: any }) => {
-//   if(produto.imagem) {
-//     let imagePath = produto.imagem;
-
-//     if(imagePath.startsWith('/')){
-//       imagePath = imagePath.substring(1);
-//     }
-//     const cloudName = "sufficius-commerce";
-//     const transformations = "c_scale,w_150,h_150,q_auto,f_auto";
-//     const imageUrl = `https://res.cloudinary.com/${cloudName}/image/upload/${transformations}/${imagePath}`;
-
-//     return (
-//       <img
-//       src={imageUrl}
-//       alt={`Produto ${produto.nome}`}
-//       width={64}
-//       height={64}
-//       className="w-full h-full object-cover"
-//       onError={(e)=>  {
-//         e.currentTarget.style.display = 'none';
-//         e.currentTarget.parentElement!.innerHTML = `
-//         <div class="w-full h-full bg-gray-100 flex items-center justify-center">
-//               <Package className="h-6 w-6 text-gray-400" />
-//             </div>
-//         `
-//       }}
-//     />
-//   );
-// }
-// };
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -530,58 +449,29 @@ const Footer = () => (
 const ProductsSection = () => {
   const [quantidade, setQuantidade] = useState(1);
   const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null);
-
-  const searchParams = useSearchParams();
-  const category = searchParams[0].get("category") || "";
-
-  const { data: produtosFiltrados } = useQuery({
-    queryKey: ["produtosFiltrados", category],
-    queryFn: async () => {
-      if (category === "all") {
-        const response = await produtosRoute.getProdutos();
-        return response.data;
-      } else {
-        // Use um método apropriado para filtrar por categoria
-        const response = await produtosRoute.getPorCategoria(category);
-        return response.data;
-      }
-    },
-  });
-
-  // const { data: categories } = useQuery({
-  //   queryKey: ["allCategories"],
-  //   queryFn: async () => {
-  //     const response = await categoriaRoutes.getAllCategoria();
-  //     return [
-  //       {
-  //         id: "all",
-  //         nome: "Todos os Produtos",
-  //         description: "Exibe todos os produtos disponíveis.",
-  //       },
-  //       ...response,
-  //     ];
-  //   },
-  // });
-
-  console.log("Por Categorias: ", produtosFiltrados);
+  const { user } = useAuthStore();
+  const user_Id = user?.id_usuario || "";
 
   const { data: produtos } = useQuery({
-    queryKey: ["produtos", "allProducts", category !== "all" ? category : null],
+    queryKey: ["produtos"],
     queryFn: async () => {
       const response = await produtosRoute.getProdutos();
-      return response.data;
+      return response;
     },
   });
+
 
   const [, setAddingProductId] = useState<string | null>(null);
 
   const addToCartMutation = useMutation({
-    mutationFn: async (cartData: { produtoId: string; quantidade: number }) => {
-      const response = await carrinhosRoute.adicionarItem(cartData);
-      return response;
+    mutationFn: async (cartData: {
+      userId: string;
+      produtoId: string;
+      quantidade: number;
+    }) => {
+      return await carrinhosRoute.adicionarItem(cartData);
     },
     onSuccess: () => {
-      setAddingProductId(null);
       toast.success("Produto adicionado ao carrinho com sucesso!");
     },
     onError: (e: any) => {
@@ -594,55 +484,27 @@ const ProductsSection = () => {
   });
 
   const handleAddCartValue = async (produtoId: string, quantidade: number) => {
-    setAddingProductId(produtoId);
-
-    try {
-      // const response = await addToCartMutation.mutate({
-      //   produtoId,
-      //   quantidade,
-      // });
-      const produtoAdicionado = produtos?.produtos?.find(
-        (p: any) => p.id === produtoId,
-      );
-
-      if (produtoAdicionado) {
-        const { addItem } = useCartStore.getState();
-        const cartItem = {
-          id: produtoAdicionado.id,
-          nome: produtoAdicionado.nome,
-          preco: produtoAdicionado.preco,
-          quantidade: produtoAdicionado.quantidade || 0,
-          quantidadeSelecionada: quantidade,
-          imagem: produtoAdicionado.imagem,
-          descricao: produtoAdicionado.descricao,
-        };
-        addItem(cartItem);
-      }
-    } catch (error) {
-      toast.error("Erro ao adicionar produto ao carrinho");
-    } finally {
-      setAddingProductId(null);
-    }
+    const userId = user_Id;
+    await addToCartMutation.mutate({ userId, produtoId, quantidade });
   };
 
-  console.log("Produtos disponíveis: ", produtos);
-
   const renderImagem = (produto: any) => {
-    if (produto.imagem) {
-      if (produto.imagem.includes("http")) {
+    console.log("I: ", produto);
+    if (produto?.ImagemProduto) {
+      if (produto?.ImagemProduto.url?.includes("/uploads")) {
         return (
           <img
-            src={produto.imagem}
-            alt={produto.nome}
+            src={produto?.imagem}
+            alt={produto?.nome}
             className="w-full h-full object-cover"
             onError={(e) => {
               console.error(
-                `Erro ao carregar imagem completa: ${produto.imagem}`,
+                `Erro ao carregar imagem completa: ${produto?.imagem}`,
               );
               e.currentTarget.style.display = "none";
               e.currentTarget.parentElement!.innerHTML = `
               <div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                <span class="text-gray-400">${produto.nome}</span>
+                <span class="text-gray-400">${produto?.nome}</span>
               </div>
             `;
             }}
@@ -650,16 +512,16 @@ const ProductsSection = () => {
         );
       }
 
-      let cloudinaryPath = produto.imagem;
+      let Path = produto.imagem;
 
-      if (cloudinaryPath.startsWith("/")) {
-        cloudinaryPath = cloudinaryPath.substring(1);
+
+      if (Path?.startsWith("/")) {
+        Path = Path?.substring(1);
       }
 
       return (
-        <CloudinaryImage
-          publicId={cloudinaryPath}
-          alt={produto.nome}
+        <Image
+          alt={produto?.nome}
           width={400}
           height={300}
           className="w-full h-full"
@@ -669,7 +531,7 @@ const ProductsSection = () => {
       return (
         <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center">
           <Package className="h-12 w-12 text-gray-400 mb-2" />
-          <span className="text-gray-500 text-sm">{produto.nome}</span>
+          <span className="text-gray-500 text-sm">{produto?.nome}</span>
           <div className="absolute bottom-2 right-2 bg-[#D4AF37] text-white px-2 py-1 text-xs rounded">
             Sem Imagem
           </div>
@@ -690,49 +552,6 @@ const ProductsSection = () => {
     });
   };
 
-  // const queryClient = useQueryClient();
-
-  // const addCartMutation = useMutation({
-  //   mutationFn: async ({
-  //     produtoId,
-  //     quantidade,
-  //   }: {
-  //     produtoId: string;
-  //     quantidade: number;
-  //   }) => {
-  //     return await carrinhosRoute.adicionarItem(produtoId, quantidade);
-  //   },
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: ["carrinho"] });
-  //   },
-  //   onError: (error) => {
-  //     console.error("Erro ao adicionar ao carrinho:", error);
-  //   },
-  // });
-
-  // const handleAdicionarAoCarrinho = (
-  //   produto: any,
-  //   quantidadeSelecionada: number = 1,
-  // ) => {
-  //   const cartItem = {
-  //     id: produto.id,
-  //     nome: produto.nome,
-  //     descricao: produto.descricao,
-  //     preco: produto.preco,
-  //     quantidade: produto.quantidade || 0,
-  //     quantidadeSelecionada: quantidadeSelecionada,
-  //     imagem: produto.imagem,
-  //     categoria: produto.categoria,
-  //   };
-  //   addItem(cartItem);
-  //   addToCartMutation.mutate({
-  //     userId: user_Id,
-  //     produtoId: produto.id,
-  //     quantidade: quantidadeSelecionada,
-  //   });
-  //   toast.success(`${produto.nome} adicionado ao carrinho!`);
-  // };
-
   return (
     <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4">
@@ -747,14 +566,15 @@ const ProductsSection = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {produtos?.produtos?.map((produto: any) => {
+          {produtos && produtos?.map((produto: any) => {
             return (
               <div
                 key={produto.id}
                 className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
               >
                 <div className="relative h-52 overflow-hidden">
-                  {renderImagem(produto)}
+                  {/* {renderImagem(produto?.ImagemProduto?.url)} */}
+                  <img src={produto?.ImagemProduto?.url} alt="" />
                   <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white">
                     <Heart className="h-5 w-5" />
                   </button>
@@ -783,7 +603,7 @@ const ProductsSection = () => {
                         KZ {produto.preco.toLocaleString()}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {produto.vendas} vendas
+                        Disponivel {produto.quantidade} unidades
                       </p>
                     </div>
 
@@ -797,19 +617,24 @@ const ProductsSection = () => {
                       >
                         <BsEye size={18} />
                       </button>
-                      <button
+                      {user ? (
+
+                        <button
                         onClick={() =>
                           handleAddCartValue(produto.id, quantidade)
                         }
                         disabled={addToCartMutation.isPending}
                         className="p-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c]"
-                      >
+                        >
                         {addToCartMutation.isPending ? (
                           <Loader className="animate-spin" />
                         ) : (
                           <FiShoppingCart size={18} />
                         )}
                       </button>
+                        ): (
+                          <></>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -897,7 +722,9 @@ const ProductsSection = () => {
                   </div>
 
                   <div className="flex gap-3">
-                    <button
+                    {user && (
+
+                      <button
                       onClick={() => {
                         handleAddCartValue(produtoSelecionado.id, quantidade);
                         setProdutoSelecionado(null);
@@ -913,6 +740,7 @@ const ProductsSection = () => {
                         ? "Adicionando..."
                         : "Adicionar ao Carrinho"}
                     </button>
+                      )}
                     <button
                       onClick={() => setProdutoSelecionado(null)}
                       className="px-6 py-3 border rounded-lg hover:bg-gray-50 transition"
@@ -946,24 +774,39 @@ const ProductsSection = () => {
 // Componente Header atualizado
 const Header = () => {
   const [open, setOpen] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [, setCart] = useState<any[]>([]);
 
   const user = useAuthStore((state) => state.user);
+  const user_Id = user?.id_usuario || "";
   const logged = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
-  const {
-    removeItem,
-    updateQuantity,
-    clearCart,
-    getTotal,
-    getTotalItemsDoUsuario,
-    setCurrentUser,
-    getItemsDoUsuarioAtual,
-  } = useCartStore();
+  const { data: cartData } = useQuery({
+    queryKey: ["cart"],
+    queryFn: async () => await carrinhosRoute.getCarrinho(),
+    enabled: !!user_Id,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (cartData?.data?.itens) {
+      const mapped = cartData?.data?.itens.map((item) => ({
+        id: item.id,
+        name: item.produto.nome,
+        description: item.produto.imagemAlt,
+        image: item.produto.imagem,
+        price: item.produto.preco,
+        quantity: item.quantidade,
+        product_id: item.produtoId,
+      }));
+      setCart(mapped);
+    }
+  }, [cartData]);
+
+  const {setCurrentUser } = useCartStore();
 
   useEffect(() => {
     if (user) {
@@ -973,8 +816,19 @@ const Header = () => {
     }
   }, [user, setCurrentUser]);
 
-  const totalItens = user ? getTotalItemsDoUsuario(user.id_usuario) : 0;
-  const carrinho = getItemsDoUsuarioAtual();
+  const countItems = useQuery({
+    queryKey: ["count"],
+    queryFn: async () => {
+      const response = await carrinhosRoute.countCartItems(
+        user?.id_usuario || "",
+      );
+      return response;
+    },
+    enabled: !!user,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5,
+  });
+
 
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -991,56 +845,11 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleQuantidade = (id: string, action: "increment" | "decrement") => {
-    const item = carrinho.find((i) => i.id === id);
-    if (!item) return;
-
-    const novaQuantidade =
-      action === "increment"
-        ? item.quantidadeSelecionada + 1
-        : item.quantidadeSelecionada - 1;
-
-    updateQuantity(id, novaQuantidade);
-  };
-
-  const removerDoCarrinho = (id: string) => {
-    removeItem(id);
-    toast.info("Produto removido do carrinho");
-  };
-
-  const finalizarCompra = () => {
-    if (carrinho.length === 0) {
-      toast.error("Nenhum produto no carrinho!");
-      return;
-    }
-    if (!logged) {
-      toast.error("Faça login para finalizar a compra");
-      navigate("/login");
-      return;
-    }
-    setCartOpen(false);
-    navigate("/checkout");
-  };
-
   const handleLogout = async () => {
     await logout();
     setProfileOpen(false);
     setCurrentUser(null);
     navigate("/");
-  };
-
-  const getImageUrl = (imagePath: string | undefined) => {
-    if (!imagePath) return null;
-
-    let cleanedPath = imagePath;
-    if (cleanedPath.startsWith("/")) {
-      cleanedPath = cleanedPath.substring(1);
-    }
-
-    const cloudName = "sufficius-commerce";
-    const transformations = "c_fill,w_150,h_150,q_auto,f_auto";
-
-    return `https://res.cloudinary.com/${cloudName}/image/upload/${transformations}/${cleanedPath}`;
   };
 
   return (
@@ -1114,7 +923,7 @@ const Header = () => {
                 ) : (
                   // USUÁRIO NÃO LOGADO
                   <Link to={"/login"}>
-                    <Button>Entrar</Button>
+                    <Button className="gap-5 flex ml-4">Entrar</Button>
                   </Link>
                 )}
 
@@ -1145,17 +954,25 @@ const Header = () => {
               </div>
 
               {/* BOTÃO DO CARRINHO */}
-              <button
-                className="relative p-2 rounded-full"
-                onClick={() => setCartOpen(true)}
-              >
-                <ShoppingCart size={22} />
-                {totalItens > 0 && (
+              <Link to={"/checkout"}>
+                <button className="relative p-2 rounded-full">
+                <ShoppingCart className="w-5" />
+                {user && (
+
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {totalItens}
+                    {countItems.isLoading ? (
+                      <p>0</p>
+                    ) : countItems.data === undefined ||
+                      countItems.data === null ||
+                      countItems.data.itemsCount === 0 ? (
+                      <p className="text-white">{cartData?.data?.totalItens.toString()}</p>
+                    ) : (
+                      <p className="text-white">{cartData?.data?.totalItens.toString()}</p>
+                    )}
                   </span>
-                )}
-              </button>
+                  )}
+                </button>
+              </Link>
 
               {/* BOTÃO MENU MOBILE */}
               <button className="md:hidden" onClick={() => setOpen(!open)}>
@@ -1192,7 +1009,7 @@ const Header = () => {
                       className="block py-2"
                       onClick={() => setOpen(false)}
                     >
-                      <Button className="w-full">Entrar</Button>
+                      <Button className="w-full ml-2">Entrar</Button>
                     </Link>
                   )}
                 </div>
@@ -1201,147 +1018,6 @@ const Header = () => {
           )}
         </div>
       </header>
-
-      {/* MODAL DO CARRINHO */}
-      {cartOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-6 max-h-[80vh] flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Meu Carrinho ({totalItens})</h2>
-              <button onClick={() => setCartOpen(false)} className="p-1">
-                <X size={24} />
-              </button>
-            </div>
-
-            {totalItens === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
-                <ShoppingCart className="h-16 w-16 mb-4" />
-                <p>Seu carrinho está vazio</p>
-                <button
-                  onClick={() => setCartOpen(false)}
-                  className="mt-4 text-[#D4AF37] font-medium"
-                >
-                  Continuar comprando
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="flex-1 overflow-y-auto">
-                  {carrinho.map((item) => {
-                    const imageUrl = getImageUrl(item.imagem);
-                    const itemTotal = item.preco * item.quantidadeSelecionada;
-
-                    return (
-                      <div
-                        key={item.id}
-                        className="flex items-center border-b py-4"
-                      >
-                        <div className="h-16 w-16 rounded-lg overflow-hidden bg-gray-100">
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={item.nome}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                                e.currentTarget.parentElement!.innerHTML = `
-                                <div class="w-full h-full bg-gray-100 flex items-center justify-center">
-                                  <span class="text-gray-400 text-xs">${item.nome}</span>
-                                </div>
-                              `;
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <span className="text-gray-400 text-xs">
-                                Sem imagem
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="ml-4 flex-1">
-                          <h3 className="font-medium">{item.nome}</h3>
-                          <p className="text-[#D4AF37] font-semibold">
-                            KZ {item.preco.toLocaleString()}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <button
-                              onClick={() =>
-                                handleQuantidade(item.id, "decrement")
-                              }
-                              className="w-6 h-6 border rounded"
-                              disabled={item.quantidadeSelecionada <= 1}
-                            >
-                              -
-                            </button>
-                            <span className="min-w-[2rem] text-center">
-                              {item.quantidadeSelecionada}
-                            </span>
-                            <button
-                              onClick={() =>
-                                handleQuantidade(item.id, "increment")
-                              }
-                              className="w-6 h-6 border rounded"
-                              disabled={
-                                item.quantidadeSelecionada >= item.quantidade
-                              }
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                        <div className="text-right ml-2">
-                          <p className="font-semibold">
-                            KZ {itemTotal.toLocaleString()}
-                            {(
-                              item.preco * item.quantidadeSelecionada
-                            ).toLocaleString()}
-                          </p>
-                          <button
-                            onClick={() => removerDoCarrinho(item.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <CgClose size={20} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4 pt-4 border-t">
-                  <div className="flex justify-between text-lg font-bold mb-4">
-                    <span>Total:</span>
-                    <span>KZ {getTotal().toLocaleString()}</span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        if (carrinho.length > 0) {
-                          clearCart();
-                          toast.success("Carrinho limpo com sucesso!");
-                        }
-                      }}
-                      className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 transition"
-                      disabled={carrinho.length === 0}
-                    >
-                      Limpar
-                    </button>
-                    <button
-                      onClick={finalizarCompra}
-                      className="w-full bg-[#D4AF37] text-white py-3 rounded-lg font-semibold hover:bg-[#c19b2c] transition"
-                      disabled={carrinho.length === 0}
-                    >
-                      Finalizar Compra
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </>
   );
 };

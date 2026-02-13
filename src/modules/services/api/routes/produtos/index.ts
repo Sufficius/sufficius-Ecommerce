@@ -20,6 +20,12 @@ interface IProdutoToEdit {
   status?: string;
 }
 
+interface ProdutoResponse {
+   success: boolean;
+    data: IProduto[];
+    total: number;
+}
+
 interface IProduto {
   id: string;
   nome: string;
@@ -49,13 +55,8 @@ interface IProduto {
 class ProdutosRoute {
 
   async getProdutos() {
-    try {
-      const response = await api.get("/produtos");
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Erro ao buscar produtos:', error);
-      throw new Error("Erro ao carregar produtos");
-    }
+      const response = await api.get<ProdutoResponse>("/produtos/get");
+      return response.data.data;
   }
 
   async criarProduto(produto: IProdutoToCreate) {

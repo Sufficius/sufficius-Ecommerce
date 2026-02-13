@@ -6,6 +6,7 @@ interface User {
     avatar: string | null;
     data_nascimento: string;
     role: string;
+    fotoUrl:string;
 }
 
 interface IUser {
@@ -17,6 +18,7 @@ interface IUser {
     role: string;
     telefone: string;
     status: string;
+    fotoUrl:string;
 }
 
 interface UserAuth {
@@ -31,6 +33,7 @@ interface UserAuth {
         role: string,
         tipo:string,
         BI:string,
+        fotoUrl:string,
     }
 }
 
@@ -43,6 +46,7 @@ interface UserToCreate {
     born: Date | undefined,
     role: "ADMINISTRADOR" | "OPERADOR",
     user_status?: "ACTIVO" | "INACTIVO",
+    fotoUrl?:string,
 }
 
 interface UserToEdit {
@@ -54,4 +58,5 @@ interface UserToEdit {
     avatar?: string,
     user_status?: "ACTIVO" | "INACTIVO",
     born?:Date | string,
+    fotoUrl?:string,
 }

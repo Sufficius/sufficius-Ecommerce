@@ -33,7 +33,10 @@ interface NovoProdutoModalProps {
   onProdutoCriado?: () => void;
 }
 
-export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModalProps) => {
+export const NovoProdutoModal = ({
+  children,
+  onProdutoCriado,
+}: NovoProdutoModalProps) => {
   const queryClient = useQueryClient();
 
   const [open, setOpen] = useState(false);
@@ -53,7 +56,7 @@ export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModal
     preco: "",
     quantidade: "",
     id_categoria: "",
-    imagemproduto: "",
+    foto: "",
   });
 
   const { data: categorias } = useQuery({
@@ -70,7 +73,7 @@ export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModal
   }, [form.id_categoria]);
 
   const handleInput = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
 
@@ -95,8 +98,8 @@ export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModal
 
   const handleImagemChange = (file: File) => {
     // Limpar erro anterior
-    if (errors.imagemproduto) {
-      setErrors((prev) => ({ ...prev, imagemproduto: "" }));
+    if (errors.foto) {
+      setErrors((prev) => ({ ...prev, foto: "" }));
     }
 
     const validExt = /\.(jpe?g|png|gif|webp|bmp)$/i;
@@ -109,7 +112,7 @@ export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModal
 
     if (!file.type.startsWith("image/") || !validExt.test(file.name)) {
       toast.error(
-        "O arquivo selecionado não é uma imagem válida. Use JPG, PNG, GIF ou WebP."
+        "O arquivo selecionado não é uma imagem válida. Use JPG, PNG, GIF ou WebP.",
       );
       setImagem(undefined);
       return;
@@ -131,7 +134,7 @@ export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModal
       preco: "",
       quantidade: "",
       id_categoria: "",
-      imagemproduto: "",
+      foto: "",
     };
 
     let isValid = true;
@@ -186,7 +189,7 @@ export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModal
 
     // Imagem
     if (!imagem) {
-      newErrors.imagemproduto = "Imagem é obrigatória.";
+      newErrors.foto = "Imagem é obrigatória.";
       isValid = false;
     }
 
@@ -228,7 +231,7 @@ export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModal
       queryClient.invalidateQueries({ queryKey: ["produtos"] });
       queryClient.invalidateQueries({ queryKey: ["estatisticas-produtos"] });
 
-      if(onProdutoCriado) {
+      if (onProdutoCriado) {
         onProdutoCriado();
       }
       toast.success("Produto criado com sucesso!");
@@ -249,7 +252,7 @@ export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModal
         preco: "",
         quantidade: "",
         id_categoria: "",
-        imagemproduto: "",
+        foto: "",
       });
       setOpen(false);
     },
@@ -292,7 +295,7 @@ export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModal
         preco: "",
         quantidade: "",
         id_categoria: "",
-        imagemproduto: "",
+        foto: "",
       });
     }
   }, [open]);
@@ -452,10 +455,8 @@ export const NovoProdutoModal = ({ children, onProdutoCriado }: NovoProdutoModal
                   <p>Tipo: {imagem.type}</p>
                 </div>
               )}
-              {errors.imagemproduto && (
-                <span className="text-xs text-red-500">
-                  {errors.imagemproduto}
-                </span>
+              {errors.foto && (
+                <span className="text-xs text-red-500">{errors.foto}</span>
               )}
               <p className="text-xs text-gray-500 mt-1">
                 Formatos aceitos: JPG, PNG, GIF, WebP. Tamanho máximo: 15MB

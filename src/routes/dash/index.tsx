@@ -15,7 +15,7 @@ export const DashRoutes: IRouteProps = {
       element: Landing,
       visibility: "auth",
     },
-     {
+    {
       path: "/dashboard",
       element: Dashboard,
       visibility: "private",
@@ -23,12 +23,12 @@ export const DashRoutes: IRouteProps = {
     {
       path: "/checkout",
       element: CheckoutPage,
-      visibility: "auth", 
+      visibility: "auth",
     },
     {
-      path:"/confirmacao",
+      path: "/confirmacao",
       element: ConfirmacaoCompra,
       visibility: "auth",
-    }
+    },
   ],
 };

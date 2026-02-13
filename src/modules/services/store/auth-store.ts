@@ -10,6 +10,7 @@ interface User {
     BI: string;
     avatar?: string | null;
     googleId?: string;
+    fotoUrl:string;
 }
 
 interface AuthState {

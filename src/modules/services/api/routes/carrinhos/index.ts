@@ -19,6 +19,7 @@ interface IItemCarrinho {
 }
 
 interface ICriarCarrinho {
+  userId: string;
   produtoId: string;
   quantidade: number;
 }
@@ -78,18 +79,7 @@ class CarrinhosRoute {
   // Adicionar item ao carrinho
   async adicionarItem(data: ICriarCarrinho) {
     try {
-          console.log('📤 [Frontend] Enviando para /carrinho/item:', data); // Adicione log para debug
-
       const response = await api.post("/carrinho/item", data);
-
-          console.log('🔍 [DEBUG] Tentando acessar dados de diferentes formas:');
-    console.log('   1. response.data.data:', response.data.data);
-    console.log('   2. response.data?.data:', response.data?.data);
-    console.log('   3. response["data"]["data"]:', response.data && response.data.data);
-    console.log('   4. JSON.stringify:', JSON.stringify(response.data, null, 2));
-
-       console.log('📥 [Frontend] Resposta recebida:', response.data); // Adicione log para debug
-
 
       return response.data;
     } catch (error: any) {
@@ -124,8 +114,16 @@ class CarrinhosRoute {
   }
 
   // Atualizar quantidade de um item no carrinho
-  async atualizarItem(produtoId: string, quantidade: number): Promise<IRespostaCarrinho> {
+  async atualizarItem(id: string, produtoId: string, quantidade: number): Promise<IRespostaCarrinho> {
     try {
+
+      if (!id) {
+        return {
+          success: false,
+          message: "ID do usuário é obrigatório"
+        };
+      }
+
       if (!produtoId) {
         return {
           success: false,
@@ -145,7 +143,7 @@ class CarrinhosRoute {
         return await this.removerItem(produtoId);
       }
 
-      const response = await api.put(`/carrinho/item/${produtoId}`, { quantidade });
+      const response = await api.put(`/carrinho/item/${id}/${produtoId}`, { quantidade });
       return response.data;
     } catch (error: any) {
       console.error(`❌ [Frontend] Erro ao atualizar item ${produtoId} no carrinho:`, error);
@@ -213,6 +211,16 @@ class CarrinhosRoute {
         message: error.response?.data?.message || "Erro ao remover item do carrinho"
       };
     }
+  }
+
+  async deleteAllProductsInCart(id: string) {
+    const response = await api.delete(`/carrinho/deleteAllProducts/${id}`);
+    return response.data;
+  }
+
+  async deleteProductInCart(id: string, produtoId: string) {
+    const response = await api.delete(`/carrinho/deleteProduct/${id}/${produtoId}`);
+    return response.data;
   }
 
   // Limpar todo o carrinho
@@ -315,6 +323,33 @@ class CarrinhosRoute {
         message: error.response?.data?.message || "Erro ao sincronizar carrinho"
       };
     }
+  }
+
+  async finalizePurchase(userId: string, comprovativo: File, location: string, phone: string) {
+    const formData = new FormData();
+
+    formData.append("userId", userId);
+    formData.append("comprovativo", comprovativo);
+    formData.append("location", location);
+    formData.append("phone", phone);
+
+
+    try {
+      const { data } = await api.post("/carrinho/checkout", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return data;
+    }
+    catch (error) {
+      throw error;
+    }
+  }
+
+  async countCartItems(userId: string) {
+    const response = await api.get(`/carrinho/count-items-on-card/${userId}`);
+    return response.data;
   }
 
   // Adicionar múltiplos itens de uma vez

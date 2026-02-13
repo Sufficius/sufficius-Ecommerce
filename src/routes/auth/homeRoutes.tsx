@@ -30,6 +30,7 @@ export const HomesRoutes: IRouteProps = {
     {
       path: "/produtos",
       element: AdminProdutos,
+      // element: NotFound,
       visibility: "auth", // Mude para "auth"
     },
     {
