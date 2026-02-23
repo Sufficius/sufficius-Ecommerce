@@ -1,16 +1,6 @@
 import { produtosRoute } from "@/modules/services/api/routes/produtos";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { categoriaRoutes } from "@/modules/services/api/routes/categorias";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,11 +11,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import UploadArea from "@/(admin)/components/upload-area";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
+import { useAuthStore } from "@/modules/services/store/auth-store";
+import { api } from "@/modules/services/api/axios";
 
 interface NovoProdutoModalProps {
   children: React.ReactNode;
@@ -40,6 +31,11 @@ export const NovoProdutoModal = ({
   const queryClient = useQueryClient();
 
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const token = useAuthStore((state) => state.token);
+
   const [form, setForm] = useState({
     nome: "",
     descricao: "",
@@ -49,7 +45,9 @@ export const NovoProdutoModal = ({
     status: "ACTIVO",
   });
 
-  const [imagem, setImagem] = useState<File>();
+  const [imagem, setImagem] = useState<File | null>(null);
+  const [imagemPreview, setImagemPreview] = useState<string | null>(null);
+
   const [errors, setErrors] = useState({
     nome: "",
     descricao: "",
@@ -72,7 +70,7 @@ export const NovoProdutoModal = ({
     if (!form.id_categoria) return;
   }, [form.id_categoria]);
 
-  const handleInput = (
+  const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
@@ -96,7 +94,28 @@ export const NovoProdutoModal = ({
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleImagemChange = (file: File) => {
+  const handleImagemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setError("A imagem deve ter no máximo 10MB");
+        return;
+      }
+      const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+      if (!validTypes.includes(file.type)) {
+        setError("Formato inválido. Use JPEG, PNG ou WebP");
+        return;
+      }
+      setImagem(file);
+      setError(null);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagemPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
     // Limpar erro anterior
     if (errors.foto) {
       setErrors((prev) => ({ ...prev, foto: "" }));
@@ -106,7 +125,7 @@ export const NovoProdutoModal = ({
     const maxSize = 15 * 1024 * 1024; // 15MB
 
     if (!file) {
-      setImagem(undefined);
+      setImagem(null);
       return;
     }
 
@@ -114,13 +133,13 @@ export const NovoProdutoModal = ({
       toast.error(
         "O arquivo selecionado não é uma imagem válida. Use JPG, PNG, GIF ou WebP.",
       );
-      setImagem(undefined);
+      setImagem(null);
       return;
     }
 
     if (file.size > maxSize) {
       toast.error("A imagem é muito grande. Tamanho máximo: 15MB.");
-      setImagem(undefined);
+      setImagem(null);
       return;
     }
 
@@ -221,7 +240,7 @@ export const NovoProdutoModal = ({
         id_categoria: form.id_categoria,
         quantidade: parseInt(form.quantidade).toString(),
         status: form.status,
-        imagemproduto: imagem,
+        foto: imagem,
       };
 
       return await produtosRoute.criarProduto(produtoData);
@@ -245,7 +264,7 @@ export const NovoProdutoModal = ({
         status: "ACTIVO",
         id_categoria: "",
       });
-      setImagem(undefined);
+      setImagem(null);
       setErrors({
         nome: "",
         descricao: "",
@@ -262,21 +281,6 @@ export const NovoProdutoModal = ({
     },
   });
 
-  const handleCriarProduto = async () => {
-    // Validar antes de enviar
-    if (!validate()) {
-      toast.error("Por favor, corrija os erros no formulário.");
-      return;
-    }
-
-    // Verificar se já está enviando
-    if (criarProduto.isPending) {
-      return;
-    }
-
-    await criarProduto.mutateAsync();
-  };
-
   // Resetar tudo quando o modal abrir/fechar
   useEffect(() => {
     if (!open) {
@@ -288,7 +292,7 @@ export const NovoProdutoModal = ({
         status: "ACTIVO",
         id_categoria: "",
       });
-      setImagem(undefined);
+      setImagem(null);
       setErrors({
         nome: "",
         descricao: "",
@@ -300,197 +304,371 @@ export const NovoProdutoModal = ({
     }
   }, [open]);
 
+  const handleRemoverImagem = () => {
+    setImagem(null);
+    setImagemPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadImagem = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("imagem", file);
+
+    try {
+      const response = await api.post("/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      console.log("Upload response:", response.data); // Debug
+
+      if (response.data?.success) {
+        return response.data.caminho;
+      } else {
+        throw new Error(
+          response.data?.message || "Erro ao fazer upload da imagem",
+        );
+      }
+    } catch (error) {
+      console.error("Erro detalhado no upload:", error);
+      throw error;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setUploadProgress(0);
+
+    try {
+      if (!imagem) {
+        throw new Error("Selecione uma imagem para o produto");
+      }
+
+      setUploadProgress(30);
+      const caminhoImagem = await uploadImagem(imagem);
+      setUploadProgress(70);
+
+      const produtoData: any = {
+        nome: form.nome,
+        descricao: form.descricao,
+        preco: parseFloat(form.preco),
+        quantidade: parseInt(form.quantidade),
+        id_categoria: form.id_categoria,
+        status: form.status,
+        foto: caminhoImagem,
+      };
+
+      console.log("📦 Enviando produto:", produtoData);
+      setUploadProgress(90);
+
+      // 5. Enviar dados do produto
+      const response = await api.post("/produtos", produtoData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUploadProgress(100);
+
+      if (response.data.success || response.data.id) {
+        toast.success("Produto criado com sucesso!");
+        onProdutoCriado?.();
+
+        setForm({
+          nome: "",
+          descricao: "",
+          preco: "",
+          quantidade: "",
+          id_categoria: "",
+          status: "ATIVO",
+        });
+
+        handleRemoverImagem();
+        setOpen(false);
+      } else {
+        throw new Error(response.data.message || "Erro ao criar produto");
+      }
+    } catch (err: any) {
+      const errorMessage =
+        err.response?.data?.message || err.message || "Erro ao criar produto";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      console.error("❌ Erro ao criar produto:", err);
+    } finally {
+      setUploadProgress(0);
+    }
+  };
+
+  const resetForm = () => {
+    setForm({
+      nome: "",
+      descricao: "",
+      preco: "",
+      quantidade: "",
+      id_categoria: "",
+      status: "ATIVO",
+    });
+    handleRemoverImagem();
+    setError(null);
+  };
+
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
-      <AlertDialogContent className="h-full md:max-h-[90vh] overflow-y-auto w-full max-w-2xl [&::-webkit-scrollbar]:hidden">
-        <AlertDialogHeader>
-          <AlertDialogTitle className="font-bold text-start text-xl">
-            Adicionar Novo Produto
-          </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-4 mt-4">
-            {/* Nome */}
-            <div className="flex flex-col gap-2">
-              <Label className="block text-sm font-medium text-gray-700 mb-1">
-                Nome do Produto *
-              </Label>
-              <Input
-                type="text"
-                name="nome"
-                value={form.nome}
-                onChange={handleInput}
-                disabled={criarProduto.isPending}
-                required
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                placeholder="Ex: iPhone 15 Pro Max"
-              />
-              {errors.nome && (
-                <span className="text-xs text-red-500">{errors.nome}</span>
-              )}
-            </div>
-
-            {/* Categoria */}
-            <div className="flex flex-col gap-2">
-              <Label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoria *
-              </Label>
-              <Select
-                value={form.id_categoria}
-                onValueChange={(value) => {
-                  setForm((prev) => ({ ...prev, id_categoria: value }));
-                  if (errors.id_categoria) {
-                    setErrors((prev) => ({ ...prev, id_categoria: "" }));
-                  }
-                }}
-                disabled={criarProduto.isPending}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder="Selecionar categoria"
-                    className="focus-visible:ring-0 ring-0 outline-none dark:text-white"
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {categorias?.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.id_categoria && (
-                <span className="text-xs text-red-500">
-                  {errors.id_categoria}
-                </span>
-              )}
-            </div>
-
-            {/* Preço e Quantidade lado a lado */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Preço */}
-              <div className="flex flex-col gap-2">
-                <Label className="block text-sm font-medium text-gray-700 mb-1">
-                  Preço (KZ) *
-                </Label>
-                <Input
-                  type="number"
-                  name="preco"
-                  value={form.preco}
-                  onChange={handleInput}
-                  disabled={criarProduto.isPending}
-                  required
-                  step="0.01"
-                  min="0.01"
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  placeholder="0.00"
-                />
-                {errors.preco && (
-                  <span className="text-xs text-red-500">{errors.preco}</span>
-                )}
-              </div>
-
-              {/* Quantidade */}
-              <div className="flex flex-col gap-2">
-                <Label className="block text-sm font-medium text-gray-700 mb-1">
-                  Quantidade *
-                </Label>
-                <Input
-                  type="number"
-                  name="quantidade"
-                  value={form.quantidade}
-                  onChange={handleInput}
-                  disabled={criarProduto.isPending}
-                  required
-                  min="0"
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  placeholder="0"
-                />
-                {errors.quantidade && (
-                  <span className="text-xs text-red-500">
-                    {errors.quantidade}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Descrição */}
-            <div className="flex flex-col gap-2">
-              <Label className="block text-sm font-medium text-gray-700 mb-1">
-                Descrição *
-              </Label>
-              <Textarea
-                name="descricao"
-                value={form.descricao}
-                onChange={handleInput}
-                disabled={criarProduto.isPending}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37] min-h-[100px]"
-                placeholder="Descreva o produto em detalhes..."
-              />
-              <div className="flex justify-between">
-                {errors.descricao && (
-                  <span className="text-xs text-red-500">
-                    {errors.descricao}
-                  </span>
-                )}
-                <span className="text-xs text-gray-500 ml-auto">
-                  {form.descricao.length}/500 caracteres
-                </span>
-              </div>
-            </div>
-
-            {/* Imagem */}
-            <div className="flex flex-col gap-2">
-              <Label className="block text-sm font-medium text-gray-700 mb-1">
-                Imagem do Produto *
-              </Label>
-              <div className="mb-2">
-                <UploadArea onChange={handleImagemChange} />
-              </div>
-              {imagem && (
-                <div className="text-sm text-gray-600">
-                  <p>
-                    ✓ Imagem selecionada: <strong>{imagem.name}</strong>
-                  </p>
-                  <p>Tamanho: {(imagem.size / 1024).toFixed(2)} KB</p>
-                  <p>Tipo: {imagem.type}</p>
+    <>
+      <div onClick={() => setOpen(true)}>{children}</div>
+      {open && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={() => {
+                resetForm();
+                setOpen(false);
+              }}
+            ></div>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-medium text-gray-900 text-lg">
+                    Adicionar Novo Produto
+                  </h3>
+                  <button
+                    onClick={() => {
+                      resetForm();
+                      setOpen(false);
+                    }}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
                 </div>
-              )}
-              {errors.foto && (
-                <span className="text-xs text-red-500">{errors.foto}</span>
-              )}
-              <p className="text-xs text-gray-500 mt-1">
-                Formatos aceitos: JPG, PNG, GIF, WebP. Tamanho máximo: 15MB
-              </p>
-            </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+                {error && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-700 text-sm">{error}</p>
+                  </div>
+                )}
 
-        <AlertDialogFooter className="gap-2">
-          <AlertDialogCancel
-            className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            disabled={criarProduto.isPending}
-            onClick={() => {
-              if (!criarProduto.isPending) setOpen(false);
-            }}
-          >
-            Cancelar
-          </AlertDialogCancel>
-          <Button
-            onClick={handleCriarProduto}
-            disabled={criarProduto.isPending}
-            className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {criarProduto.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Criando...
-              </>
-            ) : (
-              "Criar Produto"
-            )}
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+                {uploadProgress > 0 && uploadProgress < 100 && (
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Enviando imagem...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-[#D4AF37] h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                  {/* Nome */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <Label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nome do Produto *
+                      </Label>
+                      <Input
+                        type="text"
+                        name="nome"
+                        value={form.nome}
+                        onChange={handleChange}
+                        disabled={criarProduto.isPending}
+                        required
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        placeholder="Ex: iPhone 15 Pro Max"
+                      />
+                    </div>
+
+                    {/* Categoria */}
+                    <div className="flex flex-col gap-2">
+                      <Label className="block text-sm font-medium text-gray-700 mb-1">
+                        Categoria *
+                      </Label>
+                      <Select
+                        value={form.id_categoria}
+                        onValueChange={(value) => {
+                          setForm((prev) => ({ ...prev, id_categoria: value }));
+                          if (errors.id_categoria) {
+                            setErrors((prev) => ({
+                              ...prev,
+                              id_categoria: "",
+                            }));
+                          }
+                        }}
+                        disabled={criarProduto.isPending}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder="Selecionar categoria"
+                            className="focus-visible:ring-0 ring-0 outline-none dark:text-white"
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categorias?.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Preço */}
+                    <div>
+                      <Label className="block text-sm font-medium text-gray-700 mb-1">
+                        Preço (KZ) *
+                      </Label>
+                      <Input
+                        type="number"
+                        name="preco"
+                        value={form.preco}
+                        onChange={handleChange}
+                        disabled={criarProduto.isPending}
+                        required
+                        step="0.01"
+                        min="0.01"
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  {/* Quantidade */}
+                  <div className="flex flex-col gap-2">
+                    <Label className="block text-sm font-medium text-gray-700 mb-1">
+                      Quantidade *
+                    </Label>
+                    <Input
+                      type="number"
+                      name="quantidade"
+                      value={form.quantidade}
+                      onChange={handleChange}
+                      disabled={criarProduto.isPending}
+                      required
+                      min="0"
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  {/* Imagem */}
+                  <div className="flex flex-col gap-2">
+                    <Label className="block text-sm font-medium text-gray-700 mb-1">
+                      Imagem do Produto *
+                    </Label>
+                    <div className="mb-2">
+                      <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#D4AF37] transition-colors">
+                        <div className="space-y-1 text-center">
+                          {imagemPreview ? (
+                            <div className="relative">
+                              <img
+                                src={imagemPreview}
+                                alt="Preview"
+                                className="mx-auto h-40 w-40 object-cover rounded-lg"
+                              />
+                              <div className="absolute top-0 right-0 -mt-2 -mr-2">
+                                <button
+                                  type="button"
+                                  onClick={handleRemoverImagem}
+                                  className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-lg"
+                                  disabled={criarProduto.isPending}
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-2">
+                                {imagem?.name}
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                              <div className="flex text-sm text-gray-600">
+                                <label
+                                  htmlFor="file-upload"
+                                  className="relative cursor-pointer bg-white rounded-md font-medium text-[#D4AF37] hover:text-[#c19b2c] focus-within:outline-none"
+                                >
+                                  <span>Upload da imagem</span>
+                                  <input
+                                    id="file-upload"
+                                    ref={fileInputRef}
+                                    name="imagem"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={handleImagemChange}
+                                    className="sr-only"
+                                    disabled={criarProduto.isPending}
+                                  />
+                                </label>
+                                <p className="pl-1">ou arraste até aqui</p>
+                              </div>
+                              <p className="text-xs text-gray-500">
+                                PNG, JPG, WebP até 10MB
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {imagem && !imagemPreview && (
+                      <p className="mt-2 text-sm text-green-600 flex items-center">
+                        <Upload className="h-4 w-4 mr-1" />
+                        Arquivo selecionado: {imagem.name}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Descrição */}
+                  <div className="flex flex-col gap-2">
+                    <Label className="block text-sm font-medium text-gray-700 mb-1">
+                      Descrição *
+                    </Label>
+                    <Textarea
+                      name="descricao"
+                      value={form.descricao}
+                      onChange={handleChange}
+                      disabled={criarProduto.isPending}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37] min-h-[100px]"
+                      placeholder="Descreva o produto em detalhes..."
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-4 border-t gap-2">
+                    <button
+                      className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                      disabled={criarProduto.isPending}
+                      onClick={() => {
+                        if (!criarProduto.isPending) setOpen(false);
+                        resetForm();
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <Button
+                      type="submit"
+                      disabled={criarProduto.isPending}
+                      className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {criarProduto.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {uploadProgress > 0 ? "Enviando..." : "Salvando..."}
+                        </>
+                      ) : (
+                        "Criar Produto"
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

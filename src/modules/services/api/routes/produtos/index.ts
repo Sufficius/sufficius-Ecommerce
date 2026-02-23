@@ -6,7 +6,7 @@ interface IProdutoToCreate {
   descricao: string;
   quantidade: string | number;
   id_categoria: string;
-  imagemproduto: File | null;
+  foto: File | null;
   status?: string;
 }
 
@@ -16,7 +16,7 @@ interface IProdutoToEdit {
   descricao?: string;
   quantidade?: string | number;
   id_categoria?: string;
-  imagemproduto?: File | null;
+  foto?: File | null;
   status?: string;
 }
 
@@ -43,7 +43,7 @@ interface IProduto {
     id: string;
     nome: string;
   };
-  imagemproduto?: Array<{
+  foto?: Array<{
     id: string;
     filename: string;
     url: string;
@@ -74,9 +74,9 @@ class ProdutosRoute {
       formData.append("status", "ACTIVO");
     }
 
-    if (produto.imagemproduto && produto.imagemproduto instanceof File) {
-      formData.append("imagemproduto", produto.imagemproduto);
-    } else if (produto.imagemproduto) {
+    if (produto.foto && produto.foto instanceof File) {
+      formData.append("foto", produto.foto);
+    } else if (produto.foto) {
       console.warn('⚠️  Imagem não é um arquivo válido');
     }
 
@@ -143,7 +143,7 @@ class ProdutosRoute {
   async atualizarProduto(id: string, produto: IProdutoToEdit) {
     try {
       // Se tiver imagem, usar FormData
-      if (produto.imagemproduto && produto.imagemproduto instanceof File) {
+      if (produto.foto && produto.foto instanceof File) {
         const formData = new FormData();
         
         if (produto.nome) formData.append("nome", produto.nome.trim());
@@ -153,7 +153,7 @@ class ProdutosRoute {
         if (produto.id_categoria) formData.append("id_categoria", produto.id_categoria);
         if (produto.status) formData.append("status", produto.status);
         
-        formData.append("imagemproduto", produto.imagemproduto);
+        formData.append("foto", produto.foto);
 
         const { data } = await api.put(`/produtos/${id}`, formData, {
           headers: {
