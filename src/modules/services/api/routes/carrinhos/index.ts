@@ -325,13 +325,18 @@ class CarrinhosRoute {
     }
   }
 
-  async finalizePurchase(userId: string, comprovativo: File, location: string, phone: string) {
+ async finalizePurchase(
+  userId: string, 
+  paymentProof: File, 
+  location: string,
+  phone: string
+) {
     const formData = new FormData();
 
     formData.append("userId", userId);
-    formData.append("comprovativo", comprovativo);
     formData.append("location", location);
     formData.append("phone", phone);
+    formData.append("paymentProof", paymentProof);
 
 
     try {

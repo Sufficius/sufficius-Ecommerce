@@ -1,8 +1,23 @@
-import { useState } from "react";
-import { 
-  Plus, Package, Tag, DollarSign, Loader2, Filter, 
-  Search, Edit, Trash2, Eye, AlertCircle, X, Image as ImageIcon,
-  ChevronLeft, ChevronRight, AlertOctagon, Download, RefreshCw
+import { useEffect, useState } from "react";
+import {
+  Plus,
+  Package,
+  Tag,
+  DollarSign,
+  Loader2,
+  Filter,
+  Search,
+  Edit,
+  Trash2,
+  Eye,
+  AlertCircle,
+  X,
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+  AlertOctagon,
+  Download,
+  RefreshCw,
 } from "lucide-react";
 import { api } from "@/modules/services/api/axios";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +26,12 @@ import { NovoProdutoModal } from "@/app/produtos/criarProduto";
 import { produtosRoute } from "@/modules/services/api/routes/produtos";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { toast } from "sonner";
+
+interface ProductImageProps {
+  src?: string;
+  alt: string;
+  className?: string;
+}
 
 interface Categoria {
   id: string;
@@ -26,15 +47,71 @@ interface Produto {
   precoDesconto?: number;
   percentualDesconto?: number;
   quantidade: number;
-  imagem?: string;
+  foto?: string;
   imagemAlt?: string;
   status: "ATIVO" | "INATIVO";
   id_categoria?: string;
   categoria?: string;
+  Categoria?: {
+    nome: string;
+  };
   criadoEm: string;
   atualizadoEm?: string;
   destaque?: boolean;
 }
+
+interface Paginacao {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+interface ModalData {
+  type: "create" | "edit" | "view" | "delete" | "resetPassword" | null;
+  produto?: Produto;
+}
+
+export const ProductImage = ({
+  src,
+  alt,
+  className = "",
+}: ProductImageProps) => {
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  if (!src || error) {
+    return (
+      <div
+        className={`bg-gray-200 flex items-center justify-center ${className}`}
+      >
+        <ImageIcon className="h-1/2 w-1/2 text-gray-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative ${className}`}>
+      {loading && (
+        <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+        </div>
+      )}
+      <img
+        src={`http://localhost:3000${src}`}
+        alt={alt}
+        className={`${className} ${loading ? "opacity-0" : "opacity-100"} transition-opacity duration-300 object-cover`}
+        onLoad={() => {
+          setLoading(false);
+        }}
+        onError={() => {
+          setError(true);
+          setLoading(false);
+        }}
+      />
+    </div>
+  );
+};
 
 // Modal de Visualizar Produto
 const VisualizarProdutoModal = ({
@@ -49,11 +126,11 @@ const VisualizarProdutoModal = ({
   if (!isOpen || !produto) return null;
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-AO', {
-      style: 'currency',
-      currency: 'AOA',
+    return new Intl.NumberFormat("pt-AO", {
+      style: "currency",
+      currency: "AOA",
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(value);
   };
 
@@ -83,15 +160,11 @@ const VisualizarProdutoModal = ({
               {/* Imagem */}
               <div>
                 <div className="bg-gray-100 rounded-lg h-64 overflow-hidden flex items-center justify-center">
-                  {produto.imagem ? (
-                    <img
-                      src={produto.imagem}
-                      alt={produto.imagemAlt || produto.nome}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <ImageIcon className="h-20 w-20 text-gray-400" />
-                  )}
+                  <ProductImage
+                    src={produto.foto}
+                    alt={produto.imagemAlt || produto.nome}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
               </div>
 
@@ -102,7 +175,9 @@ const VisualizarProdutoModal = ({
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm text-gray-600">Categoria</label>
-                    <p className="font-medium">{produto.categoria || "Sem categoria"}</p>
+                    <p className="font-medium">
+                      {produto.Categoria?.nome || produto.categoria || "Sem categoria"}
+                    </p>
                   </div>
 
                   <div>
@@ -281,34 +356,26 @@ const ConfirmarExclusaoModal = ({
 
 // Componente de Tabela de Produtos
 const TabelaProdutos = ({
+  produtos,
   loading,
   onVisualizar,
   onEditar,
   onExcluir,
 }: {
+  produtos: Produto[] | any;
   loading: boolean;
   onVisualizar: (produto: Produto) => void;
   onEditar: (produto: Produto) => void;
   onExcluir: (produto: Produto) => void;
 }) => {
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-AO', {
-      style: 'currency',
-      currency: 'AOA',
+    return new Intl.NumberFormat("pt-AO", {
+      style: "currency",
+      currency: "AOA",
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(value);
   };
-
-  const {data: produtos} = useQuery({
-    queryKey: ["produtos"],
-    queryFn: async () =>{
-      const response = await produtosRoute.getProdutos();
-      return response;
-    }
-  }) 
-
-  console.log("Produtos: ", produtos);
 
   if (loading) {
     return (
@@ -318,7 +385,14 @@ const TabelaProdutos = ({
     );
   }
 
-  if (produtos?.length === 0) {
+  const produtosArray = Array.isArray(produtos) 
+    ? produtos 
+    : produtos?.data 
+      && Array.isArray(produtos.data) 
+      ? produtos.data : [];
+
+
+  if (produtosArray?.length === 0) {
     return (
       <div className="text-center py-12 bg-white rounded-xl">
         <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
@@ -359,22 +433,16 @@ const TabelaProdutos = ({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {Array.isArray(produtos) && produtos?.map((produto: any) => (
+            {produtosArray?.map((produto: Produto) => (
               <tr key={produto.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="h-10 w-10 flex-shrink-0">
-                      {produto.foto ? (
-                        <img
-                          className="h-10 w-10 rounded-lg object-cover"
-                          src={produto.foto}
-                          alt={produto.nome}
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
-                          <ImageIcon className="h-5 w-5 text-gray-400" />
-                        </div>
-                      )}
+                      <ProductImage
+                        src={produto.foto}
+                        alt={produto.nome}
+                        className="h-10 w-10 rounded-lg object-cover"
+                      />
                     </div>
                     <div className="ml-4">
                       <div className="text-sm font-medium text-gray-900">
@@ -388,7 +456,7 @@ const TabelaProdutos = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {produto.Categoria?.nome || "Sem categoria"}
+                    {produto.Categoria?.nome || produto.categoria || "Sem categoria"}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -460,56 +528,180 @@ const TabelaProdutos = ({
 // Componente Principal
 export default function AdminProdutos() {
   const [filtroCategoria, setFiltroCategoria] = useState("todos");
+  const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [ordenar, setOrdenar] = useState("criadoEm_desc");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [termoBusca, setTermoBusca] = useState("");
-  const [debouncedTermo, ] = useState("");
+  const [debouncedTermo, setDebouncedTermo] = useState("");
   const [modalVisualizar, setModalVisualizar] = useState(false);
   const [modalExcluir, setModalExcluir] = useState(false);
-  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(
+    null,
+  );
+
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [paginacao, setPaginacao] = useState<Paginacao>({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  });
+  const [, setError] = useState<string | null>(null);
+  const [, setModal] = useState<ModalData>({ type: null });
   const [excluindo, setExcluindo] = useState(false);
-  
   const token = useAuthStore((state) => state.token);
   const itensPorPagina = 10;
-
-  // Debounce da busca
-  // useState(() => {
-  //   const timer = setTimeout(() => {
-  //     setDebouncedTermo(termoBusca);
-  //     setPaginaAtual(1);
-  //   }, 500);
-  //   return () => clearTimeout(timer);
-  // }, [termoBusca]);
-
-  const { data: categorias, isLoading: loadingCategorias } = useQuery({
-    queryKey: ["categorias"],
-    queryFn: async () => {
-      const response = await api.get("/categorias");
-      return response?.data.data || [];
-    },
+  const [, setFormData] = useState({
+    nome: "",
+    categoria: "Beleza",
+    preco: 0,
+    quantidade: 0,
+    status: "",
   });
 
-  const {
-    data: produtos,
-    isLoading: loadingProdutos,
-    refetch: refetchProdutos,
-  } = useQuery({
-    queryKey: ["produtos", paginaAtual, filtroCategoria, filtroStatus, ordenar, debouncedTermo],
-    queryFn: async () => {
+  // Debounce para busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTermo(termoBusca);
+      setPaginaAtual(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [termoBusca]);
+
+  const fetchProdutos = async () => {
+    try {
       const params = new URLSearchParams({
-        pagina: paginaAtual.toString(),
-        limite: itensPorPagina.toString(),
-        ...(filtroCategoria !== "todos" && { categoria: filtroCategoria }),
-        ...(filtroStatus !== "todos" && { status: filtroStatus }),
-        ordenar,
-        ...(debouncedTermo && { busca: debouncedTermo }),
+        page: paginaAtual.toString(),
+        limit: itensPorPagina.toString(),
       });
       
-      const response = await api.get(`/produtos?${params}`);
-      return response?.data;
-    },
-  });
+      if (debouncedTermo) params.append("busca", debouncedTermo);
+      if (filtroCategoria !== "todos") params.append("categoria", filtroCategoria);
+      if (filtroStatus !== "todos") params.append("status", filtroStatus);
+      if (ordenar) params.append("ordenar", ordenar);
+      
+      const response = await api.get(`/produtos?${params.toString()}`);
+
+        console.log("Resposta da API:", response.data);
+
+         let produtosData = [];
+    let total = 0;
+
+      if (response.data?.success && response.data?.data) {
+        if (Array.isArray(response.data.data)) {
+        produtosData = response.data.data;
+        total = response.data.pagination?.total || produtosData.length;
+      }
+      else if (typeof response.data.data === 'object') {
+        if(response.data.data.produtos && Array.isArray(response.data.data.produtos)){
+          produtosData = response.data.data.produtos;
+          total = response.data.data.total || produtosData.length;
+        }
+        else {
+          produtosData = [];
+          total = 0;
+        }
+      }
+    }
+       else if (Array.isArray(response.data)) {
+        produtosData = response.data;
+        total = produtosData.length;
+      }
+        setProdutos(produtosData);
+        setPaginacao({
+          total: total,
+          page:  paginaAtual,
+          limit: itensPorPagina,
+          totalPages: Math.ceil(total / itensPorPagina),
+        });
+    } catch (err: any) {
+      console.error("Erro ao buscar produtos:", err);
+      setError(err.response?.data?.error || "Erro ao carregar produtos");
+      toast.error("Erro ao carregar produtos");
+    }
+  };
+
+  useEffect(() => {
+    if (!token) {
+      setError("Faça login para acessar os produtos");
+      return;
+    }
+
+    fetchProdutos();
+  }, [paginaAtual, debouncedTermo, filtroCategoria, filtroStatus, ordenar, token]);
+
+  const openModal = (type: ModalData["type"], produto?: Produto) => {
+    if (produto && type !== "create") {
+      if (type === "edit") {
+        setFormData({
+          nome: produto.nome,
+          preco: Number(produto.preco),
+          categoria: produto.categoria || produto.Categoria?.nome || "",
+          quantidade: Number(produto.quantidade),
+          status: produto.status,
+        });
+      }
+    } else if (type === "create") {
+      setFormData({
+        nome: "",
+        preco: 0,
+        quantidade: 0,
+        categoria: "Beleza",
+        status: "",
+      });
+    }
+    setModal({ type, produto });
+  };
+
+  // // const closeModal = () => {
+  // //   setModal({ type: null });
+  // // };
+
+
+const { data: categorias, isLoading: loadingCategorias } = useQuery({
+  queryKey: ["categorias"],
+  queryFn: async () => {
+    try {
+      const response = await api.get("/categorias");
+      
+      if (response.data?.success && Array.isArray(response.data.data)) {
+        return response.data.data;
+      } else if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      return [];
+    } catch (error) {
+      console.error("Erro ao buscar categorias:", error);
+      return [];
+    }
+  },
+});
+
+  const handleAlterarStatus = async (id: string, statusAtual: string) => {
+    const novoStatus = statusAtual === "ATIVO" ? "INATIVO" : "ATIVO";
+
+    try {
+      const response = await api.patch(
+        `produtos/${id}/status`,
+        {
+          status: novoStatus,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.data.success) {
+        toast.success("Status alterado com sucesso!");
+        fetchProdutos();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Erro ao alterar status");
+    }
+  };
 
   const {
     data: estatisticas,
@@ -518,23 +710,44 @@ export default function AdminProdutos() {
   } = useQuery({
     queryKey: ["estatisticas_produtos"],
     queryFn: async () => {
-      const response = await produtosRoute.getProdutos();
-      return response || [];
-    },
+      try{
+      const response = await api.get("/produtos");
+       console.log("Resposta da API (estatísticas):", response.data);
+
+       if (response.data?.success) {
+        if (Array.isArray(response.data.data)) {
+          return response.data.data;
+        } else if (response.data.data?.produtos && Array.isArray(response.data.data.produtos)) {
+          return response.data.data.produtos;
+        }
+      }
+
+          else if (Array.isArray(response.data)) {
+          return response.data;
+        }
+    return [];
+  } catch (error) {
+      console.error("Erro ao buscar estatísticas:", error);
+      return [];
+    }
+  },
     staleTime: 5 * 60 * 1000,
   });
 
+
+  const estatisticasArray = Array.isArray(estatisticas) 
+  ? estatisticas : [];
+
   // Calcular estatísticas
-  const totalProdutos = estatisticas?.length || 0;
-  const produtosEmPromocao = estatisticas?.filter(
-    (p: any) => p.precoDesconto && p.precoDesconto > 0
-  ).length || 0;
-  const produtosSemEstoque = estatisticas?.filter(
-    (p: any) => p.quantidade === 0
-  ).length || 0;
-  const produtosBaixoEstoque = estatisticas?.filter(
-    (p: any) => p.quantidade > 0 && p.quantidade < 10
-  ).length || 0;
+  const totalProdutos = estatisticasArray?.length || 0;
+  const produtosEmPromocao =
+    estatisticasArray?.filter((p: any) => p.precoDesconto && p.precoDesconto > 0)
+      .length || 0;
+  const produtosSemEstoque =
+    estatisticasArray?.filter((p: any) => p.quantidade === 0).length || 0;
+  const produtosBaixoEstoque =
+    estatisticasArray?.filter((p: any) => p.quantidade > 0 && p.quantidade < 10)
+      .length || 0;
 
   const handleVisualizar = (produto: Produto) => {
     setProdutoSelecionado(produto);
@@ -543,6 +756,7 @@ export default function AdminProdutos() {
 
   const handleEditar = (produto: Produto) => {
     // Implementar lógica de edição
+    toast.info("Funcionalidade de edição em desenvolvimento");
     console.log("Editar produto:", produto);
   };
 
@@ -553,7 +767,7 @@ export default function AdminProdutos() {
 
   const confirmarExclusao = async () => {
     if (!produtoSelecionado) return;
-    
+
     setExcluindo(true);
     try {
       await api.delete(`/produtos/${produtoSelecionado.id}`, {
@@ -561,14 +775,15 @@ export default function AdminProdutos() {
           Authorization: `Bearer ${token}`,
         },
       });
-      
+
       toast.success("Produto excluído com sucesso!");
-      refetchProdutos();
+      fetchProdutos();
       refetchEstatisticas();
       setModalExcluir(false);
       setProdutoSelecionado(null);
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "Erro ao excluir produto";
+      const errorMessage =
+        error.response?.data?.message || "Erro ao excluir produto";
       toast.error(errorMessage);
     } finally {
       setExcluindo(false);
@@ -576,32 +791,41 @@ export default function AdminProdutos() {
   };
 
   const handleExportar = () => {
-    if (!produtos?.data) return;
-    
+    if (!produtos || produtos.length === 0) return;
+
     const csv = [
-      ["ID", "Nome", "Categoria", "Preço", "Preço com Desconto", "Estoque", "Status"],
-      ...produtos.data.map((p: Produto) => [
+      [
+        "ID",
+        "Nome",
+        "Categoria",
+        "Preço",
+        "Preço com Desconto",
+        "Estoque",
+        "Status",
+      ],
+      ...produtos.map((p: Produto) => [
         p.id,
         p.nome,
-        p.categoria || "",
-        p.preco,
-        p.precoDesconto || "",
-        p.quantidade,
+        p.Categoria?.nome || p.categoria || "",
+        p.preco.toString(),
+        p.precoDesconto?.toString() || "",
+        p.quantidade.toString(),
         p.status,
       ]),
     ]
       .map((row) => row.join(","))
       .join("\n");
 
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `produtos-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
+    window.URL.revokeObjectURL(url);
   };
 
-  const totalPaginas = Math.ceil((produtos?.total || 0) / itensPorPagina);
+  const totalPaginas = paginacao.totalPages;
 
   return (
     <>
@@ -622,9 +846,12 @@ export default function AdminProdutos() {
             <Download className="h-5 w-5" />
             Exportar
           </Button>
-          
+
           <Button
-            onClick={() => refetchProdutos()}
+            onClick={() => {
+              fetchProdutos();
+              refetchEstatisticas();
+            }}
             variant="outline"
             className="flex items-center gap-2"
           >
@@ -632,10 +859,12 @@ export default function AdminProdutos() {
             Atualizar
           </Button>
 
-          <NovoProdutoModal onProdutoCriado={() => {
-            refetchProdutos();
-            refetchEstatisticas();
-          }}>
+          <NovoProdutoModal
+            onProdutoCriado={() => {
+              fetchProdutos();
+              refetchEstatisticas();
+            }}
+          >
             <Button className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-3 rounded-lg hover:bg-[#c19b2c] transition">
               <Plus className="h-5 w-5" />
               Novo Produto
@@ -757,11 +986,15 @@ export default function AdminProdutos() {
                 className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
               >
                 <option value="todos">Todas categorias</option>
-                {categorias?.map((categoria: Categoria) => (
+                {Array.isArray(categorias) && categorias.length >  0 ? (
+                  categorias.map((categoria: Categoria) => (
                   <option key={categoria.id} value={categoria.id}>
                     {categoria.nome}
                   </option>
-                ))}
+                ))
+              ): (
+                 <option value="" disabled>Carregando categorias...</option>
+              )}
               </select>
             </div>
           </div>
@@ -781,8 +1014,6 @@ export default function AdminProdutos() {
                 <option value="todos">Todos status</option>
                 <option value="ATIVO">Ativo</option>
                 <option value="INATIVO">Inativo</option>
-                <option value="baixo_estoque">Baixo estoque</option>
-                <option value="sem_estoque">Sem estoque</option>
               </select>
             </div>
           </div>
@@ -791,9 +1022,9 @@ export default function AdminProdutos() {
         {/* Ordenação e Info */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="text-sm text-gray-600">
-            {produtos?.total || 0} produtos encontrados
+            {paginacao.total} produtos encontrados
           </div>
-          
+
           <div className="flex items-center gap-4">
             <select
               value={ordenar}
@@ -818,7 +1049,8 @@ export default function AdminProdutos() {
 
       {/* Tabela de Produtos */}
       <TabelaProdutos
-        loading={loadingProdutos}
+        produtos={produtos}
+        loading={false}
         onVisualizar={handleVisualizar}
         onEditar={handleEditar}
         onExcluir={handleExcluir}
@@ -829,21 +1061,21 @@ export default function AdminProdutos() {
         <div className="flex justify-center items-center gap-2 mt-6">
           <Button
             variant="outline"
-            onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
+            onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
             disabled={paginaAtual === 1}
             className="flex items-center gap-2"
           >
             <ChevronLeft className="h-4 w-4" />
             Anterior
           </Button>
-          
+
           <span className="px-4 py-2 text-sm">
             Página {paginaAtual} de {totalPaginas}
           </span>
-          
+
           <Button
             variant="outline"
-            onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))}
+            onClick={() => setPaginaAtual((p) => Math.min(totalPaginas, p + 1))}
             disabled={paginaAtual === totalPaginas}
             className="flex items-center gap-2"
           >

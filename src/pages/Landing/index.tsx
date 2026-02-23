@@ -32,6 +32,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { produtosRoute } from "@/modules/services/api/routes/produtos";
 import { useCartStore } from "@/modules/services/store/cart-store";
 import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
+import { categoriaRoutes } from "@/modules/services/api/routes/categorias";
 
 interface ImageProps {
   alt: string;
@@ -43,25 +44,29 @@ interface ImageProps {
 }
 
 const Image = ({
+  src,
   alt,
   width = 800,
   height = 600,
   className = "",
   loading = "lazy",
   priority = false,
-}: ImageProps) => {
+}: ImageProps & { src?: string }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
 
-const {data: p} = useQuery({
-  queryKey: ["p"],
-  queryFn: async () => {
-    const response = await  produtosRoute.getProdutos();
-    return response;
-  }
-});
+  // console.log("Caminho: ", src);
 
-  const src = p?.map((p: any) => p.foto);
+  if (!src) {
+    return (
+      <div className={`relative overflow-hidden ${className}`}>
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+          <Package className="h-12 w-12 text-gray-400" />
+          <span className="ml-2 text-gray-500 text-sm">{alt}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
@@ -73,7 +78,7 @@ const {data: p} = useQuery({
 
       {/* Imagem otimizada */}
       <img
-        src={src as any || undefined}
+        src={src}
         alt={alt}
         loading={priority ? "eager" : loading}
         width={width}
@@ -103,6 +108,7 @@ const {data: p} = useQuery({
 
 const HeroImage = () => (
   <Image
+    src="/logo.jpg"
     alt="Nova Coleção de Produtos"
     width={600}
     height={400}
@@ -114,13 +120,19 @@ const HeroImage = () => (
 // Imagens para categorias - usando suas imagens
 const CategoryImage = ({
   category,
+  imageUrl,
   className = "",
 }: {
   category: string;
+  imageUrl?: string;
   className?: string;
 }) => {
   return (
     <Image
+      src={
+        imageUrl ||
+        `http://localhost:3000/uploads/categories/${category.toLowerCase()}.jpg`
+      }
       alt={category}
       width={200}
       height={128}
@@ -270,14 +282,13 @@ const Features = () => (
 );
 
 const FeaturedCategories = () => {
-  const categories = [
-    { name: "Eletrônicos", count: "120 produtos" },
-    { name: "Moda", count: "85 produtos" },
-    { name: "Casa & Jardim", count: "64 produtos" },
-    { name: "Beleza", count: "42 produtos" },
-    { name: "Esportes", count: "56 produtos" },
-    { name: "Livros", count: "210 produtos" },
-  ];
+  const { data: categorias } = useQuery({
+    queryKey: ["categorias"],
+    queryFn: async () => {
+      const response = await categoriaRoutes.getAllCategoria();
+      return response;
+    },
+  });
 
   return (
     <section className="py-16 bg-gray-50">
@@ -289,22 +300,26 @@ const FeaturedCategories = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {categories.map((cat, idx) => (
-            <div key={idx} className="group cursor-pointer">
-              <div className="h-32 rounded-xl overflow-hidden mb-4 group-hover:scale-105 transition duration-300">
-                <CategoryImage
-                  category={cat.name}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 m-auto items-center justify-center">
+          {categorias &&
+            categorias.map((cat, idx) => (
+              <div key={idx} className="group cursor-pointer">
+                <div className="h-32 rounded-xl overflow-hidden mb-4 group-hover:scale-105 transition duration-300">
+                  <CategoryImage
+                    category={cat.nome}
+                    imageUrl={cat?.Produto[0]?.foto}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
+                <div className="text-center">
+                  <h3 className="font-semibold">{cat.nome}</h3>
+                  <p className="text-sm text-gray-500">
+                    {cat?.Produto?.length}
+                  </p>
+                </div>
               </div>
-              <div className="text-center">
-                <h3 className="font-semibold">{cat.name}</h3>
-                <p className="text-sm text-gray-500">{cat.count}</p>
-              </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
     </section>
@@ -460,7 +475,6 @@ const ProductsSection = () => {
     },
   });
 
-
   const [, setAddingProductId] = useState<string | null>(null);
 
   const addToCartMutation = useMutation({
@@ -489,45 +503,27 @@ const ProductsSection = () => {
   };
 
   const renderImagem = (produto: any) => {
-    console.log("I: ", produto);
-    if (produto?.ImagemProduto) {
-      if (produto?.ImagemProduto.url?.includes("/uploads")) {
+    if (produto?.foto) {
+      if (produto?.foto?.startsWith("http")) {
         return (
-          <img
-            src={produto?.imagem}
+          <Image
+            src={produto?.foto}
             alt={produto?.nome}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              console.error(
-                `Erro ao carregar imagem completa: ${produto?.imagem}`,
-              );
-              e.currentTarget.style.display = "none";
-              e.currentTarget.parentElement!.innerHTML = `
-              <div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                <span class="text-gray-400">${produto?.nome}</span>
-              </div>
-            `;
-            }}
           />
         );
       }
 
-      let Path = produto.imagem;
-
-
-      if (Path?.startsWith("/")) {
-        Path = Path?.substring(1);
+      if (produto.foto.startsWith("/")) {
+        return (
+          <Image
+            src={`http://localhost:3000${produto.foto}`}
+            alt={produto.nome}
+            className="w-full h-full"
+          />
+        );
       }
 
-      return (
-        <Image
-          alt={produto?.nome}
-          width={400}
-          height={300}
-          className="w-full h-full"
-        />
-      );
-    } else {
       return (
         <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center">
           <Package className="h-12 w-12 text-gray-400 mb-2" />
@@ -566,81 +562,81 @@ const ProductsSection = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {produtos && produtos?.map((produto: any) => {
-            return (
-              <div
-                key={produto.id}
-                className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
-              >
-                <div className="relative h-52 overflow-hidden">
-                  {/* {renderImagem(produto?.ImagemProduto?.url)} */}
-                  <img src={produto?.ImagemProduto?.url} alt="" />
-                  <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white">
-                    <Heart className="h-5 w-5" />
-                  </button>
-                  <div className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs px-2 py-1 rounded">
-                    -20%
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-bold text-lg">{produto.nome}</h3>
-                      <p className="text-gray-500 text-sm">
-                        {produto.descricao}
-                      </p>
-                    </div>
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-[#D4AF37] fill-current" />
-                      <span className="ml-1 text-sm">{produto.rating}</span>
+          {produtos &&
+            produtos?.map((produto: any) => {
+              return (
+                <div
+                  key={produto.id}
+                  className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
+                >
+                  <div className="relative h-52 overflow-hidden">
+                    {/* {renderImagem(produto?.ImagemProduto?.url)} */}
+                    <img src={`http://localhost:3000${produto?.foto}`} alt="" />
+                    <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white">
+                      <Heart className="h-5 w-5" />
+                    </button>
+                    <div className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs px-2 py-1 rounded">
+                      -20%
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center mt-4">
-                    <div>
-                      <p className="text-2xl font-bold text-[#D4AF37]">
-                        KZ {produto.preco.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Disponivel {produto.quantidade} unidades
-                      </p>
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-bold text-lg">{produto.nome}</h3>
+                        <p className="text-gray-500 text-sm">
+                          {produto.descricao}
+                        </p>
+                      </div>
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 text-[#D4AF37] fill-current" />
+                        <span className="ml-1 text-sm">{produto.rating}</span>
+                      </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setProdutoSelecionado(produto);
-                          setQuantidade(1);
-                        }}
-                        className="p-2 border rounded-lg hover:bg-gray-50"
-                      >
-                        <BsEye size={18} />
-                      </button>
-                      {user ? (
+                    <div className="flex justify-between items-center mt-4">
+                      <div>
+                        <p className="text-2xl font-bold text-[#D4AF37]">
+                          KZ {produto.preco.toLocaleString()}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Disponivel {produto.quantidade} unidades
+                        </p>
+                      </div>
 
+                      <div className="flex gap-2">
                         <button
-                        onClick={() =>
-                          handleAddCartValue(produto.id, quantidade)
-                        }
-                        disabled={addToCartMutation.isPending}
-                        className="p-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c]"
+                          onClick={() => {
+                            setProdutoSelecionado(produto);
+                            setQuantidade(1);
+                          }}
+                          className="p-2 border rounded-lg hover:bg-gray-50"
                         >
-                        {addToCartMutation.isPending ? (
-                          <Loader className="animate-spin" />
+                          <BsEye size={18} />
+                        </button>
+                        {user ? (
+                          <button
+                            onClick={() =>
+                              handleAddCartValue(produto.id, quantidade)
+                            }
+                            disabled={addToCartMutation.isPending}
+                            className="p-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c]"
+                          >
+                            {addToCartMutation.isPending ? (
+                              <Loader className="animate-spin" />
+                            ) : (
+                              <FiShoppingCart size={18} />
+                            )}
+                          </button>
                         ) : (
-                          <FiShoppingCart size={18} />
-                        )}
-                      </button>
-                        ): (
                           <></>
                         )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </div>
       {/* Modal de Detalhes do Produto */}
@@ -723,24 +719,23 @@ const ProductsSection = () => {
 
                   <div className="flex gap-3">
                     {user && (
-
                       <button
-                      onClick={() => {
-                        handleAddCartValue(produtoSelecionado.id, quantidade);
-                        setProdutoSelecionado(null);
-                        setQuantidade(1);
-                      }}
-                      className="flex-1 bg-[#D4AF37] text-white py-3 rounded-lg font-semibold hover:bg-[#c19b2c] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={
-                        quantidade <= 0 ||
-                        quantidade > (produtoSelecionado.quantidade || 0)
-                      }
-                    >
-                      {addToCartMutation.isPending
-                        ? "Adicionando..."
-                        : "Adicionar ao Carrinho"}
-                    </button>
-                      )}
+                        onClick={() => {
+                          handleAddCartValue(produtoSelecionado.id, quantidade);
+                          setProdutoSelecionado(null);
+                          setQuantidade(1);
+                        }}
+                        className="flex-1 bg-[#D4AF37] text-white py-3 rounded-lg font-semibold hover:bg-[#c19b2c] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={
+                          quantidade <= 0 ||
+                          quantidade > (produtoSelecionado.quantidade || 0)
+                        }
+                      >
+                        {addToCartMutation.isPending
+                          ? "Adicionando..."
+                          : "Adicionar ao Carrinho"}
+                      </button>
+                    )}
                     <button
                       onClick={() => setProdutoSelecionado(null)}
                       className="px-6 py-3 border rounded-lg hover:bg-gray-50 transition"
@@ -806,7 +801,7 @@ const Header = () => {
     }
   }, [cartData]);
 
-  const {setCurrentUser } = useCartStore();
+  const { setCurrentUser } = useCartStore();
 
   useEffect(() => {
     if (user) {
@@ -828,7 +823,6 @@ const Header = () => {
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5,
   });
-
 
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -956,20 +950,23 @@ const Header = () => {
               {/* BOTÃO DO CARRINHO */}
               <Link to={"/checkout"}>
                 <button className="relative p-2 rounded-full">
-                <ShoppingCart className="w-5" />
-                {user && (
-
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {countItems.isLoading ? (
-                      <p>0</p>
-                    ) : countItems.data === undefined ||
-                      countItems.data === null ||
-                      countItems.data.itemsCount === 0 ? (
-                      <p className="text-white">{cartData?.data?.totalItens.toString()}</p>
-                    ) : (
-                      <p className="text-white">{cartData?.data?.totalItens.toString()}</p>
-                    )}
-                  </span>
+                  <ShoppingCart className="w-5" />
+                  {user && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {countItems.isLoading ? (
+                        <p>0</p>
+                      ) : countItems.data === undefined ||
+                        countItems.data === null ||
+                        countItems.data.itemsCount === 0 ? (
+                        <p className="text-white">
+                          {cartData?.data?.totalItens.toString()}
+                        </p>
+                      ) : (
+                        <p className="text-white">
+                          {cartData?.data?.totalItens.toString()}
+                        </p>
+                      )}
+                    </span>
                   )}
                 </button>
               </Link>

@@ -5,6 +5,33 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// src/utils/localImageUtil.ts
+export const getImageUrl = (fotoPath?: string): string | null => {
+  console.log('🔍 getImageUrl - recebido:', fotoPath);
+  
+  if (!fotoPath) {
+    console.log('❌ getImageUrl - retornando null');
+    return null;
+  }
+  
+  // Se já for URL completa, retorna
+  if (fotoPath.startsWith('http://') || fotoPath.startsWith('https://')) {
+    return fotoPath;
+  }
+  
+  // URL base do backend
+  const baseUrl = 'http://localhost:3000';
+  
+  // Garante que o path comece com /
+  const path = fotoPath.startsWith('/') ? fotoPath : '/' + fotoPath;
+  
+  // CONCATENA a baseUrl com o path
+  const finalUrl = baseUrl + path;
+  
+  console.log('✅ getImageUrl - URL final:', finalUrl);
+  
+  return finalUrl;
+};
 
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-AO', {

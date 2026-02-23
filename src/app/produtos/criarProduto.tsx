@@ -382,7 +382,7 @@ export const NovoProdutoModal = ({
           preco: "",
           quantidade: "",
           id_categoria: "",
-          status: "ATIVO",
+          status: "ACTIVO",
         });
 
         handleRemoverImagem();

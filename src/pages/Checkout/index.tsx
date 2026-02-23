@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/modules/services/store/auth-store";
-import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
+import { carrinhosRoute} from "@/modules/services/api/routes/carrinhos";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/utils";
@@ -37,6 +37,7 @@ export default function CheckoutPage() {
   const iban = "AO006.0040.0000.8729.0482.1013.4";
 
 
+
   const handleCopy = () => {
     navigator.clipboard.writeText(iban);
     setCopyMessage(true);
@@ -47,6 +48,7 @@ export default function CheckoutPage() {
     queryKey: ["cart"],
     queryFn: async () => await carrinhosRoute.getCarrinho(),
   });
+
 
 
   const queryClient = useQueryClient();
@@ -117,6 +119,7 @@ export default function CheckoutPage() {
           paymentProof,
           location,
           phone,
+
         );
       }
     },
@@ -197,6 +200,14 @@ export default function CheckoutPage() {
       );
       return;
     }
+
+    console.log('Enviando checkout:', {
+    userId: user_Id,
+    location,
+    phone,
+    paymentProof: paymentProof?.name
+  });
+
     await finalizePurchaseMutation.mutate();
   };
 

@@ -5,6 +5,14 @@ interface ICategoria {
     nome: string;
     descricao: string;
     criadoEm: string;
+    Produto:
+    [
+        {
+            id?: string;
+            nome?: string;
+            foto?: string
+        }
+    ];
     atualizadoEm: string;
 }
 
