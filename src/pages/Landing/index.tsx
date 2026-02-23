@@ -155,7 +155,7 @@ const TestimonialAvatar = ({ id }: { id: number }) => {
   );
 };
 
-const HeroSection = () => {
+export const HeroSection = () => {
   const navigate = useNavigate();
   const logged = useAuthStore((state) => state.isAuthenticated);
 
@@ -239,7 +239,7 @@ const HeroSection = () => {
   );
 };
 
-const Features = () => (
+export const Features = () => (
   <section className="py-16 bg-white">
     <div className="max-w-7xl mx-auto px-4">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -326,7 +326,7 @@ const FeaturedCategories = () => {
   );
 };
 
-const Testimonials = () => (
+export const Testimonials = () => (
   <section className="py-16 bg-white">
     <div className="max-w-7xl mx-auto px-4">
       <div className="text-center mb-12">
@@ -368,7 +368,7 @@ const Testimonials = () => (
   </section>
 );
 
-const Newsletter = () => (
+export const Newsletter = () => (
   <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
     <div className="max-w-3xl mx-auto px-4 text-center">
       <h2 className="text-3xl font-bold mb-4">
@@ -396,7 +396,7 @@ const Newsletter = () => (
   </section>
 );
 
-const Footer = () => (
+export const Footer = () => (
   <footer className="bg-gray-900 text-white py-12">
     <div className="max-w-7xl mx-auto px-4">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">

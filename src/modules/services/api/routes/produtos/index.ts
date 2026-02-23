@@ -1,5 +1,4 @@
 import { api } from "../../axios";
-
 interface IProdutoToCreate {
   nome: string;
   preco: string | number;
