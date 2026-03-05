@@ -243,7 +243,7 @@ export const NovoProdutoModal = ({
         foto: imagem,
       };
 
-      return await produtosRoute.criarProduto(produtoData);
+      return await produtosRoute.createProduto(produtoData as any);
     },
 
     onSuccess: () => {
