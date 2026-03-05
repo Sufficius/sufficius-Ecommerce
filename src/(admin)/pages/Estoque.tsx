@@ -33,11 +33,10 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/modules/services/api/axios";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Tabs from "@radix-ui/react-tabs";
 import * as Select from "@radix-ui/react-select";
-import * as Checkbox from "@radix-ui/react-checkbox";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { Line, Bar } from "react-chartjs-2";
 import {
