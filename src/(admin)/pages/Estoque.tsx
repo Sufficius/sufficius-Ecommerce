@@ -127,32 +127,6 @@ interface MovimentacaoEstoque {
 }
 
 
-interface Categoria {
-  id: string;
-  nome: string;
-  produtos: Array<{
-    id: string;
-    nome: string;
-  }>;
-}
-
-interface RelatorioEstoque {
-  totalProdutos: number;
-  valorTotalEstoque: number;
-  produtosCriticos: number;
-  produtosBaixos: number;
-  produtosNormais: number;
-  produtosAltos: number;
-  produtosExcesso: number;
-  produtosInativos: number;
-  mediaGiroEstoque: number;
-  diasCobertura: number;
-  produtosSemMovimento: number;
-  produtosAbaixoMinimo: number;
-  produtosAcimaMaximo: number;
-  valorMedioProduto: number;
-}
-
 // ========== COMPONENTES ==========
 
 // Modal de Movimentação
