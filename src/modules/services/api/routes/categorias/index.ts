@@ -5,6 +5,7 @@ interface ICategoria {
     nome: string;
     descricao: string;
     criadoEm: string;
+    imagem?: string; // Caminho relativo no Supabase
     Produto:
     [
         {

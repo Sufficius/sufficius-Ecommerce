@@ -3,7 +3,6 @@ import {
   Plus,
   Package,
   Tag,
-  DollarSign,
   Loader2,
   Filter,
   Search,
@@ -23,7 +22,6 @@ import { api } from "@/modules/services/api/axios";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { NovoProdutoModal } from "@/app/produtos/criarProduto";
-import { produtosRoute } from "@/modules/services/api/routes/produtos";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { toast } from "sonner";
 
@@ -385,11 +383,13 @@ const TabelaProdutos = ({
     );
   }
 
-  const produtosArray = Array.isArray(produtos) 
-    ? produtos 
-    : produtos?.data 
-      && Array.isArray(produtos.data) 
+
+  const produtosArray = produtos?.data?.data
+    ? produtos?.data 
+    : produtos 
+      && Array.isArray(produtos?.data) 
       ? produtos.data : [];
+
 
 
   if (produtosArray?.length === 0) {
@@ -528,7 +528,6 @@ const TabelaProdutos = ({
 // Componente Principal
 export default function AdminProdutos() {
   const [filtroCategoria, setFiltroCategoria] = useState("todos");
-  const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [ordenar, setOrdenar] = useState("criadoEm_desc");
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -540,19 +539,17 @@ export default function AdminProdutos() {
     null,
   );
 
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [paginacao, setPaginacao] = useState<Paginacao>({
+  const [paginacao, ] = useState<Paginacao>({
     total: 0,
     page: 1,
     limit: 10,
     totalPages: 1,
   });
   const [, setError] = useState<string | null>(null);
-  const [, setModal] = useState<ModalData>({ type: null });
+  const [, ] = useState<ModalData>({ type: null });
   const [excluindo, setExcluindo] = useState(false);
   const token = useAuthStore((state) => state.token);
-  const itensPorPagina = 10;
-  const [, setFormData] = useState({
+  const [, ] = useState({
     nome: "",
     categoria: "Beleza",
     preco: 0,
@@ -570,58 +567,14 @@ export default function AdminProdutos() {
     return () => clearTimeout(timer);
   }, [termoBusca]);
 
-  const fetchProdutos = async () => {
-    try {
-      const params = new URLSearchParams({
-        page: paginaAtual.toString(),
-        limit: itensPorPagina.toString(),
-      });
-      
-      if (debouncedTermo) params.append("busca", debouncedTermo);
-      if (filtroCategoria !== "todos") params.append("categoria", filtroCategoria);
-      if (filtroStatus !== "todos") params.append("status", filtroStatus);
-      if (ordenar) params.append("ordenar", ordenar);
-      
-      const response = await api.get(`/produtos?${params.toString()}`);
+  const {data: produtos } = useQuery({
+    queryKey: ["produtos"],
+    queryFn: async () => {
 
-        console.log("Resposta da API:", response.data);
-
-         let produtosData = [];
-    let total = 0;
-
-      if (response.data?.success && response.data?.data) {
-        if (Array.isArray(response.data.data)) {
-        produtosData = response.data.data;
-        total = response.data.pagination?.total || produtosData.length;
-      }
-      else if (typeof response.data.data === 'object') {
-        if(response.data.data.produtos && Array.isArray(response.data.data.produtos)){
-          produtosData = response.data.data.produtos;
-          total = response.data.data.total || produtosData.length;
-        }
-        else {
-          produtosData = [];
-          total = 0;
-        }
-      }
+      const response = await api.get("/produtos/get");
+      return response.data; 
     }
-       else if (Array.isArray(response.data)) {
-        produtosData = response.data;
-        total = produtosData.length;
-      }
-        setProdutos(produtosData);
-        setPaginacao({
-          total: total,
-          page:  paginaAtual,
-          limit: itensPorPagina,
-          totalPages: Math.ceil(total / itensPorPagina),
-        });
-    } catch (err: any) {
-      console.error("Erro ao buscar produtos:", err);
-      setError(err.response?.data?.error || "Erro ao carregar produtos");
-      toast.error("Erro ao carregar produtos");
-    }
-  };
+  });
 
   useEffect(() => {
     if (!token) {
@@ -629,35 +582,30 @@ export default function AdminProdutos() {
       return;
     }
 
-    fetchProdutos();
   }, [paginaAtual, debouncedTermo, filtroCategoria, filtroStatus, ordenar, token]);
 
-  const openModal = (type: ModalData["type"], produto?: Produto) => {
-    if (produto && type !== "create") {
-      if (type === "edit") {
-        setFormData({
-          nome: produto.nome,
-          preco: Number(produto.preco),
-          categoria: produto.categoria || produto.Categoria?.nome || "",
-          quantidade: Number(produto.quantidade),
-          status: produto.status,
-        });
-      }
-    } else if (type === "create") {
-      setFormData({
-        nome: "",
-        preco: 0,
-        quantidade: 0,
-        categoria: "Beleza",
-        status: "",
-      });
-    }
-    setModal({ type, produto });
-  };
-
-  // // const closeModal = () => {
-  // //   setModal({ type: null });
-  // // };
+  // const openModal = (type: ModalData["type"], produto?: Produto) => {
+  //   if (produto && type !== "create") {
+  //     if (type === "edit") {
+  //       setFormData({
+  //         nome: produto.nome,
+  //         preco: Number(produto.preco),
+  //         categoria: produto.categoria || produto.Categoria?.nome || "",
+  //         quantidade: Number(produto.quantidade),
+  //         status: produto.status,
+  //       });
+  //     }
+  //   } else if (type === "create") {
+  //     setFormData({
+  //       nome: "",
+  //       preco: 0,
+  //       quantidade: 0,
+  //       categoria: "Beleza",
+  //       status: "",
+  //     });
+  //   }
+  //   setModal({ type, produto });
+  // };
 
 
 const { data: categorias, isLoading: loadingCategorias } = useQuery({
@@ -679,74 +627,44 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
   },
 });
 
-  const handleAlterarStatus = async (id: string, statusAtual: string) => {
-    const novoStatus = statusAtual === "ATIVO" ? "INATIVO" : "ATIVO";
+  // const handleAlterarStatus = async (id: string, statusAtual: string) => {
+  //   const novoStatus = statusAtual === "ATIVO" ? "INATIVO" : "ATIVO";
 
-    try {
-      const response = await api.patch(
-        `produtos/${id}/status`,
-        {
-          status: novoStatus,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (response.data.success) {
-        toast.success("Status alterado com sucesso!");
-        fetchProdutos();
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Erro ao alterar status");
-    }
-  };
+  //   try {
+  //     const response = await api.patch(
+  //       `produtos/${id}/status`,
+  //       {
+  //         status: novoStatus,
+  //       },
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       }
+  //     );
+  //     if (response.data.success) {
+  //       toast.success("Status alterado com sucesso!");
+  //     }
+  //   } catch (err: any) {
+  //     toast.error(err.response?.data?.message || "Erro ao alterar status");
+  //   }
+  // };
 
-  const {
-    data: estatisticas,
-    isLoading: loadingEstatisticas,
-    refetch: refetchEstatisticas,
-  } = useQuery({
+  const {data: estatisticas} = useQuery({
     queryKey: ["estatisticas_produtos"],
     queryFn: async () => {
-      try{
-      const response = await api.get("/produtos");
-       console.log("Resposta da API (estatísticas):", response.data);
-
-       if (response.data?.success) {
-        if (Array.isArray(response.data.data)) {
-          return response.data.data;
-        } else if (response.data.data?.produtos && Array.isArray(response.data.data.produtos)) {
-          return response.data.data.produtos;
-        }
-      }
-
-          else if (Array.isArray(response.data)) {
-          return response.data;
-        }
-    return [];
-  } catch (error) {
-      console.error("Erro ao buscar estatísticas:", error);
-      return [];
+      const response = await api.get("/produtos/get");
+    return response;
     }
-  },
-    staleTime: 5 * 60 * 1000,
   });
 
 
-  const estatisticasArray = Array.isArray(estatisticas) 
-  ? estatisticas : [];
-
   // Calcular estatísticas
-  const totalProdutos = estatisticasArray?.length || 0;
-  const produtosEmPromocao =
-    estatisticasArray?.filter((p: any) => p.precoDesconto && p.precoDesconto > 0)
-      .length || 0;
+  const totalProdutos = estatisticas?.data?.total || 0;
   const produtosSemEstoque =
-    estatisticasArray?.filter((p: any) => p.quantidade === 0).length || 0;
+    estatisticas?.data?.data?.filter((p: any) => p.quantidade === 0).length || 0;
   const produtosBaixoEstoque =
-    estatisticasArray?.filter((p: any) => p.quantidade > 0 && p.quantidade < 10)
+    estatisticas?.data?.data?.filter((p: any) => p.quantidade > 0 && p.quantidade < 10)
       .length || 0;
 
   const handleVisualizar = (produto: Produto) => {
@@ -777,8 +695,6 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
       });
 
       toast.success("Produto excluído com sucesso!");
-      fetchProdutos();
-      refetchEstatisticas();
       setModalExcluir(false);
       setProdutoSelecionado(null);
     } catch (error: any) {
@@ -803,14 +719,14 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
         "Estoque",
         "Status",
       ],
-      ...produtos.map((p: Produto) => [
+      produtos?.map((p: any) => [
         p.id,
         p.nome,
         p.Categoria?.nome || p.categoria || "",
         p.preco.toString(),
         p.precoDesconto?.toString() || "",
         p.quantidade.toString(),
-        p.status,
+        p.status === "ATIVO"
       ]),
     ]
       .map((row) => row.join(","))
@@ -849,8 +765,6 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
 
           <Button
             onClick={() => {
-              fetchProdutos();
-              refetchEstatisticas();
             }}
             variant="outline"
             className="flex items-center gap-2"
@@ -861,8 +775,6 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
 
           <NovoProdutoModal
             onProdutoCriado={() => {
-              fetchProdutos();
-              refetchEstatisticas();
             }}
           >
             <Button className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-3 rounded-lg hover:bg-[#c19b2c] transition">
@@ -880,11 +792,7 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
             <div>
               <p className="text-sm text-gray-600">Total Produtos</p>
               <p className="text-2xl font-bold">
-                {loadingEstatisticas ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  totalProdutos
-                )}
+                {totalProdutos}
               </p>
             </div>
             <Package className="h-8 w-8 text-[#D4AF37]" />
@@ -910,29 +818,11 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
         <div className="bg-white rounded-xl shadow p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Em Promoção</p>
-              <p className="text-2xl font-bold">
-                {loadingEstatisticas ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  produtosEmPromocao
-                )}
-              </p>
-            </div>
-            <DollarSign className="h-8 w-8 text-green-500" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow p-4">
-          <div className="flex items-center justify-between">
-            <div>
               <p className="text-sm text-gray-600">Baixo Estoque</p>
               <p className="text-2xl font-bold">
-                {loadingEstatisticas ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
+                {
                   produtosBaixoEstoque
-                )}
+                }
               </p>
             </div>
             <AlertCircle className="h-8 w-8 text-yellow-500" />
@@ -944,11 +834,9 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
             <div>
               <p className="text-sm text-gray-600">Sem Estoque</p>
               <p className="text-2xl font-bold">
-                {loadingEstatisticas ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
+                {
                   produtosSemEstoque
-                )}
+                }
               </p>
             </div>
             <AlertCircle className="h-8 w-8 text-red-500" />
@@ -987,7 +875,7 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
               >
                 <option value="todos">Todas categorias</option>
                 {Array.isArray(categorias) && categorias.length >  0 ? (
-                  categorias.map((categoria: Categoria) => (
+                  categorias?.map((categoria: Categoria) => (
                   <option key={categoria.id} value={categoria.id}>
                     {categoria.nome}
                   </option>

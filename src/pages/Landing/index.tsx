@@ -1,3 +1,4 @@
+// src/modules/landing/index.tsx
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -29,41 +30,73 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { produtosRoute } from "@/modules/services/api/routes/produtos";
 import { useCartStore } from "@/modules/services/store/cart-store";
 import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
-import { categoriaRoutes } from "@/modules/services/api/routes/categorias";
+import { api } from "@/modules/services/api/axios";
 
-interface ImageProps {
+// ============================================
+// CONFIGURAÇÃO DO SUPABASE
+// ============================================
+const SUPABASE_STORAGE_URL = "https://rojyeqiqrvriknawugmt.supabase.co/storage/v1/object/public";
+
+// Buckets
+const BUCKETS = {
+  PRODUCTS: "produtos-imagens",
+  CATEGORIES: "categorias-imagens",
+  AVATARS: "avatars",
+  HERO: "hero"
+};
+
+// ============================================
+// COMPONENTE DE IMAGEM SUPABASE
+// ============================================
+interface SupabaseImageProps {
+  src?: string;
   alt: string;
+  bucket?: keyof typeof BUCKETS;
   width?: number;
   height?: number;
   className?: string;
   loading?: "lazy" | "eager";
   priority?: boolean;
+  fallback?: React.ReactNode;
 }
 
-const Image = ({
+const SupabaseImage = ({
   src,
   alt,
+  bucket = "PRODUCTS",
   width = 800,
   height = 600,
   className = "",
   loading = "lazy",
   priority = false,
-}: ImageProps & { src?: string }) => {
+  fallback
+}: SupabaseImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
 
-  // console.log("Caminho: ", src);
+  // Gerar URL completa da imagem no Supabase
+  const getImageUrl = () => {
+    if (!src) return null;
+    if (src.startsWith("http")) return src;
+    
+    // Limpar o caminho
+    const cleanPath = src.replace(/^\/+/, "");
+    return `${SUPABASE_STORAGE_URL}/${BUCKETS[bucket]}/${cleanPath}`;
+  };
 
-  if (!src) {
+  const imageUrl = getImageUrl();
+
+  if (!src || isError) {
     return (
       <div className={`relative overflow-hidden ${className}`}>
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-          <Package className="h-12 w-12 text-gray-400" />
-          <span className="ml-2 text-gray-500 text-sm">{alt}</span>
-        </div>
+        {fallback || (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+            <Package className="h-12 w-12 text-gray-400" />
+            <span className="ml-2 text-gray-500 text-sm">{alt}</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -73,43 +106,34 @@ const Image = ({
       <div
         className={`absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 transition-opacity duration-500 ${
           isLoaded ? "opacity-0" : "opacity-100"
-        } ${isError ? "hidden" : "block"}`}
+        }`}
       />
 
-      {/* Imagem otimizada */}
       <img
-        src={src}
+        src={imageUrl!}
         alt={alt}
         loading={priority ? "eager" : loading}
         width={width}
         height={height}
-        onLoad={() => {
-          setIsLoaded(true);
-        }}
-        onError={() => {
-          setIsError(true);
-          setIsLoaded(true);
-        }}
+        onLoad={() => setIsLoaded(true)}
+        onError={() => setIsError(true)}
         className={`w-full h-full object-cover transition-opacity duration-500 ${
           isLoaded ? "opacity-100" : "opacity-0"
         }`}
       />
-
-      {/* Fallback para erro */}
-      {isError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-          <Package className="h-12 w-12 text-gray-400" />
-          <span className="ml-2 text-gray-500 text-sm">{alt}</span>
-        </div>
-      )}
     </div>
   );
 };
 
+// ============================================
+// COMPONENTES DE IMAGEM ESPECÍFICOS
+// ============================================
+
 const HeroImage = () => (
-  <Image
-    src="/logo.jpg"
+  <SupabaseImage
+    src="hero/colecao-2026.jpg"
     alt="Nova Coleção de Produtos"
+    bucket="HERO"
     width={600}
     height={400}
     priority={true}
@@ -117,7 +141,6 @@ const HeroImage = () => (
   />
 );
 
-// Imagens para categorias - usando suas imagens
 const CategoryImage = ({
   category,
   imageUrl,
@@ -127,13 +150,14 @@ const CategoryImage = ({
   imageUrl?: string;
   className?: string;
 }) => {
+  // Se não tiver imagem personalizada, usa uma imagem padrão por categoria
+  const defaultImage = `categories/${category.toLowerCase().replace(/\s+/g, '-')}.jpg`;
+  
   return (
-    <Image
-      src={
-        imageUrl ||
-        `http://localhost:3000/uploads/categories/${category.toLowerCase()}.jpg`
-      }
+    <SupabaseImage
+      src={imageUrl || defaultImage}
       alt={category}
+      bucket="CATEGORIES"
       width={200}
       height={128}
       className={`w-full h-full ${className}`}
@@ -141,12 +165,13 @@ const CategoryImage = ({
   );
 };
 
-// Imagem de testimonial
-const TestimonialAvatar = ({ id }: { id: number }) => {
+const TestimonialAvatar = ({ id, imageUrl }: { id: number; imageUrl?: string }) => {
   return (
     <div className="h-10 w-10 rounded-full overflow-hidden">
-      <Image
+      <SupabaseImage
+        src={imageUrl || `avatars/client-${id}.jpg`}
         alt={`Cliente ${id}`}
+        bucket="AVATARS"
         width={40}
         height={40}
         className="w-full h-full"
@@ -155,6 +180,29 @@ const TestimonialAvatar = ({ id }: { id: number }) => {
   );
 };
 
+const ProductImage = ({ produto, className = "" }: { produto: any; className?: string }) => {
+  // Fallback personalizado para produtos
+  const productFallback = (
+    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center">
+      <Package className="h-12 w-12 text-gray-400 mb-2" />
+      <span className="text-gray-500 text-sm">{produto?.nome}</span>
+    </div>
+  );
+
+  return (
+    <SupabaseImage
+      src={produto?.foto}
+      alt={produto?.nome}
+      bucket="PRODUCTS"
+      className={`w-full h-full object-cover ${className}`}
+      fallback={productFallback}
+    />
+  );
+};
+
+// ============================================
+// HERO SECTION
+// ============================================
 export const HeroSection = () => {
   const navigate = useNavigate();
   const logged = useAuthStore((state) => state.isAuthenticated);
@@ -172,7 +220,6 @@ export const HeroSection = () => {
 
   return (
     <section className="relative px-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white overflow-hidden">
-      {/* Ajuste o z-index da overlay para não sobrepor os botões */}
       <div className="absolute inset-0 bg-black/50 z-0" />
 
       <div className="relative max-w-7xl mx-auto px-4 py-24 md:py-32 z-10">
@@ -194,7 +241,6 @@ export const HeroSection = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 relative z-30">
-              {/* Botão "Comprar Agora" com prioridade máxima */}
               <button
                 onClick={handleCompra}
                 className="relative z-50 bg-[#D4AF37] text-gray-900 font-semibold px-8 py-3 rounded-lg hover:bg-[#c19b2c] transition-all transform hover:scale-105 active:scale-95 shadow-lg"
@@ -239,6 +285,9 @@ export const HeroSection = () => {
   );
 };
 
+// ============================================
+// FEATURES SECTION
+// ============================================
 export const Features = () => (
   <section className="py-16 bg-white">
     <div className="max-w-7xl mx-auto px-4">
@@ -281,14 +330,63 @@ export const Features = () => (
   </section>
 );
 
+// ============================================
+// CATEGORIAS SECTION - CORRIGIDA
+// ============================================
 const FeaturedCategories = () => {
-  const { data: categorias } = useQuery({
+  const { data: categorias, isLoading } = useQuery({
     queryKey: ["categorias"],
     queryFn: async () => {
-      const response = await categoriaRoutes.getAllCategoria();
-      return response;
+        const response = await api.get("/categorias");
+        return response.data
     },
   });
+
+  // AGORA CORRETO: acessando categorias.data
+  const getCategoriasArray = () => {
+    if (!categorias) {
+      return [];
+    }
+    
+    // A API retorna { data: [...], total: number }
+    if (categorias?.data && Array.isArray(categorias.data)) {
+      return categorias.data;
+    }
+    
+    // Fallback caso seja array direto
+    if (Array.isArray(categorias)) {
+      return categorias;
+    }
+    
+    return [];
+  };
+
+  const categoriasArray = getCategoriasArray();
+
+  if (isLoading) {
+    return (
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-center items-center h-64">
+            <Loader className="h-8 w-8 animate-spin text-[#D4AF37]" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!categoriasArray || categoriasArray.length === 0) {
+    return (
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-600">
+            Nenhuma categoria encontrada
+          </h3>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 bg-gray-50">
@@ -300,32 +398,34 @@ const FeaturedCategories = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 m-auto items-center justify-center">
-          {categorias &&
-            categorias.map((cat, idx) => (
-              <div key={idx} className="group cursor-pointer">
-                <div className="h-32 rounded-xl overflow-hidden mb-4 group-hover:scale-105 transition duration-300">
-                  <CategoryImage
-                    category={cat.nome}
-                    imageUrl={cat?.Produto[0]?.foto}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-                <div className="text-center">
-                  <h3 className="font-semibold">{cat.nome}</h3>
-                  <p className="text-sm text-gray-500">
-                    {cat?.Produto?.length}
-                  </p>
-                </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          {categoriasArray.map((cat: any) => (
+            <div key={cat.id} className="group cursor-pointer">
+              <div className="relative h-32 rounded-xl overflow-hidden mb-4 group-hover:scale-105 transition duration-300">
+                <CategoryImage
+                  category={cat.nome}
+                  imageUrl={cat.imagem || cat?.Produto?.[0]?.foto}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
-            ))}
+              <div className="text-center">
+                <h3 className="font-semibold">{cat.nome}</h3>
+                <p className="text-sm text-gray-500">
+                  {cat?.Produto?.length || 0} produtos
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
   );
 };
 
+// ============================================
+// TESTIMONIALS SECTION
+// ============================================
 export const Testimonials = () => (
   <section className="py-16 bg-white">
     <div className="max-w-7xl mx-auto px-4">
@@ -337,9 +437,13 @@ export const Testimonials = () => (
       </div>
 
       <div className="grid md:grid-cols-3 gap-8">
-        {[1, 2, 3].map((idx) => (
+        {[
+          { id: 1, name: "Maria Silva", time: "Cliente há 2 anos", image: "testimonials/maria.jpg" },
+          { id: 2, name: "João Santos", time: "Cliente há 1 ano", image: "testimonials/joao.jpg" },
+          { id: 3, name: "Ana Oliveira", time: "Cliente há 3 anos", image: "testimonials/ana.jpg" },
+        ].map((client) => (
           <div
-            key={idx}
+            key={client.id}
             className="border rounded-xl p-6 hover:shadow-lg transition"
           >
             <div className="flex items-center mb-4">
@@ -355,10 +459,10 @@ export const Testimonials = () => (
               atendimento impecável."
             </p>
             <div className="flex items-center">
-              <TestimonialAvatar id={idx} />
+              <TestimonialAvatar id={client.id} imageUrl={client.image} />
               <div className="ml-3">
-                <div className="font-semibold">Maria Silva</div>
-                <div className="text-sm text-gray-500">Cliente há 2 anos</div>
+                <div className="font-semibold">{client.name}</div>
+                <div className="text-sm text-gray-500">{client.time}</div>
               </div>
             </div>
           </div>
@@ -368,6 +472,9 @@ export const Testimonials = () => (
   </section>
 );
 
+// ============================================
+// NEWSLETTER SECTION
+// ============================================
 export const Newsletter = () => (
   <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
     <div className="max-w-3xl mx-auto px-4 text-center">
@@ -396,6 +503,9 @@ export const Newsletter = () => (
   </section>
 );
 
+// ============================================
+// FOOTER
+// ============================================
 export const Footer = () => (
   <footer className="bg-gray-900 text-white py-12">
     <div className="max-w-7xl mx-auto px-4">
@@ -460,22 +570,22 @@ export const Footer = () => (
   </footer>
 );
 
-// Componente de Produtos
+// ============================================
+// PRODUTOS SECTION
+// ============================================
 const ProductsSection = () => {
   const [quantidade, setQuantidade] = useState(1);
   const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null);
   const { user } = useAuthStore();
   const user_Id = user?.id_usuario || "";
 
-  const { data: produtos } = useQuery({
+  const { data: produtos, isLoading, error } = useQuery({
     queryKey: ["produtos"],
     queryFn: async () => {
-      const response = await produtosRoute.getProdutos();
-      return response;
+      const response = await api.get("/produtos/get");
+      return response.data;
     },
   });
-
-  const [, setAddingProductId] = useState<string | null>(null);
 
   const addToCartMutation = useMutation({
     mutationFn: async (cartData: {
@@ -489,51 +599,15 @@ const ProductsSection = () => {
       toast.success("Produto adicionado ao carrinho com sucesso!");
     },
     onError: (e: any) => {
-      setAddingProductId(null);
       const errorMessage =
         e.response?.data?.message ||
         "Ocorreu um erro ao adicionar o produto ao carrinho.";
-      toast.error("Erro ao adicionar produto ao carrinho", errorMessage);
+      toast.error(errorMessage);
     },
   });
 
   const handleAddCartValue = async (produtoId: string, quantidade: number) => {
-    const userId = user_Id;
-    await addToCartMutation.mutate({ userId, produtoId, quantidade });
-  };
-
-  const renderImagem = (produto: any) => {
-    if (produto?.foto) {
-      if (produto?.foto?.startsWith("http")) {
-        return (
-          <Image
-            src={produto?.foto}
-            alt={produto?.nome}
-            className="w-full h-full object-cover"
-          />
-        );
-      }
-
-      if (produto.foto.startsWith("/")) {
-        return (
-          <Image
-            src={`http://localhost:3000${produto.foto}`}
-            alt={produto.nome}
-            className="w-full h-full"
-          />
-        );
-      }
-
-      return (
-        <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center">
-          <Package className="h-12 w-12 text-gray-400 mb-2" />
-          <span className="text-gray-500 text-sm">{produto?.nome}</span>
-          <div className="absolute bottom-2 right-2 bg-[#D4AF37] text-white px-2 py-1 text-xs rounded">
-            Sem Imagem
-          </div>
-        </div>
-      );
-    }
+    await addToCartMutation.mutate({ userId: user_Id, produtoId, quantidade });
   };
 
   const handleQuantidade = (action: "increment" | "decrement") => {
@@ -547,6 +621,60 @@ const ProductsSection = () => {
       }
     });
   };
+
+   const getProdutosArray = () => {
+    if (!produtos){
+      return [];
+    };
+
+    if (produtos?.data && Array.isArray(produtos.data)){
+      return produtos.data;
+    } 
+    if (Array.isArray(produtos)) {
+      console.log("✅ Produtos é array direto");
+      return produtos;
+    }
+    console.log("⚠️ Formato inesperado:", produtos);
+    return [];
+  };
+
+   const produtosArray = getProdutosArray();
+
+  if (isLoading) {
+    return (
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-center items-center h-64">
+            <Loader className="h-8 w-8 animate-spin text-[#D4AF37]" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-red-500">Erro ao carregar produtos</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!produtosArray || produtosArray.length === 0) {
+    return (
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-600">
+            Nenhum produto encontrado
+          </h3>
+        </div>
+      </section>
+    );
+  }
+
 
   return (
     <section className="py-16 bg-white">
@@ -562,91 +690,84 @@ const ProductsSection = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {produtos &&
-            produtos?.map((produto: any) => {
-              return (
-                <div
-                  key={produto.id}
-                  className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
-                >
-                  <div className="relative h-52 overflow-hidden">
-                    {/* {renderImagem(produto?.ImagemProduto?.url)} */}
-                    <img src={`http://localhost:3000${produto?.foto}`} alt="" />
-                    <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white">
-                      <Heart className="h-5 w-5" />
-                    </button>
-                    <div className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs px-2 py-1 rounded">
-                      -20%
-                    </div>
+          {produtosArray && produtosArray.map((produto: any) => (
+            <div
+              key={produto.id}
+              className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
+            >
+              <div className="relative h-52 overflow-hidden bg-gray-100">
+                <ProductImage produto={produto} />
+                <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white z-10">
+                  <Heart className="h-5 w-5" />
+                </button>
+                <div className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs px-2 py-1 rounded z-10">
+                  -20%
+                </div>
+              </div>
+
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-bold text-lg">{produto.nome}</h3>
+                    <p className="text-gray-500 text-sm line-clamp-2">
+                      {produto.descricao}
+                    </p>
                   </div>
-
-                  <div className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-bold text-lg">{produto.nome}</h3>
-                        <p className="text-gray-500 text-sm">
-                          {produto.descricao}
-                        </p>
-                      </div>
-                      <div className="flex items-center">
-                        <Star className="h-4 w-4 text-[#D4AF37] fill-current" />
-                        <span className="ml-1 text-sm">{produto.rating}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center mt-4">
-                      <div>
-                        <p className="text-2xl font-bold text-[#D4AF37]">
-                          KZ {produto.preco.toLocaleString()}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Disponivel {produto.quantidade} unidades
-                        </p>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setProdutoSelecionado(produto);
-                            setQuantidade(1);
-                          }}
-                          className="p-2 border rounded-lg hover:bg-gray-50"
-                        >
-                          <BsEye size={18} />
-                        </button>
-                        {user ? (
-                          <button
-                            onClick={() =>
-                              handleAddCartValue(produto.id, quantidade)
-                            }
-                            disabled={addToCartMutation.isPending}
-                            className="p-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c]"
-                          >
-                            {addToCartMutation.isPending ? (
-                              <Loader className="animate-spin" />
-                            ) : (
-                              <FiShoppingCart size={18} />
-                            )}
-                          </button>
-                        ) : (
-                          <></>
-                        )}
-                      </div>
-                    </div>
+                  <div className="flex items-center">
+                    <Star className="h-4 w-4 text-[#D4AF37] fill-current" />
+                    <span className="ml-1 text-sm">5</span>
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="flex justify-between items-center mt-4">
+                  <div>
+                    <p className="text-2xl font-bold text-[#D4AF37]">
+                      KZ {produto.preco?.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Disponível {produto.quantidade} unidades
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setProdutoSelecionado(produto);
+                        setQuantidade(1);
+                      }}
+                      className="p-2 border rounded-lg hover:bg-gray-50"
+                    >
+                      <BsEye size={18} />
+                    </button>
+                    {user && (
+                      <button
+                        onClick={() => handleAddCartValue(produto.id, quantidade)}
+                        disabled={addToCartMutation.isPending}
+                        className="p-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] disabled:opacity-50"
+                      >
+                        {addToCartMutation.isPending ? (
+                          <Loader className="animate-spin h-4 w-4" />
+                        ) : (
+                          <FiShoppingCart size={18} />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
+
       {/* Modal de Detalhes do Produto */}
       {produtoSelecionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="relative bg-white w-full max-w-4xl rounded-2xl shadow-2xl animate-fadeIn overflow-hidden">
             <div className="flex flex-col md:flex-row gap-6 p-6 md:p-8">
               <div className="md:w-1/2">
-                <div className="h-80 rounded-xl overflow-hidden">
-                  {renderImagem(produtoSelecionado)}
+                <div className="h-80 rounded-xl overflow-hidden bg-gray-100">
+                  <ProductImage produto={produtoSelecionado} className="w-full h-full" />
                 </div>
               </div>
 
@@ -674,7 +795,7 @@ const ProductsSection = () => {
 
                 <div className="mb-6">
                   <div className="text-4xl font-bold text-[#D4AF37] mb-2">
-                    KZ {produtoSelecionado.preco.toLocaleString()}
+                    KZ {produtoSelecionado.preco?.toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-500">
                     ou 12x de KZ {(produtoSelecionado.preco / 12).toFixed(2)}
@@ -744,14 +865,13 @@ const ProductsSection = () => {
                     </button>
                   </div>
 
-                  {/* Mensagens de validação */}
                   {quantidade <= 0 && (
-                    <p className="text-red-500 text-sm mt-2">
+                    <p className="text-red-500 text-sm">
                       A quantidade deve ser pelo menos 1
                     </p>
                   )}
                   {quantidade > (produtoSelecionado.quantidade || 0) && (
-                    <p className="text-red-500 text-sm mt-2">
+                    <p className="text-red-500 text-sm">
                       Não há estoque suficiente. Disponível:{" "}
                       {produtoSelecionado.quantidade || 0}
                     </p>
@@ -766,7 +886,9 @@ const ProductsSection = () => {
   );
 };
 
-// Componente Header atualizado
+// ============================================
+// HEADER
+// ============================================
 const Header = () => {
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -897,9 +1019,7 @@ const Header = () => {
               {/* ÁREA DE AUTENTICAÇÃO */}
               <div className="relative" ref={profileRef}>
                 {logged ? (
-                  // USUÁRIO LOGADO
                   <div className="flex gap-2 items-center">
-                    {/* Botão de perfil - SEMPRE visível para usuários logados */}
                     <button
                       onClick={() => setProfileOpen(!profileOpen)}
                       className="p-2 rounded-full hover:bg-gray-100"
@@ -907,7 +1027,6 @@ const Header = () => {
                       <CgProfile size={24} />
                     </button>
 
-                    {/* Botão "Voltar" - SÓ para ADMIN */}
                     {user?.role === "ADMIN" && (
                       <Link to={"/dashboard"}>
                         <Button>Dashboard</Button>
@@ -915,13 +1034,12 @@ const Header = () => {
                     )}
                   </div>
                 ) : (
-                  // USUÁRIO NÃO LOGADO
                   <Link to={"/login"}>
                     <Button className="gap-5 flex ml-4">Entrar</Button>
                   </Link>
                 )}
 
-                {/* MENU DO PERFIL (dropdown) */}
+                {/* MENU DO PERFIL */}
                 {profileOpen && logged && (
                   <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-50">
                     <div className="p-3 border-b">
@@ -954,17 +1072,9 @@ const Header = () => {
                   {user && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {countItems.isLoading ? (
-                        <p>0</p>
-                      ) : countItems.data === undefined ||
-                        countItems.data === null ||
-                        countItems.data.itemsCount === 0 ? (
-                        <p className="text-white">
-                          {cartData?.data?.totalItens.toString()}
-                        </p>
+                        "0"
                       ) : (
-                        <p className="text-white">
-                          {cartData?.data?.totalItens.toString()}
-                        </p>
+                        cartData?.data?.totalItens?.toString() || "0"
                       )}
                     </span>
                   )}
@@ -1006,7 +1116,7 @@ const Header = () => {
                       className="block py-2"
                       onClick={() => setOpen(false)}
                     >
-                      <Button className="w-full ml-2">Entrar</Button>
+                      <Button className="w-full">Entrar</Button>
                     </Link>
                   )}
                 </div>
@@ -1019,6 +1129,9 @@ const Header = () => {
   );
 };
 
+// ============================================
+// COMPONENTE PRINCIPAL LANDING
+// ============================================
 export default function Landing() {
   return (
     <div className="min-h-screen bg-white">
@@ -1028,15 +1141,18 @@ export default function Landing() {
 
       <HeroSection />
       <Features />
+      
       <div id="produtos">
         <ProductsSection />
       </div>
+      
       <div id="categorias">
         <FeaturedCategories />
       </div>
 
       <Testimonials />
       <Newsletter />
+      
       <div id="contato">
         <Footer />
       </div>

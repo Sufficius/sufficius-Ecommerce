@@ -34,12 +34,14 @@ import { api } from "@/modules/services/api/axios";
 
 interface Pagamento {
   id: string;
-  cliente: {
+  usuario: {
     nome: string;
     email: string;
     telefone: string;
-    avatar?: string;
+    fotoUrl?: string;
   };
+  preco: number;
+  quantidade:number;
   pedidoId: string;
   data: Date;
   valor: number;
@@ -47,11 +49,22 @@ interface Pagamento {
   status: "APROVADO" | "PENDENTE" | "CANCELADO";
   criadoEm: Date;
   atualizadoEm: Date;
-  items: {
+  pedido: {
     nome: string;
     quantidade: number;
     preco: number;
-  }[];
+  }
+  ItemPedido: [
+    {
+      criadoEm: Date
+      id: string
+      pedidoId: string
+      precoTotal: number
+      precoUnitario: number
+      produtoId: string
+      quantidade: number
+    }
+  ]
   enderecoEntrega?: {
     rua: string;
     cidade: string;
@@ -67,16 +80,6 @@ export default function PagamentosPage() {
       return response.data;
     },
   });
-
-  const {data: pedidos} = useQuery({
-     queryKey: ["pedidos"],
-    queryFn: async () => {
-      const response = await api.get("/pedidos");
-      return response.data;
-    },
-  })
-
-  console.log("Pedidos: ", pedidos?.data);
 
   const [, setPagamentos] = useState<Pagamento[]>([]);
 
@@ -113,7 +116,6 @@ export default function PagamentosPage() {
   };
 
   const metodoPagamento = pagamento?.data?.map((p: any) => p.metodo);
-
   // Filtrar pagamentos
   const pagamentosFiltrados = pagamento?.data?.filter((pagamento: any) => {
     if (filtros.status && pagamento.status !== filtros.status) return false;
@@ -190,14 +192,18 @@ export default function PagamentosPage() {
 
   const handleAprovarPagamento = (id: string) => {
     setPagamentos(
-      pagamento?.data?.map((p: any) => (p.id === id ? { ...p, status: "APROVADO" } : p)),
+      pagamento?.data?.map((p: any) =>
+        p.id === id ? { ...p, status: "APROVADO" } : p,
+      ),
     );
     toast.success("Pagamento aprovado!");
   };
 
   const handleCancelarPagamento = (id: string) => {
     setPagamentos(
-      pagamento?.data?.map((p: any) => (p.id === id ? { ...p, status: "CANCELADO" } : p)),
+      pagamento?.data?.map((p: any) =>
+        p.id === id ? { ...p, status: "CANCELADO" } : p,
+      ),
     );
     toast.success("Pagamento cancelado!");
   };
@@ -208,7 +214,9 @@ export default function PagamentosPage() {
   }: {
     pagamento: Pagamento;
     onClose: () => void;
-  }) => (
+  }) => {
+    return(
+
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
@@ -260,25 +268,33 @@ export default function PagamentosPage() {
                   <span className="text-gray-600">Método:</span>
                   <span>{pagamento.metodo}</span>
                 </div>
-               
+
                 <div className="flex justify-between">
                   <span className="text-gray-600">Data:</span>
                   <span>
                     {new Date(pagamento?.criadoEm)?.toLocaleDateString("pt-BR")}{" "}
-                    {new Date(pagamento?.criadoEm)?.toLocaleTimeString("pt-BR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {new Date(pagamento?.criadoEm)?.toLocaleTimeString(
+                      "pt-BR",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Última Atualização:</span>
                   <span>
-                    {new Date(pagamento?.atualizadoEm)?.toLocaleDateString("pt-BR")}{" "}
-                    {new Date(pagamento.atualizadoEm)?.toLocaleTimeString("pt-BR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {new Date(pagamento?.atualizadoEm)?.toLocaleDateString(
+                      "pt-BR",
+                    )}{" "}
+                    {new Date(pagamento.atualizadoEm)?.toLocaleTimeString(
+                      "pt-BR",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    )}
                   </span>
                 </div>
               </div>
@@ -293,10 +309,10 @@ export default function PagamentosPage() {
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                    {pagamento.cliente?.avatar ? (
+                    {pagamento.usuario?.fotoUrl ? (
                       <img
-                        src={pagamento.cliente?.avatar}
-                        alt={pagamento.cliente?.nome}
+                        src={pagamento.usuario?.fotoUrl}
+                        alt={pagamento.usuario?.nome}
                         className="h-full w-full rounded-full"
                       />
                     ) : (
@@ -304,15 +320,15 @@ export default function PagamentosPage() {
                     )}
                   </div>
                   <div>
-                    <div className="font-medium">{pagamento.cliente?.nome}</div>
+                    <div className="font-medium">{pagamento.usuario?.nome}</div>
                     <div className="text-sm text-gray-600">
-                      {pagamento.cliente?.email}
+                      {pagamento.usuario?.email}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Phone className="h-4 w-4" />
-                  <span>{pagamento.cliente?.telefone}</span>
+                  <span>{pagamento.usuario?.telefone}</span>
                 </div>
                 {pagamento.enderecoEntrega && (
                   <div className="mt-4">
@@ -358,18 +374,19 @@ export default function PagamentosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {pagamento.items?.map((item, index) => (
-                    <tr key={index}>
-                      {/* <td className="px-4 py-3">{item.metodo}</td> */}
-                      <td className="px-4 py-3">{item.quantidade}</td>
+                  {pagamento.ItemPedido?.map((item: any, index:number) => (
+                   <tr key={index}>
+                      <td className="px-4 py-3">{item.ItemPedido[0].id ?? "Nada"}</td>
+                      <td className="px-4 py-3">{item.ItemPedido[0].quantidade ?? "Nada"}</td>
                       <td className="px-4 py-3">
-                        Kz {item.preco?.toLocaleString()}
+                        Kz {item.ItemPedido[0].precoTotal?.toLocaleString()}
                       </td>
                       <td className="px-4 py-3 font-medium">
-                        Kz {(item.quantidade * item.preco)?.toLocaleString()}
+                        Kz {(item.ItemPedido[0].quantidade * item.ItemPedido[0].preco)?.toLocaleString()}
                       </td>
                     </tr>
-                  ))}
+                   ))}
+
                   <tr className="bg-gray-50">
                     <td
                       colSpan={3}
@@ -438,7 +455,8 @@ export default function PagamentosPage() {
         </div>
       </div>
     </div>
-  );
+  )
+}
 
   return (
     <div className="py-8">
@@ -584,9 +602,12 @@ export default function PagamentosPage() {
         </div>
 
         <div className="space-y-4">
-          {metodoPagamento?.map((metodo: any, index: any) => (
-            <div key={index} className="space-y-2">
-              <div className="flex items-center justify-between">
+          {metodoPagamento?.map((metodo: any) => (
+            <div className="space-y-2">
+              <div
+                key={metodo.id}
+                className="flex items-center justify-between"
+              >
                 <div className="flex items-center gap-3">
                   <div
                     className={`h-8 w-8 rounded-lg flex items-center justify-center ${
@@ -642,7 +663,7 @@ export default function PagamentosPage() {
                               ? "bg-purple-500"
                               : "bg-gray-500"
                     }`}
-                    style={{ width: `${p.valor/100}%` }}
+                    style={{ width: `${p.valor / 100}%` }}
                   />
                 </div>
               ))}
@@ -859,7 +880,7 @@ export default function PagamentosPage() {
                 return (
                   <tr key={pagamento.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
-                      <div className="font-mono font-medium">
+                      <div className="font-mono font-medium line-clamp-1">
                         {pagamento.id}
                       </div>
                     </td>
@@ -887,15 +908,24 @@ export default function PagamentosPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-mono">{pagamento?.id}</div>
+                      <div className="font-mono line-clamp-1">
+                        {pagamento?.id}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div>{new Date(pagamento.criadoEm)?.toLocaleDateString("pt-BR")}</div>
+                      <div>
+                        {new Date(pagamento.criadoEm)?.toLocaleDateString(
+                          "pt-BR",
+                        )}
+                      </div>
                       <div className="text-sm text-gray-600">
-                        {new Date(pagamento.criadoEm)?.toLocaleTimeString("pt-BR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {new Date(pagamento.criadoEm)?.toLocaleTimeString(
+                          "pt-BR",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -949,8 +979,9 @@ export default function PagamentosPage() {
         {/* Paginação */}
         <div className="px-6 py-4 border-t flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            Mostrando {inicio + 1} a {Math.min(fim, pagamentosFiltrados?.length)}{" "}
-            de {pagamentosFiltrados?.length} resultados
+            Mostrando {inicio + 1} a{" "}
+            {Math.min(fim, pagamentosFiltrados?.length)} de{" "}
+            {pagamentosFiltrados?.length} resultados
           </div>
 
           <div className="flex items-center gap-2">

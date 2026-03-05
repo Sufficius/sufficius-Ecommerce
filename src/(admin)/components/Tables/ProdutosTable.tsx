@@ -214,11 +214,13 @@ export default function ProdutosTable({
               onChange={(e) => setFiltroCategoria(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] text-sm"
             >
-              {categorias.map(categoria => (
+              {Array.isArray(categorias) && categorias.map(categoria => (
                 <option key={categoria} value={categoria}>
                   {categoria === "todos" ? "Todas categorias" : categoria}
                 </option>
-              ))}
+              )) || (
+                <option value="">Nenhuma categoria disponível</option>
+              )}
             </select>
           </div>
 
