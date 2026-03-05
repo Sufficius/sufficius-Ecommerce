@@ -200,8 +200,8 @@ export default function ConfirmacaoCompra() {
     queryKey: ["produtosRecomendados"],
     queryFn: async () => {
       try {
-        const response = await produtosRoute.listarProdutos();
-        return extrairArrayData<IProduto>(response.data, ['data', 'produtos', 'items']);
+        const response = await produtosRoute.getProdutos();
+        return extrairArrayData<IProduto>(response, ['data', 'produtos', 'items']);
       } catch (error) {
         console.error("Erro ao buscar produtos recomendados:", error);
         return [];
