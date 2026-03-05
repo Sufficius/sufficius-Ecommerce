@@ -1209,7 +1209,7 @@ export default function AdminEstoque() {
     }
   };
 
-  const handleMovimentacaoEmMassa = (tipo: string) => {
+  const handleMovimentacaoEmMassa = () => {
     if (produtosSelecionados.length === 0) {
       toast.error("Selecione pelo menos um produto");
       return;
@@ -1261,14 +1261,14 @@ export default function AdminEstoque() {
             <div className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
               <span className="text-sm font-medium">{produtosSelecionados.length} selecionados</span>
               <button
-                onClick={() => handleMovimentacaoEmMassa("entrada")}
+                onClick={() => handleMovimentacaoEmMassa()}
                 className="p-1 hover:bg-white rounded"
                 title="Entrada em massa"
               >
                 <PackagePlus className="h-4 w-4" />
               </button>
               <button
-                onClick={() => handleMovimentacaoEmMassa("saida")}
+                onClick={() => handleMovimentacaoEmMassa()}
                 className="p-1 hover:bg-white rounded"
                 title="Saída em massa"
               >
