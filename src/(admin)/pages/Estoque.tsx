@@ -126,18 +126,6 @@ interface MovimentacaoEstoque {
   created_at: string;
 }
 
-interface Fornecedor {
-  id: string;
-  nome: string;
-  contato: string;
-  email: string;
-  telefone: string;
-  prazoEntrega: number;
-  produtos: Array<{
-    id: string;
-    nome: string;
-  }>;
-}
 
 interface Categoria {
   id: string;
