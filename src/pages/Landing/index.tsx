@@ -35,7 +35,7 @@ import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { Button } from "@/components/ui/button";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
 import { api } from "@/modules/services/api/axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -129,16 +129,33 @@ const Header = () => {
   const profileRef = useRef<HTMLDivElement>(null);
 
   const { user } = useAuthStore();
-
   const logged = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
-  const countItems = useQuery({
-    queryKey: ["count", user?.id_usuario],
-    queryFn: () => carrinhosRoute.countCartItems(user?.id_usuario || ""),
+  const { data: countData, refetch: refetchCount } = useQuery({
+    queryKey: ["cart-count", user?.id_usuario],
+    queryFn: async () => {
+      const result = await carrinhosRoute.countCartItems(
+        user?.id_usuario || "",
+      );
+      return result;
+    },
     enabled: !!user,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
+
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      refetchCount();
+    };
+
+    window.addEventListener("cart-updated", handleCartUpdate);
+
+    return () => window.removeEventListener("cart-updated", handleCartUpdate);
+  }, [refetchCount]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -268,9 +285,7 @@ const Header = () => {
                       </p>
                     </div>
                     <div className="p-2">
-                      {[
-                        { name: "Meu Perfil", href: "/perfil" },
-                      ].map((item) => (
+                      {[{ name: "Meu Perfil", href: "/perfil" }].map((item) => (
                         <Link
                           key={item.name}
                           to={item.href}
@@ -317,7 +332,9 @@ const Header = () => {
                     animate={{ scale: 1 }}
                     className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full flex items-center justify-center shadow-lg"
                   >
-                    {countItems.data?.data?.totalItens || 0}
+                    {typeof countData?.totalItens === "number"
+                      ? countData.totalItens
+                      : 0}
                   </motion.span>
                 )}
               </motion.div>
@@ -653,6 +670,7 @@ const Features = () => {
 const ProductsSection = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const user_Id = user?.id_usuario || "";
 
@@ -665,13 +683,11 @@ const ProductsSection = () => {
   });
 
   const addToCartMutation = useMutation({
-    mutationFn: (data: {
-      userId: string;
-      produtoId: string;
-      quantidade: number;
-    }) => carrinhosRoute.adicionarItem(data),
+    mutationFn: (data: any) => carrinhosRoute.adicionarItem(data),
     onSuccess: () => {
       toast.success("Produto adicionado ao carrinho!");
+      queryClient.invalidateQueries({ queryKey: ["cart-count", user_Id] });
+      window.dispatchEvent(new Event("cart-updated"));
       setSelectedProduct(null);
       setQuantity(1);
     },
@@ -1183,8 +1199,7 @@ const Testimonials = () => {
       content:
         "Simplesmente incrível! A qualidade dos produtos e a rapidez na entrega superaram minhas expectativas.",
       rating: 5,
-      image:
-        "https://randomuser.me/api/portraits/women/68.jpg",
+      image: "https://randomuser.me/api/portraits/women/68.jpg",
     },
     {
       id: 2,
@@ -1193,8 +1208,7 @@ const Testimonials = () => {
       content:
         "Melhor loja online que já comprei. Atendimento excepcional e produtos de primeira linha.",
       rating: 5,
-      image:
-        "https://randomuser.me/api/portraits/men/32.jpg",
+      image: "https://randomuser.me/api/portraits/men/32.jpg",
     },
     {
       id: 3,

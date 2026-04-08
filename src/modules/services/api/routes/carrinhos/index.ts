@@ -327,24 +327,34 @@ class CarrinhosRoute {
     }
   }
 
-  async finalizePurchase(data: FormData):Promise<ICarrinho> {
-      const response = await api.post("/carrinho/checkout", data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-        console.log("✅ [API] Resposta recebida:", response.data);
-      return response.data;
-    }
-    // catch (error) {
-    //    console.error("❌ [API] Erro no checkout:", error);
-    //   throw error;
-    // }
+  async finalizePurchase(data: FormData): Promise<ICarrinho> {
+    const response = await api.post("/carrinho/checkout", data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    console.log("✅ [API] Resposta recebida:", response.data);
+    return response.data;
+  }
+  // catch (error) {
+  //    console.error("❌ [API] Erro no checkout:", error);
+  //   throw error;
+  // }
   // }
 
+
   async countCartItems(userId: string) {
-    const response = await api.get(`/carrinho/count-items-on-card/${userId}`);
-    return response.data;
+
+    try {
+      const response = await api.get(`/carrinho/count-items-on-card/${userId}`);
+      const total = response.data?.totalItens ?? 0;
+      
+      return { totalItens: total };
+    }
+    catch (error) {
+      console.error("Erro ao buscar contagem:", error);
+      return { totalItens: 0 };
+    }
   }
 
   // Adicionar múltiplos itens de uma vez
