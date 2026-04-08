@@ -65,7 +65,6 @@ export const NovoProdutoModal = ({
     staleTime: 3000000,
   });
 
-
   useEffect(() => {
     if (!form.id_categoria) return;
   }, [form.id_categoria]);
@@ -313,145 +312,135 @@ export const NovoProdutoModal = ({
   };
 
   const uploadImagem = async (file: File): Promise<string> => {
-  const formData = new FormData();
-  formData.append("imagem", file); // 👈 NOME DEVE SER "imagem" (igual no backend)
+    const formData = new FormData();
+    formData.append("imagem", file); // 👈 NOME DEVE SER "imagem" (igual no backend)
 
-  try {
-    const token = useAuthStore.getState().token;
-    
-    if (!token) {
-      toast.error("Sessão expirada. Faça login novamente.");
-      throw new Error("Usuário não autenticado");
+    try {
+      const token = useAuthStore.getState().token;
+
+      if (!token) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        throw new Error("Usuário não autenticado");
+      }
+
+      const response = await api.post("/upload/supabase", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // NÃO definir Content-Type! O axios vai definir automaticamente
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total,
+            );
+            setUploadProgress(percentCompleted);
+          }
+        },
+      });
+
+      if (response.data?.success) {
+        return response.data.url; // Supabase retorna 'url'
+      } else {
+        throw new Error(response.data?.message || "Erro ao fazer upload");
+      }
+    } catch (error: any) {
+      console.error("❌ Erro no upload:", error);
+
+      if (error.response?.status === 401) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        window.location.href = "/login";
+      } else if (error.response?.status === 400) {
+        toast.error(error.response.data?.message || "Arquivo inválido");
+      } else {
+        toast.error(error.message || "Erro no upload");
+      }
+
+      throw error;
     }
+  };
 
-    console.log("📤 Enviando imagem:", file.name, file.type, file.size);
-
-    const response = await api.post("/upload/supabase", formData, {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        // NÃO definir Content-Type! O axios vai definir automaticamente
-      },
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.total) {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          setUploadProgress(percentCompleted);
-        }
-      },
-    });
-
-    console.log("✅ Upload response:", response.data);
-
-    if (response.data?.success) {
-      return response.data.url; // Supabase retorna 'url'
-    } else {
-      throw new Error(response.data?.message || "Erro ao fazer upload");
-    }
-  } catch (error: any) {
-    console.error("❌ Erro no upload:", error);
-    
-    if (error.response?.status === 401) {
-      toast.error("Sessão expirada. Faça login novamente.");
-      window.location.href = "/login";
-    } else if (error.response?.status === 400) {
-      toast.error(error.response.data?.message || "Arquivo inválido");
-    } else {
-      toast.error(error.message || "Erro no upload");
-    }
-    
-    throw error;
-  }
-};
-
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError(null);
-  setUploadProgress(0);
-
-  try {
-    // Validar formulário
-    if (!validate()) {
-      return;
-    }
-
-    const token = useAuthStore.getState().token;
-    if (!token) {
-      toast.error("Sessão expirada. Faça login novamente.");
-      return;
-    }
-
-    if (!imagem) {
-      setErrors(prev => ({ ...prev, foto: "Imagem é obrigatória" }));
-      toast.error("Selecione uma imagem para o produto");
-      return;
-    }
-
-    // 1. Upload da imagem
-    console.log("📤 Iniciando upload da imagem...");
-    setUploadProgress(30);
-    
-    const urlImagem = await uploadImagem(imagem);
-    
-    console.log("✅ URL da imagem:", urlImagem);
-    setUploadProgress(70);
-
-    // 2. Criar produto
-    const produtoData = {
-      nome: form.nome,
-      descricao: form.descricao,
-      preco: parseFloat(form.preco),
-      quantidade: parseInt(form.quantidade),
-      id_categoria: form.id_categoria,
-      status: form.status,
-      foto: urlImagem, // URL do Supabase
-    };
-
-    console.log("📦 Criando produto:", produtoData);
-    setUploadProgress(90);
-
-    const response = await api.post("/produtos", produtoData, {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-      },
-    });
-
-    console.log("✅ Produto criado:", response.data);
-    setUploadProgress(100);
-
-    toast.success("Produto criado com sucesso!");
-    
-    // Reset form
-    setForm({
-      nome: "",
-      descricao: "",
-      preco: "",
-      quantidade: "",
-      id_categoria: "",
-      status: "ACTIVO",
-    });
-    handleRemoverImagem();
-    
-    if (onProdutoCriado) {
-      onProdutoCriado();
-    }
-    
-    setOpen(false);
-
-  } catch (err: any) {
-    console.error("❌ Erro ao criar produto:", err);
-    
-    const errorMessage = 
-      err.response?.data?.message || 
-      err.message || 
-      "Erro ao criar produto";
-    
-    setError(errorMessage);
-    toast.error(errorMessage);
-  } finally {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
     setUploadProgress(0);
-  }
-};
+
+    try {
+      // Validar formulário
+      if (!validate()) {
+        return;
+      }
+
+      const token = useAuthStore.getState().token;
+      if (!token) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        return;
+      }
+
+      if (!imagem) {
+        setErrors((prev) => ({ ...prev, foto: "Imagem é obrigatória" }));
+        toast.error("Selecione uma imagem para o produto");
+        return;
+      }
+
+      // 1. Upload da imagem
+      setUploadProgress(30);
+
+      const urlImagem = await uploadImagem(imagem);
+
+      setUploadProgress(70);
+
+      // 2. Criar produto
+      const produtoData = {
+        nome: form.nome,
+        descricao: form.descricao,
+        preco: parseFloat(form.preco),
+        quantidade: parseInt(form.quantidade),
+        id_categoria: form.id_categoria,
+        status: form.status,
+        foto: urlImagem, // URL do Supabase
+      };
+
+      setUploadProgress(90);
+
+      const response = await api.post("/produtos", produtoData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("✅ Produto criado:", response.data);
+      setUploadProgress(100);
+
+      toast.success("Produto criado com sucesso!");
+
+      // Reset form
+      setForm({
+        nome: "",
+        descricao: "",
+        preco: "",
+        quantidade: "",
+        id_categoria: "",
+        status: "ACTIVO",
+      });
+      handleRemoverImagem();
+
+      if (onProdutoCriado) {
+        onProdutoCriado();
+      }
+
+      setOpen(false);
+    } catch (err: any) {
+      console.error("❌ Erro ao criar produto:", err);
+
+      const errorMessage =
+        err.response?.data?.message || err.message || "Erro ao criar produto";
+
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setUploadProgress(0);
+    }
+  };
 
   const resetForm = () => {
     setForm({
@@ -702,13 +691,13 @@ export const NovoProdutoModal = ({
                     </button>
                     <Button
                       type="submit"
-                      disabled={criarProduto.isPending}
+                      disabled={uploadProgress !== 0}
                       className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      {criarProduto.isPending ? (
+                      {uploadProgress > 0  ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          {uploadProgress > 0 ? "Enviando..." : "Salvando..."}
+                          {"Processando..."}
                         </>
                       ) : (
                         "Criar Produto"

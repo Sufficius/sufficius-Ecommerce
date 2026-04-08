@@ -129,6 +129,7 @@ const Header = () => {
   const profileRef = useRef<HTMLDivElement>(null);
 
   const { user } = useAuthStore();
+
   const logged = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
@@ -269,8 +270,6 @@ const Header = () => {
                     <div className="p-2">
                       {[
                         { name: "Meu Perfil", href: "/perfil" },
-                        { name: "Meus Pedidos", href: "/pedidos" },
-                        { name: "Favoritos", href: "/favoritos" },
                       ].map((item) => (
                         <Link
                           key={item.name}
@@ -1185,7 +1184,7 @@ const Testimonials = () => {
         "Simplesmente incrível! A qualidade dos produtos e a rapidez na entrega superaram minhas expectativas.",
       rating: 5,
       image:
-        "https://images.unsplash.com/photo-1494790108777-466fd0c6a6c3?w=100&auto=format",
+        "https://randomuser.me/api/portraits/women/68.jpg",
     },
     {
       id: 2,
@@ -1195,7 +1194,7 @@ const Testimonials = () => {
         "Melhor loja online que já comprei. Atendimento excepcional e produtos de primeira linha.",
       rating: 5,
       image:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format",
+        "https://randomuser.me/api/portraits/men/32.jpg",
     },
     {
       id: 3,
@@ -1205,7 +1204,7 @@ const Testimonials = () => {
         "Preços justos e variedade incrível. Sempre encontro o que preciso e ainda ganho desconto!",
       rating: 5,
       image:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format",
+        "https://plus.unsplash.com/premium_photo-1689551670902-19b441a6afde?w=100&auto=format",
     },
   ];
 
