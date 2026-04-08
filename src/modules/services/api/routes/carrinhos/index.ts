@@ -15,6 +15,8 @@ interface IItemCarrinho {
     quantidadeEstoque: number;
     imagem?: string;
     imagemAlt?: string;
+    foto?: string;
+    imagemUrl?: string;
   };
 }
 
@@ -114,7 +116,7 @@ class CarrinhosRoute {
   }
 
   // Atualizar quantidade de um item no carrinho
-  async atualizarItem(id: string, produtoId: string, quantidade: number): Promise<IRespostaCarrinho> {
+  async atualizarItem(id: string | undefined, produtoId: string, quantidade: number): Promise<IRespostaCarrinho> {
     try {
 
       if (!id) {
@@ -213,12 +215,12 @@ class CarrinhosRoute {
     }
   }
 
-  async deleteAllProductsInCart(id: string) {
+  async deleteAllProductsInCart(id: string | undefined) {
     const response = await api.delete(`/carrinho/deleteAllProducts/${id}`);
     return response.data;
   }
 
-  async deleteProductInCart(id: string, produtoId: string) {
+  async deleteProductInCart(id: string | undefined, produtoId: string) {
     const response = await api.delete(`/carrinho/deleteProduct/${id}/${produtoId}`);
     return response.data;
   }
@@ -325,32 +327,20 @@ class CarrinhosRoute {
     }
   }
 
- async finalizePurchase(
-  userId: string, 
-  paymentProof: File, 
-  location: string,
-  phone: string
-) {
-    const formData = new FormData();
-
-    formData.append("userId", userId);
-    formData.append("location", location);
-    formData.append("phone", phone);
-    formData.append("paymentProof", paymentProof);
-
-
-    try {
-      const { data } = await api.post("/carrinho/checkout", formData, {
+  async finalizePurchase(data: FormData):Promise<ICarrinho> {
+      const response = await api.post("/carrinho/checkout", data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      return data;
+        console.log("✅ [API] Resposta recebida:", response.data);
+      return response.data;
     }
-    catch (error) {
-      throw error;
-    }
-  }
+    // catch (error) {
+    //    console.error("❌ [API] Erro no checkout:", error);
+    //   throw error;
+    // }
+  // }
 
   async countCartItems(userId: string) {
     const response = await api.get(`/carrinho/count-items-on-card/${userId}`);

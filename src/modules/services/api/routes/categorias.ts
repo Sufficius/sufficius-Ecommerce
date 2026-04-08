@@ -16,7 +16,7 @@ export const categoriaRoutes = {
   // Listar categorias
   getAllCategoria: async (): Promise<Categoria[]> => {
     const response = await api.get("/categorias");
-    return response.data;
+    return response.data.data;
   },
 
   // Buscar categoria por ID

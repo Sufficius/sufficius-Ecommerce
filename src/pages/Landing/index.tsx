@@ -19,8 +19,14 @@ import {
   Linkedin,
   ChevronRight,
   Heart,
-  LogOut,
-  Loader,
+  ChevronLeft,
+  Mail,
+  Phone,
+  MapPin,
+  ArrowRight,
+  Percent,
+  Play,
+  Pause,
 } from "lucide-react";
 import { CgProfile } from "react-icons/cg";
 import { FiShoppingCart } from "react-icons/fi";
@@ -30,93 +36,80 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useCartStore } from "@/modules/services/store/cart-store";
 import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
 import { api } from "@/modules/services/api/axios";
+import { motion, AnimatePresence } from "framer-motion";
 
 // ============================================
-// CONFIGURAÇÃO DO SUPABASE
+// TIPOS
 // ============================================
-const SUPABASE_STORAGE_URL = "https://rojyeqiqrvriknawugmt.supabase.co/storage/v1/object/public";
+interface Product {
+  id: string;
+  nome: string;
+  descricao: string;
+  preco: number;
+  quantidade: number;
+  foto?: string;
+  categoria?: string;
+  vendas?: number;
+  rating?: number;
+}
 
-// Buckets
-const BUCKETS = {
-  PRODUCTS: "produtos-imagens",
-  CATEGORIES: "categorias-imagens",
-  AVATARS: "avatars",
-  HERO: "hero"
+// ============================================
+// ANIMAÇÕES
+// ============================================
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.6 },
+};
+
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
 };
 
 // ============================================
-// COMPONENTE DE IMAGEM SUPABASE
+// COMPONENTE DE IMAGEM OTIMIZADA
 // ============================================
-interface SupabaseImageProps {
-  src?: string;
-  alt: string;
-  bucket?: keyof typeof BUCKETS;
-  width?: number;
-  height?: number;
-  className?: string;
-  loading?: "lazy" | "eager";
-  priority?: boolean;
-  fallback?: React.ReactNode;
-}
-
-const SupabaseImage = ({
+const OptimizedImage = ({
   src,
   alt,
-  bucket = "PRODUCTS",
-  width = 800,
-  height = 600,
   className = "",
-  loading = "lazy",
   priority = false,
-  fallback
-}: SupabaseImageProps) => {
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  priority?: boolean;
+}) => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isError, setIsError] = useState(false);
+  const [error, setError] = useState(false);
 
-  // Gerar URL completa da imagem no Supabase
-  const getImageUrl = () => {
-    if (!src) return null;
-    if (src.startsWith("http")) return src;
-    
-    // Limpar o caminho
-    const cleanPath = src.replace(/^\/+/, "");
-    return `${SUPABASE_STORAGE_URL}/${BUCKETS[bucket]}/${cleanPath}`;
-  };
-
-  const imageUrl = getImageUrl();
-
-  if (!src || isError) {
+  if (error || !src) {
     return (
-      <div className={`relative overflow-hidden ${className}`}>
-        {fallback || (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <Package className="h-12 w-12 text-gray-400" />
-            <span className="ml-2 text-gray-500 text-sm">{alt}</span>
-          </div>
-        )}
+      <div
+        className={`bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center ${className}`}
+      >
+        <Package className="w-12 h-12 text-gray-400" />
       </div>
     );
   }
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      <div
-        className={`absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 transition-opacity duration-500 ${
-          isLoaded ? "opacity-0" : "opacity-100"
-        }`}
-      />
-
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
+      )}
       <img
-        src={imageUrl!}
+        src={src}
         alt={alt}
-        loading={priority ? "eager" : loading}
-        width={width}
-        height={height}
+        loading={priority ? "eager" : "lazy"}
         onLoad={() => setIsLoaded(true)}
-        onError={() => setIsError(true)}
+        onError={() => setError(true)}
         className={`w-full h-full object-cover transition-opacity duration-500 ${
           isLoaded ? "opacity-100" : "opacity-0"
         }`}
@@ -126,827 +119,33 @@ const SupabaseImage = ({
 };
 
 // ============================================
-// COMPONENTES DE IMAGEM ESPECÍFICOS
-// ============================================
-
-const HeroImage = () => (
-  <SupabaseImage
-    src="hero/colecao-2026.jpg"
-    alt="Nova Coleção de Produtos"
-    bucket="HERO"
-    width={600}
-    height={400}
-    priority={true}
-    className="w-full h-full rounded-2xl"
-  />
-);
-
-const CategoryImage = ({
-  category,
-  imageUrl,
-  className = "",
-}: {
-  category: string;
-  imageUrl?: string;
-  className?: string;
-}) => {
-  // Se não tiver imagem personalizada, usa uma imagem padrão por categoria
-  const defaultImage = `categories/${category.toLowerCase().replace(/\s+/g, '-')}.jpg`;
-  
-  return (
-    <SupabaseImage
-      src={imageUrl || defaultImage}
-      alt={category}
-      bucket="CATEGORIES"
-      width={200}
-      height={128}
-      className={`w-full h-full ${className}`}
-    />
-  );
-};
-
-const TestimonialAvatar = ({ id, imageUrl }: { id: number; imageUrl?: string }) => {
-  return (
-    <div className="h-10 w-10 rounded-full overflow-hidden">
-      <SupabaseImage
-        src={imageUrl || `avatars/client-${id}.jpg`}
-        alt={`Cliente ${id}`}
-        bucket="AVATARS"
-        width={40}
-        height={40}
-        className="w-full h-full"
-      />
-    </div>
-  );
-};
-
-const ProductImage = ({ produto, className = "" }: { produto: any; className?: string }) => {
-  // Fallback personalizado para produtos
-  const productFallback = (
-    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center">
-      <Package className="h-12 w-12 text-gray-400 mb-2" />
-      <span className="text-gray-500 text-sm">{produto?.nome}</span>
-    </div>
-  );
-
-  return (
-    <SupabaseImage
-      src={produto?.foto}
-      alt={produto?.nome}
-      bucket="PRODUCTS"
-      className={`w-full h-full object-cover ${className}`}
-      fallback={productFallback}
-    />
-  );
-};
-
-// ============================================
-// HERO SECTION
-// ============================================
-export const HeroSection = () => {
-  const navigate = useNavigate();
-  const logged = useAuthStore((state) => state.isAuthenticated);
-
-  const handleCompra = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (logged) {
-      navigate("/checkout");
-    } else {
-      navigate("/login");
-    }
-  };
-
-  return (
-    <section className="relative px-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white overflow-hidden">
-      <div className="absolute inset-0 bg-black/50 z-0" />
-
-      <div className="relative max-w-7xl mx-auto px-4 py-24 md:py-32 z-10">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6 relative z-20">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-              <span className="text-[#D4AF37]">🔥</span>
-              <span className="text-sm">Oferta Especial Limitada</span>
-            </div>
-
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-              Descubra a Nova Coleção{" "}
-              <span className="text-[#D4AF37]">{new Date().getFullYear()}</span>
-            </h1>
-
-            <p className="text-gray-300 text-lg">
-              Qualidade premium, preços imbatíveis. Encontre tudo o que precisa
-              em um só lugar.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 relative z-30">
-              <button
-                onClick={handleCompra}
-                className="relative z-50 bg-[#D4AF37] text-gray-900 font-semibold px-8 py-3 rounded-lg hover:bg-[#c19b2c] transition-all transform hover:scale-105 active:scale-95 shadow-lg"
-                style={{ pointerEvents: "auto" }}
-              >
-                Comprar Agora
-              </button>
-
-              <button
-                className="border-2 border-white text-white font-semibold px-8 py-3 rounded-lg hover:bg-white/10 transition shadow-lg"
-                style={{ pointerEvents: "auto" }}
-              >
-                Ver Coleção
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-6 pt-8">
-              <div>
-                <div className="text-2xl font-bold">10K+</div>
-                <div className="text-gray-400">Clientes Satisfeitos</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold">5K+</div>
-                <div className="text-gray-400">Produtos Premium</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold">24/7</div>
-                <div className="text-gray-400">Suporte Online</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative">
-            <div className="relative h-[400px] rounded-2xl overflow-hidden shadow-2xl">
-              <HeroImage />
-            </div>
-            <div className="absolute -bottom-6 -left-6 w-64 h-64 bg-gradient-to-r from-[#D4AF37] to-yellow-500 rounded-2xl -z-10" />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// ============================================
-// FEATURES SECTION
-// ============================================
-export const Features = () => (
-  <section className="py-16 bg-white">
-    <div className="max-w-7xl mx-auto px-4">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        {[
-          {
-            icon: <Truck className="h-8 w-8" />,
-            title: "Entrega Rápida",
-            desc: "Entrega em 24-48h",
-          },
-          {
-            icon: <Shield className="h-8 w-8" />,
-            title: "Garantia",
-            desc: "30 dias para devolução",
-          },
-          {
-            icon: <CreditCard className="h-8 w-8" />,
-            title: "Pagamento Seguro",
-            desc: "100% protegido",
-          },
-          {
-            icon: <Users className="h-8 w-8" />,
-            title: "Suporte 24/7",
-            desc: "Atendimento especializado",
-          },
-        ].map((feature, idx) => (
-          <div
-            key={idx}
-            className="flex flex-col items-center text-center p-6 border rounded-xl hover:shadow-lg transition"
-          >
-            <div className="p-3 bg-[#D4AF37]/10 rounded-full mb-4">
-              {feature.icon}
-            </div>
-            <h3 className="font-bold text-lg mb-2">{feature.title}</h3>
-            <p className="text-gray-600">{feature.desc}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-// ============================================
-// CATEGORIAS SECTION - CORRIGIDA
-// ============================================
-const FeaturedCategories = () => {
-  const { data: categorias, isLoading } = useQuery({
-    queryKey: ["categorias"],
-    queryFn: async () => {
-        const response = await api.get("/categorias");
-        return response.data
-    },
-  });
-
-  // AGORA CORRETO: acessando categorias.data
-  const getCategoriasArray = () => {
-    if (!categorias) {
-      return [];
-    }
-    
-    // A API retorna { data: [...], total: number }
-    if (categorias?.data && Array.isArray(categorias.data)) {
-      return categorias.data;
-    }
-    
-    // Fallback caso seja array direto
-    if (Array.isArray(categorias)) {
-      return categorias;
-    }
-    
-    return [];
-  };
-
-  const categoriasArray = getCategoriasArray();
-
-  if (isLoading) {
-    return (
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-center items-center h-64">
-            <Loader className="h-8 w-8 animate-spin text-[#D4AF37]" />
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (!categoriasArray || categoriasArray.length === 0) {
-    return (
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-600">
-            Nenhuma categoria encontrada
-          </h3>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="py-16 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Categorias em Destaque</h2>
-          <p className="text-gray-600">
-            Navegue por nossas principais categorias
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {categoriasArray.map((cat: any) => (
-            <div key={cat.id} className="group cursor-pointer">
-              <div className="relative h-32 rounded-xl overflow-hidden mb-4 group-hover:scale-105 transition duration-300">
-                <CategoryImage
-                  category={cat.nome}
-                  imageUrl={cat.imagem || cat?.Produto?.[0]?.foto}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </div>
-              <div className="text-center">
-                <h3 className="font-semibold">{cat.nome}</h3>
-                <p className="text-sm text-gray-500">
-                  {cat?.Produto?.length || 0} produtos
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// ============================================
-// TESTIMONIALS SECTION
-// ============================================
-export const Testimonials = () => (
-  <section className="py-16 bg-white">
-    <div className="max-w-7xl mx-auto px-4">
-      <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold mb-4">O que nossos clientes dizem</h2>
-        <p className="text-gray-600">
-          Avaliações verificadas de compradores reais
-        </p>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-8">
-        {[
-          { id: 1, name: "Maria Silva", time: "Cliente há 2 anos", image: "testimonials/maria.jpg" },
-          { id: 2, name: "João Santos", time: "Cliente há 1 ano", image: "testimonials/joao.jpg" },
-          { id: 3, name: "Ana Oliveira", time: "Cliente há 3 anos", image: "testimonials/ana.jpg" },
-        ].map((client) => (
-          <div
-            key={client.id}
-            className="border rounded-xl p-6 hover:shadow-lg transition"
-          >
-            <div className="flex items-center mb-4">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className="h-4 w-4 text-[#D4AF37] fill-current"
-                />
-              ))}
-            </div>
-            <p className="text-gray-600 mb-4 italic">
-              "Produto de excelente qualidade! Entrega super rápida e
-              atendimento impecável."
-            </p>
-            <div className="flex items-center">
-              <TestimonialAvatar id={client.id} imageUrl={client.image} />
-              <div className="ml-3">
-                <div className="font-semibold">{client.name}</div>
-                <div className="text-sm text-gray-500">{client.time}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-// ============================================
-// NEWSLETTER SECTION
-// ============================================
-export const Newsletter = () => (
-  <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
-    <div className="max-w-3xl mx-auto px-4 text-center">
-      <h2 className="text-3xl font-bold mb-4">
-        Fique por dentro das novidades
-      </h2>
-      <p className="text-gray-300 mb-8">
-        Inscreva-se para receber ofertas exclusivas e lançamentos
-      </p>
-
-      <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-        <input
-          type="email"
-          placeholder="Seu melhor email"
-          className="flex-1 px-4 py-3 rounded-lg text-gray-900"
-        />
-        <button className="bg-[#D4AF37] text-gray-900 font-semibold px-6 py-3 rounded-lg hover:bg-[#c19b2c] transition">
-          Inscrever-se
-        </button>
-      </div>
-
-      <p className="text-sm text-gray-400 mt-4">
-        Ao se inscrever, você concorda com nossa Política de Privacidade
-      </p>
-    </div>
-  </section>
-);
-
-// ============================================
-// FOOTER
-// ============================================
-export const Footer = () => (
-  <footer className="bg-gray-900 text-white py-12">
-    <div className="max-w-7xl mx-auto px-4">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="h-10 w-10 bg-[#D4AF37] rounded-full flex items-center justify-center">
-              <span className="font-bold text-gray-900">S</span>
-            </div>
-            <span className="text-xl font-bold">Sufficius Commerce</span>
-          </div>
-          <p className="text-gray-400">
-            Sua loja online de confiança para produtos de qualidade.
-          </p>
-          <div className="flex gap-4 mt-6">
-            <Facebook className="h-5 w-5 cursor-pointer hover:text-[#D4AF37]" />
-            <Twitter className="h-5 w-5 cursor-pointer hover:text-[#D4AF37]" />
-            <Instagram className="h-5 w-5 cursor-pointer hover:text-[#D4AF37]" />
-            <Linkedin className="h-5 w-5 cursor-pointer hover:text-[#D4AF37]" />
-          </div>
-        </div>
-
-        {[
-          {
-            title: "Loja",
-            links: ["Produtos", "Categorias", "Ofertas", "Novidades"],
-          },
-          {
-            title: "Empresa",
-            links: ["Sobre nós", "Contato", "Carreiras", "Blog"],
-          },
-          {
-            title: "Suporte",
-            links: ["FAQ", "Trocas", "Entregas", "Pagamentos"],
-          },
-        ].map((section, idx) => (
-          <div key={idx}>
-            <h3 className="font-bold text-lg mb-4">{section.title}</h3>
-            <ul className="space-y-2">
-              {section.links.map((link, linkIdx) => (
-                <li key={linkIdx}>
-                  <a
-                    href="#"
-                    className="text-gray-400 hover:text-[#D4AF37] transition"
-                  >
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-
-      <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-        <p>
-          © {new Date().getFullYear()} Sufficius Commerce. Todos os direitos
-          reservados.
-        </p>
-      </div>
-    </div>
-  </footer>
-);
-
-// ============================================
-// PRODUTOS SECTION
-// ============================================
-const ProductsSection = () => {
-  const [quantidade, setQuantidade] = useState(1);
-  const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null);
-  const { user } = useAuthStore();
-  const user_Id = user?.id_usuario || "";
-
-  const { data: produtos, isLoading, error } = useQuery({
-    queryKey: ["produtos"],
-    queryFn: async () => {
-      const response = await api.get("/produtos/get");
-      return response.data;
-    },
-  });
-
-  const addToCartMutation = useMutation({
-    mutationFn: async (cartData: {
-      userId: string;
-      produtoId: string;
-      quantidade: number;
-    }) => {
-      return await carrinhosRoute.adicionarItem(cartData);
-    },
-    onSuccess: () => {
-      toast.success("Produto adicionado ao carrinho com sucesso!");
-    },
-    onError: (e: any) => {
-      const errorMessage =
-        e.response?.data?.message ||
-        "Ocorreu um erro ao adicionar o produto ao carrinho.";
-      toast.error(errorMessage);
-    },
-  });
-
-  const handleAddCartValue = async (produtoId: string, quantidade: number) => {
-    await addToCartMutation.mutate({ userId: user_Id, produtoId, quantidade });
-  };
-
-  const handleQuantidade = (action: "increment" | "decrement") => {
-    setQuantidade((prev) => {
-      const quantidadeDisponivel = produtoSelecionado?.quantidade || 0;
-
-      if (action === "increment") {
-        return prev < quantidadeDisponivel ? prev + 1 : prev;
-      } else {
-        return prev > 1 ? prev - 1 : 1;
-      }
-    });
-  };
-
-   const getProdutosArray = () => {
-    if (!produtos){
-      return [];
-    };
-
-    if (produtos?.data && Array.isArray(produtos.data)){
-      return produtos.data;
-    } 
-    if (Array.isArray(produtos)) {
-      console.log("✅ Produtos é array direto");
-      return produtos;
-    }
-    console.log("⚠️ Formato inesperado:", produtos);
-    return [];
-  };
-
-   const produtosArray = getProdutosArray();
-
-  if (isLoading) {
-    return (
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-center items-center h-64">
-            <Loader className="h-8 w-8 animate-spin text-[#D4AF37]" />
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-red-500">Erro ao carregar produtos</p>
-        </div>
-      </section>
-    );
-  }
-
-  if (!produtosArray || produtosArray.length === 0) {
-    return (
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-600">
-            Nenhum produto encontrado
-          </h3>
-        </div>
-      </section>
-    );
-  }
-
-
-  return (
-    <section className="py-16 bg-white">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-3xl font-bold">Produtos em Destaque</h2>
-            <p className="text-gray-600">Os mais vendidos da semana</p>
-          </div>
-          <button className="flex items-center text-[#D4AF37] font-semibold">
-            Ver todos <ChevronRight className="ml-1 h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {produtosArray && produtosArray.map((produto: any) => (
-            <div
-              key={produto.id}
-              className="group border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300"
-            >
-              <div className="relative h-52 overflow-hidden bg-gray-100">
-                <ProductImage produto={produto} />
-                <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white z-10">
-                  <Heart className="h-5 w-5" />
-                </button>
-                <div className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs px-2 py-1 rounded z-10">
-                  -20%
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="font-bold text-lg">{produto.nome}</h3>
-                    <p className="text-gray-500 text-sm line-clamp-2">
-                      {produto.descricao}
-                    </p>
-                  </div>
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 text-[#D4AF37] fill-current" />
-                    <span className="ml-1 text-sm">5</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center mt-4">
-                  <div>
-                    <p className="text-2xl font-bold text-[#D4AF37]">
-                      KZ {produto.preco?.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Disponível {produto.quantidade} unidades
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setProdutoSelecionado(produto);
-                        setQuantidade(1);
-                      }}
-                      className="p-2 border rounded-lg hover:bg-gray-50"
-                    >
-                      <BsEye size={18} />
-                    </button>
-                    {user && (
-                      <button
-                        onClick={() => handleAddCartValue(produto.id, quantidade)}
-                        disabled={addToCartMutation.isPending}
-                        className="p-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] disabled:opacity-50"
-                      >
-                        {addToCartMutation.isPending ? (
-                          <Loader className="animate-spin h-4 w-4" />
-                        ) : (
-                          <FiShoppingCart size={18} />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Modal de Detalhes do Produto */}
-      {produtoSelecionado && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative bg-white w-full max-w-4xl rounded-2xl shadow-2xl animate-fadeIn overflow-hidden">
-            <div className="flex flex-col md:flex-row gap-6 p-6 md:p-8">
-              <div className="md:w-1/2">
-                <div className="h-80 rounded-xl overflow-hidden bg-gray-100">
-                  <ProductImage produto={produtoSelecionado} className="w-full h-full" />
-                </div>
-              </div>
-
-              <div className="md:w-1/2">
-                <h2 className="text-3xl font-bold mb-2">
-                  {produtoSelecionado.nome}
-                </h2>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className="h-4 w-4 text-[#D4AF37] fill-current"
-                      />
-                    ))}
-                  </div>
-                  <span className="text-gray-600">
-                    ({produtoSelecionado.vendas || 0} vendas)
-                  </span>
-                </div>
-
-                <p className="text-gray-600 mb-6">
-                  {produtoSelecionado.descricao}
-                </p>
-
-                <div className="mb-6">
-                  <div className="text-4xl font-bold text-[#D4AF37] mb-2">
-                    KZ {produtoSelecionado.preco?.toLocaleString()}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    ou 12x de KZ {(produtoSelecionado.preco / 12).toFixed(2)}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center border rounded-lg">
-                      <button
-                        onClick={() => handleQuantidade("decrement")}
-                        disabled={quantidade <= 1}
-                        className={`px-4 py-2 ${
-                          quantidade <= 1
-                            ? "text-gray-400 cursor-not-allowed"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        -
-                      </button>
-                      <span className="px-4 py-2 min-w-[3rem] text-center">
-                        {quantidade}
-                      </span>
-                      <button
-                        onClick={() => handleQuantidade("increment")}
-                        disabled={
-                          quantidade >= (produtoSelecionado.quantidade || 1)
-                        }
-                        className={`px-4 py-2 ${
-                          quantidade >= (produtoSelecionado.quantidade || 1)
-                            ? "text-gray-400 cursor-not-allowed"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {produtoSelecionado.quantidade || 0} unidades disponíveis
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    {user && (
-                      <button
-                        onClick={() => {
-                          handleAddCartValue(produtoSelecionado.id, quantidade);
-                          setProdutoSelecionado(null);
-                          setQuantidade(1);
-                        }}
-                        className="flex-1 bg-[#D4AF37] text-white py-3 rounded-lg font-semibold hover:bg-[#c19b2c] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={
-                          quantidade <= 0 ||
-                          quantidade > (produtoSelecionado.quantidade || 0)
-                        }
-                      >
-                        {addToCartMutation.isPending
-                          ? "Adicionando..."
-                          : "Adicionar ao Carrinho"}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setProdutoSelecionado(null)}
-                      className="px-6 py-3 border rounded-lg hover:bg-gray-50 transition"
-                    >
-                      Fechar
-                    </button>
-                  </div>
-
-                  {quantidade <= 0 && (
-                    <p className="text-red-500 text-sm">
-                      A quantidade deve ser pelo menos 1
-                    </p>
-                  )}
-                  {quantidade > (produtoSelecionado.quantidade || 0) && (
-                    <p className="text-red-500 text-sm">
-                      Não há estoque suficiente. Disponível:{" "}
-                      {produtoSelecionado.quantidade || 0}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-};
-
-// ============================================
-// HEADER
+// HEADER MODERNO
 // ============================================
 const Header = () => {
-  const [open, setOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [, setCart] = useState<any[]>([]);
+  const profileRef = useRef<HTMLDivElement>(null);
 
-  const user = useAuthStore((state) => state.user);
-  const user_Id = user?.id_usuario || "";
+  const { user } = useAuthStore();
   const logged = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
-  const { data: cartData } = useQuery({
-    queryKey: ["cart"],
-    queryFn: async () => await carrinhosRoute.getCarrinho(),
-    enabled: !!user_Id,
-    refetchOnWindowFocus: false,
-  });
-
-  useEffect(() => {
-    if (cartData?.data?.itens) {
-      const mapped = cartData?.data?.itens.map((item) => ({
-        id: item.id,
-        name: item.produto.nome,
-        description: item.produto.imagemAlt,
-        image: item.produto.imagem,
-        price: item.produto.preco,
-        quantity: item.quantidade,
-        product_id: item.produtoId,
-      }));
-      setCart(mapped);
-    }
-  }, [cartData]);
-
-  const { setCurrentUser } = useCartStore();
-
-  useEffect(() => {
-    if (user) {
-      setCurrentUser(user.id_usuario);
-    } else {
-      setCurrentUser(null);
-    }
-  }, [user, setCurrentUser]);
-
   const countItems = useQuery({
-    queryKey: ["count"],
-    queryFn: async () => {
-      const response = await carrinhosRoute.countCartItems(
-        user?.id_usuario || "",
-      );
-      return response;
-    },
+    queryKey: ["count", user?.id_usuario],
+    queryFn: () => carrinhosRoute.countCartItems(user?.id_usuario || ""),
     enabled: !!user,
-    refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 5,
   });
 
-  const profileRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -964,198 +163,1295 @@ const Header = () => {
   const handleLogout = async () => {
     await logout();
     setProfileOpen(false);
-    setCurrentUser(null);
     navigate("/");
+    toast.success("Até logo!");
   };
 
+  const navItems = [
+    { name: "Início", href: "#inicio" },
+    { name: "Produtos", href: "#produtos" },
+    { name: "Categorias", href: "#categorias" },
+    { name: "Ofertas", href: "#ofertas" },
+    { name: "Contato", href: "#contato" },
+  ];
+
   return (
-    <>
-      <header className="w-full border-b bg-white sticky top-0 z-40">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="flex h-16 items-center justify-between">
-            {/* LOGO */}
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-[#D4AF37] rounded-full flex items-center justify-center">
-                <span className="font-bold text-white text-lg">S</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-gray-900 text-xl">
-                  Sufficius
-                </span>
-                <p className="text-xs text-gray-500">Commerce</p>
-              </div>
+    <motion.header
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+        isScrolled ? "bg-white/95 backdrop-blur-md shadow-lg" : "bg-transparent"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex items-center justify-between h-20">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 group">
+            <motion.div
+              whileHover={{ rotate: 360 }}
+              transition={{ duration: 0.5 }}
+              className="h-12 w-12 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30"
+            >
+              <span className="font-bold text-white text-xl">S</span>
+            </motion.div>
+            <div className="flex flex-col">
+              <span className="font-bold text-2xl bg-gradient-to-r from-amber-500 to-yellow-500 bg-clip-text text-transparent">
+                Sufficius
+              </span>
+              <span className="text-xs text-gray-500">Premium Commerce</span>
             </div>
+          </Link>
 
-            {/* SEARCH BAR */}
-            <div className="hidden md:flex relative w-full max-w-md mx-6">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="search"
-                placeholder="Pesquisar produtos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-              />
-            </div>
+          {/* Search Bar - Desktop */}
+          <div className="hidden md:flex relative flex-1 max-w-md mx-8">
+            <input
+              type="search"
+              placeholder="Buscar produtos incríveis..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-12 pl-12 pr-4 rounded-2xl border-2 border-gray-100 bg-white/50 backdrop-blur-sm focus:border-amber-400 focus:ring-4 focus:ring-amber-100 transition-all outline-none"
+            />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          </div>
 
-            {/* NAVIGATION */}
-            <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-700">
-              <a href="#inicio" className="hover:text-[#D4AF37] transition">
-                Início
+          {/* Navigation - Desktop */}
+          <nav className="hidden lg:flex items-center gap-8">
+            {navItems.map((item) => (
+              <a
+                key={item.name}
+                href={item.href}
+                className="relative text-gray-500 hover:text-amber-500 font-medium transition-colors group"
+              >
+                {item.name}
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-amber-400 to-yellow-500 group-hover:w-full transition-all duration-300" />
               </a>
-              <a href="#produtos" className="hover:text-[#D4AF37] transition">
-                Produtos
-              </a>
-              <a href="#categorias" className="hover:text-[#D4AF37] transition">
-                Categorias
-              </a>
-              <a href="#contato" className="hover:text-[#D4AF37] transition">
-                Contato
-              </a>
-            </nav>
+            ))}
+          </nav>
 
-            {/* ACTIONS */}
-            <div className="flex items-center gap-4">
-              {/* ÁREA DE AUTENTICAÇÃO */}
-              <div className="relative" ref={profileRef}>
-                {logged ? (
-                  <div className="flex gap-2 items-center">
-                    <button
-                      onClick={() => setProfileOpen(!profileOpen)}
-                      className="p-2 rounded-full hover:bg-gray-100"
-                    >
-                      <CgProfile size={24} />
-                    </button>
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            {/* Profile */}
+            <div className="relative" ref={profileRef}>
+              {logged ? (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="relative w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30"
+                >
+                  <CgProfile size={20} />
+                </motion.button>
+              ) : (
+                <Link to="/login">
+                  <Button className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white border-0 shadow-lg shadow-amber-500/30">
+                    Entrar
+                  </Button>
+                </Link>
+              )}
 
-                    {user?.role === "ADMIN" && (
-                      <Link to={"/dashboard"}>
-                        <Button>Dashboard</Button>
-                      </Link>
-                    )}
-                  </div>
-                ) : (
-                  <Link to={"/login"}>
-                    <Button className="gap-5 flex ml-4">Entrar</Button>
-                  </Link>
-                )}
-
-                {/* MENU DO PERFIL */}
+              {/* Profile Menu */}
+              <AnimatePresence>
                 {profileOpen && logged && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-50">
-                    <div className="p-3 border-b">
-                      <p className="font-medium">Bem-vindo!</p>
-                      <p className="text-sm text-gray-600 line-clamp-2">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
+                  >
+                    <div className="p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-b">
+                      <p className="font-semibold text-gray-900">
+                        Olá, {user?.nome || "Cliente"}
+                      </p>
+                      <p className="text-sm text-gray-600 truncate">
                         {user?.email}
                       </p>
                     </div>
-                    <button className="w-full text-left px-4 py-2 hover:bg-gray-100">
-                      Minha Conta
-                    </button>
-                    <button className="w-full text-left px-4 py-2 hover:bg-gray-100">
-                      Meus Pedidos
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left flex gap-2 px-4 py-2 text-red-600 hover:bg-gray-100 border-t"
-                    >
-                      <LogOut size={20} />
-                      Terminar Sessão
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* BOTÃO DO CARRINHO */}
-              <Link to={"/checkout"}>
-                <button className="relative p-2 rounded-full">
-                  <ShoppingCart className="w-5" />
-                  {user && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {countItems.isLoading ? (
-                        "0"
-                      ) : (
-                        cartData?.data?.totalItens?.toString() || "0"
+                    <div className="p-2">
+                      {[
+                        { name: "Meu Perfil", href: "/perfil" },
+                        { name: "Meus Pedidos", href: "/pedidos" },
+                        { name: "Favoritos", href: "/favoritos" },
+                      ].map((item) => (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          onClick={() => setProfileOpen(false)}
+                          className="block px-4 py-2 text-gray-700 hover:bg-amber-50 rounded-xl transition-colors"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                      {user?.role === "ADMIN" && (
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setProfileOpen(false)}
+                          className="block px-4 py-2 text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
+                        >
+                          Dashboard Admin
+                        </Link>
                       )}
-                    </span>
-                  )}
-                </button>
-              </Link>
-
-              {/* BOTÃO MENU MOBILE */}
-              <button className="md:hidden" onClick={() => setOpen(!open)}>
-                {open ? <X size={24} /> : <Menu size={24} />}
-              </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors mt-2 border-t"
+                      >
+                        Sair
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
 
-          {/* MENU MOBILE */}
-          {open && (
-            <div className="md:hidden border-t bg-white">
-              <div className="p-4">
-                <input
-                  type="search"
-                  placeholder="Pesquisar..."
-                  className="w-full border rounded-lg px-4 py-2 mb-4"
-                />
-                <div className="space-y-3">
-                  <a href="#inicio" className="block py-2">
-                    Início
-                  </a>
-                  <a href="#produtos" className="block py-2">
-                    Produtos
-                  </a>
-                  <a href="#categorias" className="block py-2">
-                    Categorias
-                  </a>
-                  <a href="#contato" className="block py-2">
-                    Contato
-                  </a>
-                  {!logged && (
-                    <Link
-                      to="/login"
-                      className="block py-2"
-                      onClick={() => setOpen(false)}
-                    >
-                      <Button className="w-full">Entrar</Button>
-                    </Link>
-                  )}
+            {/* Cart */}
+            <Link to="/checkout">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative"
+              >
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-amber-100 transition-colors cursor-pointer">
+                  <ShoppingCart className="w-5 h-5 text-gray-700" />
                 </div>
-              </div>
-            </div>
-          )}
+                {user && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full flex items-center justify-center shadow-lg"
+                  >
+                    {countItems.data?.data?.totalItens || 0}
+                  </motion.span>
+                )}
+              </motion.div>
+            </Link>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-amber-100 transition-colors"
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
-      </header>
-    </>
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="lg:hidden border-t border-gray-100 bg-white/95 backdrop-blur-md"
+            >
+              <div className="p-4 space-y-4">
+                <div className="relative">
+                  <input
+                    type="search"
+                    placeholder="Buscar produtos..."
+                    className="w-full h-12 pl-12 pr-4 rounded-xl border-2 border-gray-100 focus:border-amber-400 outline-none"
+                  />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                </div>
+                <nav className="flex flex-col gap-2">
+                  {navItems.map((item) => (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="px-4 py-3 text-gray-700 hover:bg-amber-50 rounded-xl transition-colors"
+                    >
+                      {item.name}
+                    </a>
+                  ))}
+                </nav>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.header>
   );
 };
 
 // ============================================
-// COMPONENTE PRINCIPAL LANDING
+// HERO SECTION CINEMATOGRÁFICA
+// ============================================
+const HeroSection = () => {
+  const navigate = useNavigate();
+  const logged = useAuthStore((state) => state.isAuthenticated);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isAutoPlay, setIsAutoPlay] = useState(true);
+
+  const slides = [
+    {
+      id: 1,
+      title: "Descubra a Nova Coleção",
+      subtitle: "Tecnologia de Ponta",
+      description:
+        "Os lançamentos mais aguardados do ano com preços exclusivos",
+      image:
+        "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&auto=format",
+      cta: "Explorar Agora",
+      color: "from-blue-600 to-purple-600",
+    },
+    {
+      id: 2,
+      title: "Ofertas Imperdíveis",
+      subtitle: "Até 50% OFF",
+      description: "Descontos especiais em produtos selecionados",
+      image:
+        "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&auto=format",
+      cta: "Aproveitar Ofertas",
+      color: "from-amber-500 to-yellow-500",
+    },
+    {
+      id: 3,
+      title: "Moda e Estilo",
+      subtitle: "Nova Temporada",
+      description: "As últimas tendências em moda masculina e feminina",
+      image:
+        "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200&auto=format",
+      cta: "Ver Coleção",
+      color: "from-pink-500 to-rose-500",
+    },
+  ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isAutoPlay) {
+      interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % slides.length);
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [isAutoPlay, slides.length]);
+
+  const nextSlide = () => {
+    setIsAutoPlay(false);
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  const prevSlide = () => {
+    setIsAutoPlay(false);
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  };
+
+  return (
+    <section className="relative h-screen min-h-[600px] overflow-hidden">
+      {/* Slides */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentSlide}
+          initial={{ opacity: 0, scale: 1.1 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1 }}
+          className="absolute inset-0"
+        >
+          <img
+            src={slides[currentSlide].image}
+            alt={slides[currentSlide].title}
+            className="w-full h-full object-cover"
+          />
+          <div
+            className={`absolute inset-0 bg-gradient-to-r ${slides[currentSlide].color} mix-blend-multiply opacity-90`}
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Content */}
+      <div className="relative h-full max-w-7xl mx-auto px-4 flex items-center">
+        <motion.div
+          key={currentSlide}
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 50 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-2xl text-white"
+        >
+          <motion.span
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="inline-block px-4 py-2 bg-white/20 backdrop-blur-md rounded-full text-sm font-medium mb-6"
+          >
+            ✨ {slides[currentSlide].subtitle}
+          </motion.span>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-5xl md:text-7xl font-bold mb-6"
+          >
+            {slides[currentSlide].title}
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="text-xl text-white/90 mb-8"
+          >
+            {slides[currentSlide].description}
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="flex gap-4"
+          >
+            <button
+              onClick={() =>
+                logged ? navigate("/checkout") : navigate("/login")
+              }
+              className="px-8 py-4 bg-white text-gray-900 rounded-2xl font-semibold hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+            >
+              {slides[currentSlide].cta}
+            </button>
+            <button
+              onClick={() =>
+                document
+                  .getElementById("produtos")
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="px-8 py-4 border-2 border-white text-white rounded-2xl font-semibold hover:bg-white/10 transition-all duration-300"
+            >
+              Ver Produtos
+            </button>
+          </motion.div>
+        </motion.div>
+      </div>
+
+      {/* Controls */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4">
+        <button
+          onClick={prevSlide}
+          className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <div className="flex gap-2">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                setIsAutoPlay(false);
+                setCurrentSlide(index);
+              }}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                index === currentSlide
+                  ? "w-8 bg-white"
+                  : "w-2 bg-white/50 hover:bg-white/80"
+              }`}
+            />
+          ))}
+        </div>
+        <button
+          onClick={nextSlide}
+          className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+        <button
+          onClick={() => setIsAutoPlay(!isAutoPlay)}
+          className="ml-4 w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition"
+        >
+          {isAutoPlay ? (
+            <Pause className="w-5 h-5" />
+          ) : (
+            <Play className="w-5 h-5" />
+          )}
+        </button>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// FEATURES SECTION COM ÍCONES ANIMADOS
+// ============================================
+const Features = () => {
+  const features = [
+    {
+      icon: <Truck className="w-8 h-8" />,
+      title: "Entrega Relâmpago",
+      description: "Receba em até 24h",
+      color: "from-blue-500 to-cyan-500",
+      stats: "10k+ entregas",
+    },
+    {
+      icon: <Shield className="w-8 h-8" />,
+      title: "Compra Segura",
+      description: "Garantia de 30 dias",
+      color: "from-green-500 to-emerald-500",
+      stats: "100% protegido",
+    },
+    {
+      icon: <CreditCard className="w-8 h-8" />,
+      title: "Pagamento Flexível",
+      description: "12x sem juros",
+      color: "from-purple-500 to-pink-500",
+      stats: "todas as bandeiras",
+    },
+    {
+      icon: <Users className="w-8 h-8" />,
+      title: "Suporte Premium",
+      description: "24/7 especializado",
+      color: "from-amber-500 to-orange-500",
+      stats: "atendimento humanizado",
+    },
+  ];
+
+  return (
+    <section className="py-20 bg-gradient-to-b from-white to-gray-50">
+      <div className="max-w-7xl mx-auto px-4">
+        <motion.div
+          variants={staggerContainer}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        >
+          {features.map((feature, index) => (
+            <motion.div
+              key={index}
+              variants={fadeInUp}
+              whileHover={{ y: -5 }}
+              className="group relative bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden"
+            >
+              <div
+                className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}
+              />
+
+              <div
+                className={`inline-flex p-4 rounded-2xl bg-gradient-to-br ${feature.color} text-white shadow-lg mb-4 group-hover:scale-110 transition-transform duration-300`}
+              >
+                {feature.icon}
+              </div>
+
+              <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
+              <p className="text-gray-600 mb-3">{feature.description}</p>
+              <p className="text-sm font-semibold text-amber-500">
+                {feature.stats}
+              </p>
+
+              <div
+                className={`absolute bottom-0 left-0 h-1 bg-gradient-to-r ${feature.color} w-0 group-hover:w-full transition-all duration-500`}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// PRODUTOS SECTION COM GRID MODERNO
+// ============================================
+const ProductsSection = () => {
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const { user } = useAuthStore();
+  const user_Id = user?.id_usuario || "";
+
+  const { data: produtos, isLoading } = useQuery({
+    queryKey: ["produtos"],
+    queryFn: async () => {
+      const response = await api.get("/produtos/get");
+      return response.data;
+    },
+  });
+
+  const addToCartMutation = useMutation({
+    mutationFn: (data: {
+      userId: string;
+      produtoId: string;
+      quantidade: number;
+    }) => carrinhosRoute.adicionarItem(data),
+    onSuccess: () => {
+      toast.success("Produto adicionado ao carrinho!");
+      setSelectedProduct(null);
+      setQuantity(1);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Erro ao adicionar produto");
+    },
+  });
+
+  const getProdutosArray = (): Product[] => {
+    if (!produtos) return [];
+    if (produtos?.data && Array.isArray(produtos.data)) return produtos.data;
+    if (Array.isArray(produtos)) return produtos;
+    return [];
+  };
+
+  const produtosArray = getProdutosArray();
+
+  if (isLoading) {
+    return (
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="h-96 bg-gray-100 rounded-3xl animate-pulse"
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section id="produtos" className="py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <span className="inline-block px-4 py-2 bg-amber-100 text-amber-600 rounded-full text-sm font-medium mb-4">
+            🛍️ Produtos em Destaque
+          </span>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            Os Mais Vendidos da{" "}
+            <span className="bg-gradient-to-r from-amber-500 to-yellow-500 bg-clip-text text-transparent">
+              Semana
+            </span>
+          </h2>
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+            Confira os produtos que estão fazendo sucesso entre nossos clientes
+          </p>
+        </motion.div>
+
+        <motion.div
+          variants={staggerContainer}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
+          {produtosArray.map((produto: Product, index: number) => (
+            <motion.div
+              key={produto.id}
+              variants={fadeInUp}
+              whileHover={{ y: -10 }}
+              className="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
+            >
+              {/* Badges */}
+              <div className="absolute top-4 left-4 z-10 flex gap-2">
+                {index === 0 && (
+                  <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-bold rounded-full shadow-lg">
+                    🔥 Mais Vendido
+                  </span>
+                )}
+                {produto.quantidade > 0 && produto.quantidade < 5 && (
+                  <span className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg">
+                    Últimas {produto.quantidade} unidades
+                  </span>
+                )}
+              </div>
+
+              {/* Image */}
+              <div className="relative h-64 overflow-hidden bg-gray-100">
+                <OptimizedImage
+                  src={
+                    produto.foto ||
+                    `https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&auto=format`
+                  }
+                  alt={produto.nome}
+                  className="w-full h-full group-hover:scale-110 transition-transform duration-500"
+                />
+
+                {/* Quick Actions */}
+                <div className="absolute top-4 right-4 flex flex-col gap-2">
+                  <button className="p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-amber-500 hover:text-white transition-colors">
+                    <Heart className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setSelectedProduct(produto)}
+                    className="p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-amber-500 hover:text-white transition-colors"
+                  >
+                    <BsEye className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Discount Badge */}
+                {index === 1 && (
+                  <div className="absolute bottom-4 left-4 px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-bold rounded-full shadow-lg">
+                    -20% OFF
+                  </div>
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="text-lg font-bold mb-1 line-clamp-1">
+                      {produto.nome}
+                    </h3>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {produto.descricao}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    <span className="text-sm font-medium">4.8</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-4">
+                  <div>
+                    <p className="text-2xl font-bold text-amber-500">
+                      {produto.preco?.toLocaleString("pt-AO", {
+                        style: "currency",
+                        currency: "AOA",
+                      })}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      ou 12x de{" "}
+                      {(produto.preco / 12).toLocaleString("pt-AO", {
+                        style: "currency",
+                        currency: "AOA",
+                      })}
+                    </p>
+                  </div>
+
+                  {user ? (
+                    <button
+                      onClick={() =>
+                        addToCartMutation.mutate({
+                          userId: user_Id,
+                          produtoId: produto.id,
+                          quantidade: 1,
+                        })
+                      }
+                      disabled={addToCartMutation.isPending}
+                      className="p-3 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-colors disabled:opacity-50"
+                    >
+                      <FiShoppingCart className="w-5 h-5" />
+                    </button>
+                  ) : (
+                    <Link to="/login">
+                      <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-amber-500 hover:text-white transition-colors">
+                        <FiShoppingCart className="w-5 h-5" />
+                      </button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* View All Button */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="text-center mt-12"
+        >
+          <Link to="/produtos">
+            <button className="group inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-2xl font-semibold hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+              Ver Todos os Produtos
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </Link>
+        </motion.div>
+      </div>
+
+      {/* Product Modal */}
+      <AnimatePresence>
+        {selectedProduct && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setSelectedProduct(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="grid md:grid-cols-2 gap-8 p-8">
+                {/* Image */}
+                <div className="space-y-4">
+                  <div className="h-96 rounded-2xl overflow-hidden bg-gray-100">
+                    <OptimizedImage
+                      src={
+                        selectedProduct.foto ||
+                        `https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format`
+                      }
+                      alt={selectedProduct.nome}
+                      className="w-full h-full"
+                      priority
+                    />
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-3xl font-bold mb-2">
+                      {selectedProduct.nome}
+                    </h2>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className="w-5 h-5 fill-amber-400 text-amber-400"
+                          />
+                        ))}
+                      </div>
+                      <span className="text-gray-600">(150 avaliações)</span>
+                    </div>
+                  </div>
+
+                  <p className="text-gray-600">{selectedProduct.descricao}</p>
+
+                  <div className="border-t border-b py-4">
+                    <div className="flex items-baseline gap-4">
+                      <span className="text-4xl font-bold text-amber-500">
+                        {selectedProduct.preco?.toLocaleString("pt-AO", {
+                          style: "currency",
+                          currency: "AOA",
+                        })}
+                      </span>
+                      <span className="text-gray-500 line-through">
+                        {(selectedProduct.preco * 1.2).toLocaleString("pt-AO", {
+                          style: "currency",
+                          currency: "AOA",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center border-2 rounded-xl">
+                        <button
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          className="px-4 py-2 hover:bg-gray-100 transition-colors"
+                        >
+                          -
+                        </button>
+                        <span className="px-4 py-2 min-w-[3rem] text-center font-medium">
+                          {quantity}
+                        </span>
+                        <button
+                          onClick={() => setQuantity(quantity + 1)}
+                          disabled={
+                            quantity >= (selectedProduct.quantidade || 99)
+                          }
+                          className="px-4 py-2 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {selectedProduct.quantidade || 99} unidades disponíveis
+                      </span>
+                    </div>
+
+                    <div className="flex gap-3">
+                      {user ? (
+                        <button
+                          onClick={() =>
+                            addToCartMutation.mutate({
+                              userId: user_Id,
+                              produtoId: selectedProduct.id,
+                              quantidade: quantity,
+                            })
+                          }
+                          disabled={addToCartMutation.isPending}
+                          className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-white py-4 rounded-xl font-semibold hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50"
+                        >
+                          {addToCartMutation.isPending
+                            ? "Adicionando..."
+                            : "Adicionar ao Carrinho"}
+                        </button>
+                      ) : (
+                        <Link to="/login" className="flex-1">
+                          <button className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white py-4 rounded-xl font-semibold hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                            Faça login para comprar
+                          </button>
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => setSelectedProduct(null)}
+                        className="px-8 py-4 border-2 border-gray-200 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                      >
+                        Fechar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+};
+
+// ============================================
+// CATEGORIAS SECTION
+// ============================================
+const CategoriesSection = () => {
+  const { data: categorias, isLoading } = useQuery({
+    queryKey: ["categorias"],
+    queryFn: async () => {
+      const response = await api.get("/categorias");
+      return response.data;
+    },
+  });
+
+  const getCategoriasArray = () => {
+    if (!categorias) return [];
+    if (categorias?.data && Array.isArray(categorias.data))
+      return categorias.data;
+    if (Array.isArray(categorias)) return categorias;
+    return [];
+  };
+
+  const categoriasArray = getCategoriasArray();
+
+  const categoryColors = [
+    "from-blue-500 to-cyan-500",
+    "from-green-500 to-emerald-500",
+    "from-purple-500 to-pink-500",
+    "from-amber-500 to-orange-500",
+    "from-red-500 to-rose-500",
+    "from-indigo-500 to-blue-500",
+  ];
+
+  return (
+    <section
+      id="categorias"
+      className="py-20 bg-gradient-to-b from-gray-50 to-white"
+    >
+      <div className="max-w-7xl mx-auto px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <span className="inline-block px-4 py-2 bg-amber-100 text-amber-600 rounded-full text-sm font-medium mb-4">
+            📂 Categorias
+          </span>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            Navegue por{" "}
+            <span className="bg-gradient-to-r from-amber-500 to-yellow-500 bg-clip-text text-transparent">
+              Categorias
+            </span>
+          </h2>
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+            Encontre exatamente o que procura em nossas categorias organizadas
+          </p>
+        </motion.div>
+
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="h-32 bg-gray-200 rounded-2xl animate-pulse"
+              />
+            ))}
+          </div>
+        ) : (
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
+          >
+            {categoriasArray.map((cat: any, index: number) => (
+              <motion.div
+                key={cat.id}
+                variants={fadeInUp}
+                whileHover={{ y: -5 }}
+                className="group relative cursor-pointer"
+              >
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${categoryColors[index % categoryColors.length]} rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                />
+                <div className="relative bg-white border-2 border-gray-100 rounded-2xl p-6 text-center group-hover:border-transparent transition-all duration-300">
+                  <div
+                    className={`w-16 h-16 mx-auto mb-3 rounded-xl bg-gradient-to-br ${categoryColors[index % categoryColors.length]} flex items-center justify-center text-white text-2xl font-bold`}
+                  >
+                    {cat.nome.charAt(0)}
+                  </div>
+                  <h3 className="font-semibold mb-1">{cat.nome}</h3>
+                  <p className="text-sm text-gray-500">
+                    {cat?.Produto?.length || 0} produtos
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// PROMO BANNER
+// ============================================
+const PromoBanner = () => (
+  <section className="py-20">
+    <div className="max-w-7xl mx-auto px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="relative bg-gradient-to-r from-amber-500 to-yellow-500 rounded-3xl overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20" />
+
+        <div className="relative px-8 py-16 text-center text-white">
+          <motion.span
+            initial={{ opacity: 0, scale: 0 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="inline-block mb-4"
+          >
+            <Percent className="w-12 h-12" />
+          </motion.span>
+
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-4xl md:text-5xl font-bold mb-4"
+          >
+            Ofertas Exclusivas
+          </motion.h2>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="text-xl mb-8 max-w-2xl mx-auto"
+          >
+            Cupons de desconto de até 40% para novos clientes
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+          >
+            <button className="px-8 py-4 bg-white text-amber-500 rounded-2xl font-bold hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+              GARANTIR DESCONTO
+            </button>
+          </motion.div>
+        </div>
+      </motion.div>
+    </div>
+  </section>
+);
+
+// ============================================
+// TESTIMONIALS SECTION
+// ============================================
+const Testimonials = () => {
+  const testimonials = [
+    {
+      id: 1,
+      name: "Maria Silva",
+      role: "Cliente há 2 anos",
+      content:
+        "Simplesmente incrível! A qualidade dos produtos e a rapidez na entrega superaram minhas expectativas.",
+      rating: 5,
+      image:
+        "https://images.unsplash.com/photo-1494790108777-466fd0c6a6c3?w=100&auto=format",
+    },
+    {
+      id: 2,
+      name: "João Santos",
+      role: "Cliente há 1 ano",
+      content:
+        "Melhor loja online que já comprei. Atendimento excepcional e produtos de primeira linha.",
+      rating: 5,
+      image:
+        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format",
+    },
+    {
+      id: 3,
+      name: "Ana Oliveira",
+      role: "Cliente há 3 anos",
+      content:
+        "Preços justos e variedade incrível. Sempre encontro o que preciso e ainda ganho desconto!",
+      rating: 5,
+      image:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format",
+    },
+  ];
+
+  return (
+    <section className="py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <span className="inline-block px-4 py-2 bg-amber-100 text-amber-600 rounded-full text-sm font-medium mb-4">
+            ⭐ Depoimentos
+          </span>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            O que nossos{" "}
+            <span className="bg-gradient-to-r from-amber-500 to-yellow-500 bg-clip-text text-transparent">
+              clientes
+            </span>{" "}
+            dizem
+          </h2>
+        </motion.div>
+
+        <motion.div
+          variants={staggerContainer}
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true }}
+          className="grid md:grid-cols-3 gap-8"
+        >
+          {testimonials.map((testimonial) => (
+            <motion.div
+              key={testimonial.id}
+              variants={fadeInUp}
+              whileHover={{ y: -5 }}
+              className="group relative bg-gradient-to-br from-gray-50 to-white p-8 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-bl-3xl rounded-tr-3xl" />
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden">
+                    <img
+                      src={testimonial.image}
+                      alt={testimonial.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">{testimonial.name}</h3>
+                  <p className="text-sm text-gray-600">{testimonial.role}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 mb-4">
+                {[...Array(testimonial.rating)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className="w-5 h-5 fill-amber-400 text-amber-400"
+                  />
+                ))}
+              </div>
+
+              <p className="text-gray-700 italic">"{testimonial.content}"</p>
+
+              <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-amber-500 to-yellow-500 w-0 group-hover:w-full transition-all duration-500 rounded-b-3xl" />
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// NEWSLETTER SECTION
+// ============================================
+const Newsletter = () => {
+  const [email, setEmail] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast.success("Inscrição realizada com sucesso!");
+    setEmail("");
+  };
+
+  return (
+    <section className="py-20 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
+      <div className="max-w-4xl mx-auto px-4 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <Mail className="w-16 h-16 mx-auto mb-6 text-amber-500" />
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            Fique por dentro
+          </h2>
+          <p className="text-xl text-gray-300 mb-8">
+            Receba ofertas exclusivas e lançamentos diretamente no seu email
+          </p>
+
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto"
+          >
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Seu melhor email"
+              className="flex-1 h-14 px-6 rounded-2xl text-gray-900 focus:outline-none focus:ring-4 focus:ring-amber-500/50"
+              required
+            />
+            <button
+              type="submit"
+              className="h-14 px-8 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-semibold rounded-2xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+            >
+              Inscrever-se
+            </button>
+          </form>
+
+          <p className="text-sm text-gray-400 mt-4">
+            Ao se inscrever, você concorda com nossa Política de Privacidade
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// FOOTER MODERNO
+// ============================================
+const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer id="contato" className="bg-gray-900 text-white">
+      <div className="max-w-7xl mx-auto px-4 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+          {/* About */}
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-12 w-12 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-2xl flex items-center justify-center">
+                <span className="font-bold text-white text-xl">S</span>
+              </div>
+              <span className="text-xl font-bold">Sufficius</span>
+            </div>
+            <p className="text-gray-400 mb-6">
+              Sua loja online de confiança para produtos de qualidade premium.
+            </p>
+            <div className="flex gap-4">
+              {[Facebook, Twitter, Instagram, Linkedin].map((Icon, index) => (
+                <a
+                  key={index}
+                  href="#"
+                  className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center hover:bg-amber-500 transition-colors"
+                >
+                  <Icon className="w-5 h-5" />
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Links */}
+          {[
+            {
+              title: "Loja",
+              links: ["Produtos", "Categorias", "Ofertas", "Lançamentos"],
+            },
+            {
+              title: "Suporte",
+              links: ["FAQ", "Trocas", "Entregas", "Contato"],
+            },
+            {
+              title: "Contato",
+              links: [
+                { icon: Phone, text: "+244 900 000 000" },
+                { icon: Mail, text: "contato@sufficius.com" },
+                { icon: MapPin, text: "Luanda, Angola" },
+              ],
+            },
+          ].map((section, idx) => (
+            <div key={idx}>
+              <h3 className="font-bold text-lg mb-6">{section.title}</h3>
+              <ul className="space-y-4">
+                {section.links.map((item, index) => {
+                  if (typeof item === "string") {
+                    return (
+                      <li key={index}>
+                        <a
+                          href="#"
+                          className="text-gray-400 hover:text-amber-500 transition-colors"
+                        >
+                          {item}
+                        </a>
+                      </li>
+                    );
+                  }
+                  const Icon = item.icon;
+                  return (
+                    <li
+                      key={index}
+                      className="flex items-center gap-3 text-gray-400"
+                    >
+                      <Icon className="w-5 h-5 text-amber-500" />
+                      <span>{item.text}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
+          <p>
+            © {currentYear} Sufficius Commerce. Todos os direitos reservados.
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+// ============================================
+// COMPONENTE PRINCIPAL
 // ============================================
 export default function Landing() {
   return (
     <div className="min-h-screen bg-white">
-      <div id="inicio">
-        <Header />
-      </div>
-
-      <HeroSection />
-      <Features />
-      
-      <div id="produtos">
+      <Header />
+      <main>
+        <HeroSection />
+        <Features />
         <ProductsSection />
-      </div>
-      
-      <div id="categorias">
-        <FeaturedCategories />
-      </div>
-
-      <Testimonials />
-      <Newsletter />
-      
-      <div id="contato">
-        <Footer />
-      </div>
+        <CategoriesSection />
+        <PromoBanner />
+        <Testimonials />
+        <Newsletter />
+      </main>
+      <Footer />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Package,
@@ -12,7 +12,6 @@ import {
   TrendingUp,
   CreditCard,
   Shield,
-  Home,
 } from "lucide-react";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 
@@ -21,7 +20,6 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen }: SidebarProps) {
-  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("dashboard");
 
   const menuItems = [
@@ -110,15 +108,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
             </NavLink>
           ))}
 
-              <div className="my-6 border-t"></div>      
             <div className="space-y-1">
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 w-full text-left"
-          >
-            <Home className="h-5 w-5" />
-            <span className="font-medium">Ir para Loja</span>
-          </button>
         </div>
 
         <div className="p-4 border-t">

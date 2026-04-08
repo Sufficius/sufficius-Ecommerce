@@ -19,11 +19,12 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { api } from "@/modules/services/api/axios";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { NovoProdutoModal } from "@/app/produtos/criarProduto";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { toast } from "sonner";
+import { ModalEditarProduto } from "../components/ModalEditarProdutos";
 
 interface ProductImageProps {
   src?: string;
@@ -45,12 +46,13 @@ interface Produto {
   precoDesconto?: number;
   percentualDesconto?: number;
   quantidade: number;
-  foto?: string;
+  foto?: string | null;
   imagemAlt?: string;
   status: "ATIVO" | "INATIVO";
-  id_categoria?: string;
+  id_categoria: string;
   categoria?: string;
   Categoria?: {
+    id: string;
     nome: string;
   };
   criadoEm: string;
@@ -96,7 +98,7 @@ export const ProductImage = ({
         </div>
       )}
       <img
-        src={`http://localhost:3000${src}`}
+        src={src}
         alt={alt}
         className={`${className} ${loading ? "opacity-0" : "opacity-100"} transition-opacity duration-300 object-cover`}
         onLoad={() => {
@@ -106,6 +108,7 @@ export const ProductImage = ({
           setError(true);
           setLoading(false);
         }}
+         crossOrigin="anonymous"
       />
     </div>
   );
@@ -159,7 +162,7 @@ const VisualizarProdutoModal = ({
               <div>
                 <div className="bg-gray-100 rounded-lg h-64 overflow-hidden flex items-center justify-center">
                   <ProductImage
-                    src={produto.foto}
+                    src={produto.foto || undefined}
                     alt={produto.imagemAlt || produto.nome}
                     className="h-full w-full object-cover"
                   />
@@ -174,7 +177,9 @@ const VisualizarProdutoModal = ({
                   <div>
                     <label className="text-sm text-gray-600">Categoria</label>
                     <p className="font-medium">
-                      {produto.Categoria?.nome || produto.categoria || "Sem categoria"}
+                      {produto.Categoria?.nome ||
+                        produto.categoria ||
+                        "Sem categoria"}
                     </p>
                   </div>
 
@@ -360,12 +365,13 @@ const TabelaProdutos = ({
   onEditar,
   onExcluir,
 }: {
-  produtos: Produto[] | any;
+  produtos: any;
   loading: boolean;
   onVisualizar: (produto: Produto) => void;
   onEditar: (produto: Produto) => void;
   onExcluir: (produto: Produto) => void;
 }) => {
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-AO", {
       style: "currency",
@@ -383,14 +389,16 @@ const TabelaProdutos = ({
     );
   }
 
-
   const produtosArray = produtos?.data?.data
-    ? produtos?.data 
-    : produtos 
-      && Array.isArray(produtos?.data) 
-      ? produtos.data : [];
+    ? produtos?.data
+    : produtos && Array.isArray(produtos?.data)
+      ? produtos.data
+      : [];
 
 
+  // Quando os produtos mudarem
+  useEffect(() => {
+  }, [produtosArray]);
 
   if (produtosArray?.length === 0) {
     return (
@@ -439,7 +447,7 @@ const TabelaProdutos = ({
                   <div className="flex items-center">
                     <div className="h-10 w-10 flex-shrink-0">
                       <ProductImage
-                        src={produto.foto}
+                        src={produto.foto || undefined}
                         alt={produto.nome}
                         className="h-10 w-10 rounded-lg object-cover"
                       />
@@ -456,7 +464,9 @@ const TabelaProdutos = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {produto.Categoria?.nome || produto.categoria || "Sem categoria"}
+                    {produto.Categoria?.nome ||
+                      produto.categoria ||
+                      "Sem categoria"}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -539,17 +549,36 @@ export default function AdminProdutos() {
     null,
   );
 
-  const [paginacao, ] = useState<Paginacao>({
+  const [modalEditarAberto, setModalEditarAberto] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const handleEditar = (produto: Produto) => {
+    setProdutoSelecionado(produto);
+    setModalEditarAberto(true);
+  };
+
+  const handleProdutoAtualizado = async () => {
+    queryClient.invalidateQueries({ queryKey: ["produtos"] });
+    queryClient.invalidateQueries({ queryKey: ["getProdutosCategorias"] });
+    queryClient.invalidateQueries({ queryKey: ["estatisticas-produtos"] });
+
+    await queryClient.refetchQueries({ queryKey: ["produtos"] });
+
+    toast.success("Lista de produtos atualizada!");
+  };
+
+  const [paginacao] = useState<Paginacao>({
     total: 0,
     page: 1,
     limit: 10,
     totalPages: 1,
   });
   const [, setError] = useState<string | null>(null);
-  const [, ] = useState<ModalData>({ type: null });
+  const [,] = useState<ModalData>({ type: null });
   const [excluindo, setExcluindo] = useState(false);
   const token = useAuthStore((state) => state.token);
-  const [, ] = useState({
+  const [,] = useState({
     nome: "",
     categoria: "Beleza",
     preco: 0,
@@ -567,13 +596,13 @@ export default function AdminProdutos() {
     return () => clearTimeout(timer);
   }, [termoBusca]);
 
-  const {data: produtos } = useQuery({
+  const { data: produtos } = useQuery({
     queryKey: ["produtos"],
     queryFn: async () => {
-
       const response = await api.get("/produtos/get");
-      return response.data; 
-    }
+      return response.data;
+    },
+    staleTime: 0,
   });
 
   useEffect(() => {
@@ -581,101 +610,55 @@ export default function AdminProdutos() {
       setError("Faça login para acessar os produtos");
       return;
     }
+  }, [
+    paginaAtual,
+    debouncedTermo,
+    filtroCategoria,
+    filtroStatus,
+    ordenar,
+    token,
+  ]);
 
-  }, [paginaAtual, debouncedTermo, filtroCategoria, filtroStatus, ordenar, token]);
+  const { data: categorias, isLoading: loadingCategorias } = useQuery({
+    queryKey: ["categorias"],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/categorias");
 
-  // const openModal = (type: ModalData["type"], produto?: Produto) => {
-  //   if (produto && type !== "create") {
-  //     if (type === "edit") {
-  //       setFormData({
-  //         nome: produto.nome,
-  //         preco: Number(produto.preco),
-  //         categoria: produto.categoria || produto.Categoria?.nome || "",
-  //         quantidade: Number(produto.quantidade),
-  //         status: produto.status,
-  //       });
-  //     }
-  //   } else if (type === "create") {
-  //     setFormData({
-  //       nome: "",
-  //       preco: 0,
-  //       quantidade: 0,
-  //       categoria: "Beleza",
-  //       status: "",
-  //     });
-  //   }
-  //   setModal({ type, produto });
-  // };
-
-
-const { data: categorias, isLoading: loadingCategorias } = useQuery({
-  queryKey: ["categorias"],
-  queryFn: async () => {
-    try {
-      const response = await api.get("/categorias");
-      
-      if (response.data?.success && Array.isArray(response.data.data)) {
-        return response.data.data;
-      } else if (Array.isArray(response.data)) {
-        return response.data;
+        if (response.data?.success && Array.isArray(response.data.data)) {
+          return response.data.data;
+        } else if (Array.isArray(response.data)) {
+          return response.data;
+        }
+        return [];
+      } catch (error) {
+        console.error("Erro ao buscar categorias:", error);
+        return [];
       }
-      return [];
-    } catch (error) {
-      console.error("Erro ao buscar categorias:", error);
-      return [];
-    }
-  },
-});
+    },
+  });
 
-  // const handleAlterarStatus = async (id: string, statusAtual: string) => {
-  //   const novoStatus = statusAtual === "ATIVO" ? "INATIVO" : "ATIVO";
-
-  //   try {
-  //     const response = await api.patch(
-  //       `produtos/${id}/status`,
-  //       {
-  //         status: novoStatus,
-  //       },
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       }
-  //     );
-  //     if (response.data.success) {
-  //       toast.success("Status alterado com sucesso!");
-  //     }
-  //   } catch (err: any) {
-  //     toast.error(err.response?.data?.message || "Erro ao alterar status");
-  //   }
-  // };
-
-  const {data: estatisticas} = useQuery({
+  const { data: estatisticas } = useQuery({
     queryKey: ["estatisticas_produtos"],
     queryFn: async () => {
       const response = await api.get("/produtos/get");
-    return response;
-    }
+      return response;
+    },
   });
-
 
   // Calcular estatísticas
   const totalProdutos = estatisticas?.data?.total || 0;
   const produtosSemEstoque =
-    estatisticas?.data?.data?.filter((p: any) => p.quantidade === 0).length || 0;
+    estatisticas?.data?.data?.filter((p: any) => p.quantidade === 0).length ||
+    0;
   const produtosBaixoEstoque =
-    estatisticas?.data?.data?.filter((p: any) => p.quantidade > 0 && p.quantidade < 10)
-      .length || 0;
+    estatisticas?.data?.data?.filter(
+      (p: any) => p.quantidade > 0 && p.quantidade < 10,
+    ).length || 0;
 
   const handleVisualizar = (produto: Produto) => {
     setProdutoSelecionado(produto);
     setModalVisualizar(true);
-  };
-
-  const handleEditar = (produto: Produto) => {
-    // Implementar lógica de edição
-    toast.info("Funcionalidade de edição em desenvolvimento");
-    console.log("Editar produto:", produto);
   };
 
   const handleExcluir = (produto: Produto) => {
@@ -726,7 +709,7 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
         p.preco.toString(),
         p.precoDesconto?.toString() || "",
         p.quantidade.toString(),
-        p.status === "ATIVO"
+        p.status === "ATIVO",
       ]),
     ]
       .map((row) => row.join(","))
@@ -765,6 +748,9 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
 
           <Button
             onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ["produtos"] });
+              queryClient.refetchQueries({ queryKey: ["produtos"] });
+              toast.info("Atualizando lista...");
             }}
             variant="outline"
             className="flex items-center gap-2"
@@ -775,6 +761,13 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
 
           <NovoProdutoModal
             onProdutoCriado={() => {
+              queryClient.invalidateQueries({ queryKey: ["produtos"] });
+              queryClient.invalidateQueries({
+                queryKey: ["getProdutosCategorias"],
+              });
+              queryClient.invalidateQueries({
+                queryKey: ["estatisticas-produtos"],
+              });
             }}
           >
             <Button className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-3 rounded-lg hover:bg-[#c19b2c] transition">
@@ -791,9 +784,7 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Produtos</p>
-              <p className="text-2xl font-bold">
-                {totalProdutos}
-              </p>
+              <p className="text-2xl font-bold">{totalProdutos}</p>
             </div>
             <Package className="h-8 w-8 text-[#D4AF37]" />
           </div>
@@ -819,11 +810,7 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Baixo Estoque</p>
-              <p className="text-2xl font-bold">
-                {
-                  produtosBaixoEstoque
-                }
-              </p>
+              <p className="text-2xl font-bold">{produtosBaixoEstoque}</p>
             </div>
             <AlertCircle className="h-8 w-8 text-yellow-500" />
           </div>
@@ -833,11 +820,7 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Sem Estoque</p>
-              <p className="text-2xl font-bold">
-                {
-                  produtosSemEstoque
-                }
-              </p>
+              <p className="text-2xl font-bold">{produtosSemEstoque}</p>
             </div>
             <AlertCircle className="h-8 w-8 text-red-500" />
           </div>
@@ -874,15 +857,17 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
                 className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
               >
                 <option value="todos">Todas categorias</option>
-                {Array.isArray(categorias) && categorias.length >  0 ? (
+                {Array.isArray(categorias) && categorias.length > 0 ? (
                   categorias?.map((categoria: Categoria) => (
-                  <option key={categoria.id} value={categoria.id}>
-                    {categoria.nome}
+                    <option key={categoria.id} value={categoria.id}>
+                      {categoria.nome}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    Carregando categorias...
                   </option>
-                ))
-              ): (
-                 <option value="" disabled>Carregando categorias...</option>
-              )}
+                )}
               </select>
             </div>
           </div>
@@ -942,6 +927,17 @@ const { data: categorias, isLoading: loadingCategorias } = useQuery({
         onVisualizar={handleVisualizar}
         onEditar={handleEditar}
         onExcluir={handleExcluir}
+      />
+
+      <ModalEditarProduto
+        isOpen={modalEditarAberto}
+        onClose={() => {
+          setModalEditarAberto(false);
+          setProdutoSelecionado(null);
+        }}
+        produto={produtoSelecionado}
+        categorias={categorias || []}
+        onProdutoAtualizado={handleProdutoAtualizado}
       />
 
       {/* Paginação */}

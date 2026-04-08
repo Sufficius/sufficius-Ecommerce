@@ -1,44 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   Package,
-  AlertTriangle,
-  TrendingUp,
   Edit,
   Plus,
-  Minus,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  History,
-  ArrowUpDown,
-  XCircle,
-  Truck,
   Eye,
-  DollarSign,
-  BarChart3,
-  Settings,
-  PackagePlus,
-  PackageMinus,
-  RotateCcw,
-  FileSpreadsheet,
   Trash2,
-  ArrowUp,
-  ArrowDown,
-  Clock,
+  ImageIcon,
+  Loader2,
+  AlertOctagon,
+  Download,
+  Tag,
+  AlertCircle,
+  Filter,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/modules/services/api/axios";
-import { format } from "date-fns";
 
-import * as Dialog from "@radix-ui/react-dialog";
-import * as Tabs from "@radix-ui/react-tabs";
-import * as Select from "@radix-ui/react-select";
-import * as Tooltip from "@radix-ui/react-tooltip";
-import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -49,8 +34,12 @@ import {
   Title,
   Tooltip as ChartTooltip,
   Legend,
-  Filler
+  Filler,
 } from "chart.js";
+import { useAuthStore } from "@/modules/services/store/auth-store";
+import { Button } from "@/components/ui/button";
+import { NovoProdutoEstoqueModal } from "@/app/estoques/criarProduto";
+import { ModalEditarEstoque } from "../components/ModalEditarEstoque";
 
 // Registrar componentes do Chart.js
 ChartJS.register(
@@ -62,1900 +51,968 @@ ChartJS.register(
   Title,
   ChartTooltip,
   Legend,
-  Filler
+  Filler,
 );
 
 // ========== INTERFACES ==========
-interface ProdutoEstoque {
+
+interface EstoqueImageProps {
+  src?: string;
+  alt: string;
+  className?: string;
+}
+
+interface Categoria {
   id: string;
   nome: string;
-  descricao: string;
+  slug: string;
+}
+interface Estoque {
+  id: string;
+  nome: string;
+  descricao?: string;
   preco: number;
   quantidade: number;
-  quantidadeMinima: number;
-  quantidadeMaxima: number;
-  status: "ATIVO" | "INATIVO" | "BLOQUEADO";
-  nivelEstoque: "CRITICO" | "BAIXO" | "NORMAL" | "ALTO" | "EXCESSO";
-  foto: string | null;
+  foto?: string | null;
+  imagemAlt?: string;
+  status: "ATIVO" | "INATIVO";
   id_categoria: string;
-  categoria?: {
+  categoria?: string;
+  Categoria?: {
     id: string;
     nome: string;
   };
-  ImagemProduto?: Array<{
-    id: string;
-    url: string;
-    principal: boolean;
-  }>;
-  movimentacoes?: Array<MovimentacaoEstoque>;
-  ultimaMovimentacao?: string;
-  diasSemMovimentacao?: number;
-  previsaoEsgotamento?: number;
-  pontoRessuprimento?: number;
-  loteCompra?: number;
-  localizacao?: string;
-  fornecedor?: {
-    id: string;
-    nome: string;
-    prazoEntrega: number;
-    contato:number;
-    email:string;
-    telefone:number;
-  };
-  createdAt: string;
-  updatedAt: string;
+  criadoEm: string;
+  atualizadoEm?: string;
+  destaque?: boolean;
 }
 
-interface MovimentacaoEstoque {
-  id: string;
-  tipo: "ENTRADA" | "SAIDA" | "AJUSTE" | "TRANSFERENCIA" | "DEVOLUCAO" | "PERDA";
-  quantidade: number;
-  quantidadeAnterior: number;
-  quantidadeNova: number;
-  motivo: string;
-  observacao?: string;
-  documento?: string;
-  usuario?: {
-    id: string;
-    nome: string;
-    email: string;
-  };
-  pedidoId?: string;
-  compraId?: string;
-  transferenciaId?: string;
-  created_at: string;
+interface Paginacao {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
+interface ModalData {
+  type: "create" | "edit" | "view" | "delete" | "resetPassword" | null;
+  estoque?: Estoque;
+}
 
 // ========== COMPONENTES ==========
 
-// Modal de Movimentação
-function ModalMovimentacao({ 
-  produto, 
-  open, 
-  onOpenChange,
-  onSuccess 
-}: { 
-  produto?: ProdutoEstoque; 
-  open: boolean; 
-  onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
-}) {
-  const [tipo, setTipo] = useState<MovimentacaoEstoque["tipo"]>("ENTRADA");
-  const [quantidade, setQuantidade] = useState<number>(1);
-  const [motivo, setMotivo] = useState("");
-  const [observacao, setObservacao] = useState("");
-  const [documento, setDocumento] = useState("");
-  const [loading, setLoading] = useState(false);
-  const queryClient = useQueryClient();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!produto) return;
-
-    setLoading(true);
-    try {
-      // Simular chamada API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success(`${tipo === "ENTRADA" ? "Entrada" : tipo === "SAIDA" ? "Saída" : "Ajuste"} registrada com sucesso!`);
-      queryClient.invalidateQueries({ queryKey: ["estoque"] });
-      queryClient.invalidateQueries({ queryKey: ["estoque-movimentacoes"] });
-      onSuccess();
-      onOpenChange(false);
-    } catch (error) {
-      toast.error("Erro ao registrar movimentação");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getMaxQuantidade = () => {
-    if (tipo === "SAIDA" || tipo === "PERDA") return produto?.quantidade || 0;
-    return 9999;
-  };
-
-  return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-xl w-full max-w-md p-6 z-50">
-          <Dialog.Title className="text-xl font-bold mb-4">
-            Movimentar Estoque - {produto?.nome}
-          </Dialog.Title>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Tipo de Movimentação */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Tipo de Movimentação</label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: "ENTRADA", label: "Entrada", icon: PackagePlus },
-                  { value: "SAIDA", label: "Saída", icon: PackageMinus },
-                  { value: "AJUSTE", label: "Ajuste", icon: Settings },
-                  { value: "DEVOLUCAO", label: "Devolução", icon: RotateCcw },
-                ].map((opcao) => {
-                  const Icon = opcao.icon;
-                  return (
-                    <button
-                      key={opcao.value}
-                      type="button"
-                      onClick={() => setTipo(opcao.value as any)}
-                      className={`p-3 border rounded-lg flex flex-col items-center gap-2 transition-colors ${
-                        tipo === opcao.value
-                          ? "border-[#D4AF37] bg-[#D4AF37]/10 text-[#D4AF37]"
-                          : "hover:border-gray-300"
-                      }`}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span className="text-xs">{opcao.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Quantidade */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Quantidade {tipo === "SAIDA" && `(Máx: ${getMaxQuantidade()})`}
-              </label>
-              <div className="flex items-center border rounded-lg">
-                <button
-                  type="button"
-                  onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
-                  className="p-2 hover:bg-gray-100"
-                  disabled={quantidade <= 1}
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input
-                  type="number"
-                  value={quantidade}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value);
-                    if (isNaN(val)) return;
-                    setQuantidade(Math.min(val, getMaxQuantidade()));
-                  }}
-                  min={1}
-                  max={getMaxQuantidade()}
-                  className="w-20 text-center border-x py-2 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setQuantidade(Math.min(quantidade + 1, getMaxQuantidade()))}
-                  className="p-2 hover:bg-gray-100"
-                  disabled={quantidade >= getMaxQuantidade()}
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Motivo */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Motivo</label>
-              <select
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                required
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-              >
-                <option value="">Selecione um motivo</option>
-                {tipo === "ENTRADA" && (
-                  <>
-                    <option value="COMPRA">Compra de fornecedor</option>
-                    <option value="DEVOLUCAO">Devolução de cliente</option>
-                    <option value="TRANSFERENCIA">Transferência de outra loja</option>
-                    <option value="AJUSTE">Ajuste de inventário</option>
-                  </>
-                )}
-                {tipo === "SAIDA" && (
-                  <>
-                    <option value="VENDA">Venda</option>
-                    <option value="TRANSFERENCIA">Transferência para outra loja</option>
-                    <option value="AMOSTRA">Amostra grátis</option>
-                    <option value="BRINDE">Brinde promocional</option>
-                  </>
-                )}
-                {tipo === "AJUSTE" && (
-                  <>
-                    <option value="INVENTARIO">Contagem de inventário</option>
-                    <option value="CORRECAO">Correção de estoque</option>
-                    <option value="REAVALIACAO">Reavaliação</option>
-                  </>
-                )}
-                {tipo === "DEVOLUCAO" && (
-                  <>
-                    <option value="FORNECEDOR">Devolução para fornecedor</option>
-                    <option value="TROCA">Troca de produto</option>
-                    <option value="DEFEITO">Produto com defeito</option>
-                  </>
-                )}
-              </select>
-            </div>
-
-            {/* Documento */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                {tipo === "ENTRADA" ? "Nota Fiscal / Pedido" : 
-                 tipo === "SAIDA" ? "Número do Pedido" : 
-                 "Documento de Referência"}
-              </label>
-              <input
-                type="text"
-                value={documento}
-                onChange={(e) => setDocumento(e.target.value)}
-                placeholder="Ex: NF-12345, PED-6789"
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-              />
-            </div>
-
-            {/* Observação */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Observação</label>
-              <textarea
-                value={observacao}
-                onChange={(e) => setObservacao(e.target.value)}
-                rows={3}
-                placeholder="Informações adicionais..."
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-              />
-            </div>
-
-            {/* Resumo */}
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <div className="flex justify-between text-sm">
-                <span>Estoque atual:</span>
-                <span className="font-bold">{produto?.quantidade} unidades</span>
-              </div>
-              <div className="flex justify-between text-sm mt-1">
-                <span>Estoque após movimentação:</span>
-                <span className={`font-bold ${
-                  tipo === "ENTRADA" || tipo === "DEVOLUCAO"
-                    ? "text-green-600"
-                    : tipo === "SAIDA" || tipo === "PERDA"
-                    ? "text-red-600"
-                    : "text-blue-600"
-                }`}>
-                  {tipo === "ENTRADA" || tipo === "DEVOLUCAO"
-                    ? (produto?.quantidade || 0) + quantidade
-                    : tipo === "SAIDA" || tipo === "PERDA"
-                    ? (produto?.quantidade || 0) - quantidade
-                    : quantidade}
-                </span>
-              </div>
-            </div>
-
-            {/* Botões */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-                  disabled={loading}
-                >
-                  Cancelar
-                </button>
-              </Dialog.Close>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] disabled:opacity-50"
-                disabled={loading || !motivo || quantidade < 1}
-              >
-                {loading ? "Processando..." : "Confirmar Movimentação"}
-              </button>
-            </div>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-
-// Modal de Cadastro/Edição de Produto
-function ModalProdutoEstoque({ 
-  produto, 
-  open, 
-  onOpenChange,
-  onSuccess 
-}: { 
-  produto?: ProdutoEstoque; 
-  open: boolean; 
-  onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
-}) {
-  const [formData, setFormData] = useState({
-    nome: produto?.nome || "",
-    descricao: produto?.descricao || "",
-    preco: produto?.preco || 0,
-    quantidade: produto?.quantidade || 0,
-    quantidadeMinima: produto?.quantidadeMinima || 5,
-    quantidadeMaxima: produto?.quantidadeMaxima || 100,
-    id_categoria: produto?.id_categoria || "",
-    localizacao: produto?.localizacao || "",
-    fornecedorId: produto?.fornecedor?.id || "",
-    status: produto?.status || "ATIVO",
-    loteCompra: produto?.loteCompra || 10,
-    pontoRessuprimento: produto?.pontoRessuprimento || 10,
-  });
-  const [loading, setLoading] = useState(false);
-  const queryClient = useQueryClient();
-
-  const { data: categorias } = useQuery({
-    queryKey: ["categorias"],
-    queryFn: async () => {
-      const response = await api.get("/categorias");
-      return response.data;
-    },
-    enabled: open,
-  });
-
-  const { data: fornecedores } = useQuery({
-    queryKey: ["fornecedores"],
-    queryFn: async () => {
-      const response = await api.get("/fornecedores");
-      return response.data;
-    },
-    enabled: open,
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      // Simular chamada API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success(produto ? "Produto atualizado com sucesso!" : "Produto cadastrado no estoque!");
-      queryClient.invalidateQueries({ queryKey: ["estoque"] });
-      onSuccess();
-      onOpenChange(false);
-    } catch (error) {
-      toast.error(produto ? "Erro ao atualizar produto" : "Erro ao cadastrar produto");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 z-50">
-          <Dialog.Title className="text-xl font-bold mb-4">
-            {produto ? "Editar Produto" : "Novo Produto no Estoque"}
-          </Dialog.Title>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Informações Básicas */}
-            <div className="space-y-4">
-              <h3 className="font-medium text-lg border-b pb-2">Informações Básicas</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-2">Nome do Produto *</label>
-                  <input
-                    type="text"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                    required
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-2">Descrição</label>
-                  <textarea
-                    value={formData.descricao}
-                    onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                    rows={3}
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Preço (KZ) *</label>
-                  <input
-                    type="number"
-                    value={formData.preco}
-                    onChange={(e) => setFormData({ ...formData, preco: parseFloat(e.target.value) })}
-                    required
-                    min={0}
-                    step="0.01"
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Categoria *</label>
-                  <select
-                    value={formData.id_categoria}
-                    onChange={(e) => setFormData({ ...formData, id_categoria: e.target.value })}
-                    required
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  >
-                    <option value="">Selecione</option>
-                    {categorias?.data?.map((cat: any) => (
-                      <option key={cat.id} value={cat.id}>{cat.nome}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  >
-                    <option value="ATIVO">Ativo</option>
-                    <option value="INATIVO">Inativo</option>
-                    <option value="BLOQUEADO">Bloqueado</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Configurações de Estoque */}
-            <div className="space-y-4">
-              <h3 className="font-medium text-lg border-b pb-2">Configurações de Estoque</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Quantidade Inicial</label>
-                  <input
-                    type="number"
-                    value={formData.quantidade}
-                    onChange={(e) => setFormData({ ...formData, quantidade: parseInt(e.target.value) })}
-                    min={0}
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Quantidade Mínima *</label>
-                  <input
-                    type="number"
-                    value={formData.quantidadeMinima}
-                    onChange={(e) => setFormData({ ...formData, quantidadeMinima: parseInt(e.target.value) })}
-                    required
-                    min={0}
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Quantidade Máxima *</label>
-                  <input
-                    type="number"
-                    value={formData.quantidadeMaxima}
-                    onChange={(e) => setFormData({ ...formData, quantidadeMaxima: parseInt(e.target.value) })}
-                    required
-                    min={0}
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Ponto de Ressuprimento</label>
-                  <input
-                    type="number"
-                    value={formData.pontoRessuprimento}
-                    onChange={(e) => setFormData({ ...formData, pontoRessuprimento: parseInt(e.target.value) })}
-                    min={0}
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Lote de Compra</label>
-                  <input
-                    type="number"
-                    value={formData.loteCompra}
-                    onChange={(e) => setFormData({ ...formData, loteCompra: parseInt(e.target.value) })}
-                    min={1}
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Localização</label>
-                  <input
-                    type="text"
-                    value={formData.localizacao}
-                    onChange={(e) => setFormData({ ...formData, localizacao: e.target.value })}
-                    placeholder="Ex: Prateleira A, Corredor 1"
-                    className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Fornecedor */}
-            <div className="space-y-4">
-              <h3 className="font-medium text-lg border-b pb-2">Fornecedor</h3>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Fornecedor Padrão</label>
-                <select
-                  value={formData.fornecedorId}
-                  onChange={(e) => setFormData({ ...formData, fornecedorId: e.target.value })}
-                  className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                >
-                  <option value="">Selecione um fornecedor</option>
-                  {fornecedores?.data?.map((forn: any) => (
-                    <option key={forn.id} value={forn.id}>{forn.nome}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Botões */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-                  disabled={loading}
-                >
-                  Cancelar
-                </button>
-              </Dialog.Close>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#c19b2c] disabled:opacity-50"
-                disabled={loading || !formData.nome || !formData.id_categoria}
-              >
-                {loading ? "Salvando..." : produto ? "Atualizar" : "Cadastrar"}
-              </button>
-            </div>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-
-// Histórico de Movimentações
-function HistoricoMovimentacoes({ produtoId }: { produtoId: string }) {
-  const { data: movimentacoes, isLoading } = useQuery({
-    queryKey: ["estoque-movimentacoes", produtoId],
-    queryFn: async () => {
-      const response = await api.get(`/estoque/${produtoId}/movimentacoes`);
-      return response.data;
-    },
-  });
-
-  const getTipoIcon = (tipo: string) => {
-    switch (tipo) {
-      case "ENTRADA": return <PackagePlus className="h-4 w-4 text-green-600" />;
-      case "SAIDA": return <PackageMinus className="h-4 w-4 text-red-600" />;
-      case "AJUSTE": return <Settings className="h-4 w-4 text-blue-600" />;
-      case "DEVOLUCAO": return <RotateCcw className="h-4 w-4 text-purple-600" />;
-      default: return <Package className="h-4 w-4" />;
-    }
-  };
-
-  if (isLoading) return <div className="text-center py-4">Carregando...</div>;
-
-  return (
-    <div className="space-y-3 max-h-96 overflow-y-auto">
-      {movimentacoes?.data?.map((mov: MovimentacaoEstoque) => (
-        <div key={mov.id} className="border rounded-lg p-3 hover:bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {getTipoIcon(mov.tipo)}
-              <div>
-                <span className="font-medium">
-                  {mov.tipo === "ENTRADA" ? "Entrada" :
-                   mov.tipo === "SAIDA" ? "Saída" :
-                   mov.tipo === "AJUSTE" ? "Ajuste" :
-                   mov.tipo === "DEVOLUCAO" ? "Devolução" : mov.tipo}
-                </span>
-                <div className="text-xs text-gray-500">
-                  {format(new Date(mov.created_at), "dd/MM/yyyy HH:mm")}
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className={`font-bold ${
-                mov.tipo === "ENTRADA" || mov.tipo === "DEVOLUCAO"
-                  ? "text-green-600"
-                  : mov.tipo === "SAIDA"
-                  ? "text-red-600"
-                  : "text-blue-600"
-              }`}>
-                {mov.tipo === "ENTRADA" || mov.tipo === "DEVOLUCAO" ? "+" : "-"}{mov.quantidade}
-              </span>
-              <div className="text-xs text-gray-500">
-                {mov.quantidadeAnterior} → {mov.quantidadeNova}
-              </div>
-            </div>
-          </div>
-          {mov.motivo && (
-            <div className="mt-2 text-sm">
-              <span className="text-gray-600">Motivo: {mov.motivo}</span>
-              {mov.observacao && (
-                <div className="text-xs text-gray-500 mt-1">{mov.observacao}</div>
-              )}
-            </div>
-          )}
-          {mov.documento && (
-            <div className="mt-1 text-xs text-gray-500">
-              Documento: {mov.documento}
-            </div>
-          )}
-          {mov.usuario && (
-            <div className="mt-1 text-xs text-gray-500">
-              Usuário: {mov.usuario.nome}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Gráfico de Movimentações
-function GraficoMovimentacoes({ produtoId }: { produtoId: string }) {
-  const { data: movimentacoes } = useQuery({
-    queryKey: ["estoque-movimentacoes-grafico", produtoId],
-    queryFn: async () => {
-      const response = await api.get(`/estoque/${produtoId}/movimentacoes/grafico`);
-      return response.data;
-    },
-  });
-
-  const data = {
-    labels: movimentacoes?.labels || ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"],
-    datasets: [
-      {
-        label: "Entradas",
-        data: movimentacoes?.entradas || [65, 59, 80, 81, 56, 55],
-        backgroundColor: "rgba(34, 197, 94, 0.5)",
-        borderColor: "rgb(34, 197, 94)",
-        borderWidth: 1,
-      },
-      {
-        label: "Saídas",
-        data: movimentacoes?.saidas || [28, 48, 40, 19, 86, 27],
-        backgroundColor: "rgba(239, 68, 68, 0.5)",
-        borderColor: "rgb(239, 68, 68)",
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "top" as const,
-      },
-    },
-  };
-
-  return (
-    <div className="h-64">
-      <Bar data={data} options={options} />
-    </div>
-  );
-}
-
-// Modal de Detalhes do Produto
-function ModalDetalhesProduto({ 
-  produto, 
-  open, 
-  onOpenChange 
-}: { 
-  produto?: ProdutoEstoque; 
-  open: boolean; 
-  onOpenChange: (open: boolean) => void;
-}) {
-  const [activeTab, setActiveTab] = useState("detalhes");
-
-  if (!produto) return null;
-
-  return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto z-50">
-          <Dialog.Title className="sr-only">Detalhes do Produto</Dialog.Title>
-          
-          <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-            {/* Header com abas */}
-            <div className="border-b sticky top-0 bg-white z-10">
-              <div className="flex items-center justify-between p-4">
-                <div>
-                  <h2 className="text-xl font-bold">{produto.nome}</h2>
-                  <p className="text-sm text-gray-500">{produto.categoria?.nome}</p>
-                </div>
-                <Dialog.Close asChild>
-                  <button className="p-2 hover:bg-gray-100 rounded-full">
-                    <XCircle className="h-5 w-5" />
-                  </button>
-                </Dialog.Close>
-              </div>
-              
-              <Tabs.List className="flex px-4 gap-1">
-                {[
-                  { value: "detalhes", label: "Detalhes", icon: Eye },
-                  { value: "movimentacoes", label: "Movimentações", icon: History },
-                  { value: "grafico", label: "Gráfico", icon: BarChart3 },
-                  { value: "alertas", label: "Alertas", icon: AlertTriangle },
-                  { value: "fornecedores", label: "Fornecedores", icon: Truck },
-                ].map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <Tabs.Trigger
-                      key={tab.value}
-                      value={tab.value}
-                      className={`px-4 py-2 border-b-2 flex items-center gap-2 text-sm font-medium transition-colors ${
-                        activeTab === tab.value
-                          ? "border-[#D4AF37] text-[#D4AF37]"
-                          : "border-transparent text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {tab.label}
-                    </Tabs.Trigger>
-                  );
-                })}
-              </Tabs.List>
-            </div>
-
-            {/* Conteúdo das abas */}
-            <div className="p-6">
-              <Tabs.Content value="detalhes" className="space-y-6">
-                {/* Informações do Produto */}
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Coluna Esquerda */}
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-medium text-gray-700 mb-2">Informações Gerais</h3>
-                      <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">ID:</span>
-                          <span className="font-mono text-sm">{produto.id}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Status:</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            produto.status === "ATIVO" ? "bg-green-100 text-green-800" :
-                            produto.status === "INATIVO" ? "bg-gray-100 text-gray-800" :
-                            "bg-red-100 text-red-800"
-                          }`}>
-                            {produto.status}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Nível Estoque:</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            produto.nivelEstoque === "CRITICO" ? "bg-red-100 text-red-800" :
-                            produto.nivelEstoque === "BAIXO" ? "bg-yellow-100 text-yellow-800" :
-                            produto.nivelEstoque === "NORMAL" ? "bg-green-100 text-green-800" :
-                            produto.nivelEstoque === "ALTO" ? "bg-blue-100 text-blue-800" :
-                            "bg-purple-100 text-purple-800"
-                          }`}>
-                            {produto.nivelEstoque}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Criado em:</span>
-                          <span>{format(new Date(produto.createdAt), "dd/MM/yyyy")}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Atualizado em:</span>
-                          <span>{format(new Date(produto.updatedAt), "dd/MM/yyyy HH:mm")}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium text-gray-700 mb-2">Descrição</h3>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-gray-700">{produto.descricao || "Sem descrição"}</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium text-gray-700 mb-2">Imagens</h3>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        {produto.ImagemProduto && produto.ImagemProduto.length > 0 ? (
-                          <div className="grid grid-cols-4 gap-2">
-                            {produto.ImagemProduto.map((img) => (
-                              <img
-                                key={img.id}
-                                src={img.url}
-                                alt={produto.nome}
-                                className="w-full h-20 object-cover rounded border"
-                              />
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-gray-500 text-center py-4">Nenhuma imagem cadastrada</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Coluna Direita - Estoque */}
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-medium text-gray-700 mb-2">Níveis de Estoque</h3>
-                      <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-                        {/* Barra de progresso */}
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span>Estoque atual</span>
-                            <span className="font-bold">{produto.quantidade} unidades</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div
-                              className={`h-3 rounded-full ${
-                                produto.quantidade <= produto.quantidadeMinima ? "bg-red-500" :
-                                produto.quantidade >= produto.quantidadeMaxima ? "bg-blue-500" :
-                                "bg-green-500"
-                              }`}
-                              style={{
-                                width: `${Math.min(
-                                  (produto.quantidade / produto.quantidadeMaxima) * 100,
-                                  100
-                                )}%`
-                              }}
-                            />
-                          </div>
-                          <div className="flex justify-between text-xs text-gray-500 mt-1">
-                            <span>Mín: {produto.quantidadeMinima}</span>
-                            <span>Ideal</span>
-                            <span>Máx: {produto.quantidadeMaxima}</span>
-                          </div>
-                        </div>
-
-                        {/* Indicadores */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="border rounded p-2">
-                            <div className="text-xs text-gray-500">Ponto Ressuprimento</div>
-                            <div className="font-bold">{produto.pontoRessuprimento || produto.quantidadeMinima}</div>
-                          </div>
-                          <div className="border rounded p-2">
-                            <div className="text-xs text-gray-500">Lote Compra</div>
-                            <div className="font-bold">{produto.loteCompra || 0}</div>
-                          </div>
-                          <div className="border rounded p-2">
-                            <div className="text-xs text-gray-500">Localização</div>
-                            <div className="font-bold text-sm">{produto.localizacao || "Não definida"}</div>
-                          </div>
-                          <div className="border rounded p-2">
-                            <div className="text-xs text-gray-500">Dias sem mov.</div>
-                            <div className="font-bold">{produto.diasSemMovimentacao || 0}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium text-gray-700 mb-2">Valores</h3>
-                      <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Preço unitário:</span>
-                          <span className="font-bold">KZ {produto.preco.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Valor total em estoque:</span>
-                          <span className="font-bold text-green-600">
-                            KZ {(produto.preco * produto.quantidade).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium text-gray-700 mb-2">Previsões</h3>
-                      <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Previsão de esgotamento:</span>
-                          <span className={`font-medium ${
-                            produto.previsaoEsgotamento && produto.previsaoEsgotamento < 7
-                              ? "text-red-600"
-                              : "text-gray-900"
-                          }`}>
-                            {produto.previsaoEsgotamento 
-                              ? `${produto.previsaoEsgotamento} dias`
-                              : "Não calculado"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Tabs.Content>
-
-              <Tabs.Content value="movimentacoes">
-                <HistoricoMovimentacoes produtoId={produto.id} />
-              </Tabs.Content>
-
-              <Tabs.Content value="grafico">
-                <GraficoMovimentacoes produtoId={produto.id} />
-              </Tabs.Content>
-
-              <Tabs.Content value="alertas">
-                <div className="space-y-4">
-                  {produto.quantidade <= produto.quantidadeMinima && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <h4 className="font-bold text-red-800">Estoque Crítico</h4>
-                          <p className="text-red-700 text-sm">
-                            Estoque atual ({produto.quantidade}) está abaixo do mínimo ({produto.quantidadeMinima}).
-                            Recomendamos fazer um pedido de reposição imediatamente.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {produto.quantidade >= produto.quantidadeMaxima && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <Package className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <h4 className="font-bold text-blue-800">Estoque Excedente</h4>
-                          <p className="text-blue-700 text-sm">
-                            Estoque atual ({produto.quantidade}) excede o máximo ({produto.quantidadeMaxima}).
-                            Considere promover ou reduzir pedidos de compra.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {produto.diasSemMovimentacao && produto.diasSemMovimentacao > 30 && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <Clock className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <h4 className="font-bold text-yellow-800">Sem Movimentação</h4>
-                          <p className="text-yellow-700 text-sm">
-                            Este produto não tem movimentação há {produto.diasSemMovimentacao} dias.
-                            Pode ser um item de baixa rotatividade.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Tabs.Content>
-
-              <Tabs.Content value="fornecedores">
-                <div className="space-y-4">
-                  {produto.fornecedor ? (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Truck className="h-5 w-5 text-gray-500" />
-                        <div>
-                          <h4 className="font-bold">{produto.fornecedor.nome}</h4>
-                          <p className="text-sm text-gray-600">Fornecedor Padrão</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <span className="text-gray-600">Contato:</span>
-                          <span className="ml-2 font-medium">{produto.fornecedor.contato}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Email:</span>
-                          <span className="ml-2 font-medium">{produto.fornecedor.email}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Telefone:</span>
-                          <span className="ml-2 font-medium">{produto.fornecedor.telefone}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Prazo entrega:</span>
-                          <span className="ml-2 font-medium">{produto.fornecedor.prazoEntrega} dias</span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-center text-gray-500 py-8">
-                      Nenhum fornecedor cadastrado para este produto
-                    </p>
-                  )}
-                </div>
-              </Tabs.Content>
-            </div>
-          </Tabs.Root>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-
-// Componente Principal
-export default function AdminEstoque() {
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
-  const [filtroCategoria, setFiltroCategoria] = useState("todas");
-  const [filtroNivel, setFiltroNivel] = useState("todos");
-  const [ordenarPor, setOrdenarPor] = useState("nome");
-  const [ordenarDirecao, setOrdenarDirecao] = useState<"asc" | "desc">("asc");
-  const [paginaAtual, setPaginaAtual] = useState(1);
-  const [itensPorPagina, setItensPorPagina] = useState(20);
-  const [modalAberto, setModalAberto] = useState(false);
-  const [modalMovimentacaoAberto, setModalMovimentacaoAberto] = useState(false);
-  const [modalDetalhesAberto, setModalDetalhesAberto] = useState(false);
-  const [produtoSelecionado, setProdutoSelecionado] = useState<ProdutoEstoque | undefined>();
-  const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
-  const [tipoRelatorio, setTipoRelatorio] = useState("completo");
-  
-  const queryClient = useQueryClient();
-
-  // Buscar dados
-  const { data: estoque, isLoading } = useQuery({
-    queryKey: ["estoque"],
-    queryFn: async () => {
-      const response = await api.get("/estoque");
-      return response.data;
-    },
-  });
-
-  const { data: categorias } = useQuery({
-    queryKey: ["categorias"],
-    queryFn: async () => {
-      const response = await api.get("/categorias");
-      return response.data;
-    },
-  });
-
-  const { data: relatorio } = useQuery({
-    queryKey: ["estoque-relatorio"],
-    queryFn: async () => {
-      const response = await api.get("/estoque/relatorio");
-      return response.data;
-    },
-  });
-
-  // Calcular estatísticas em tempo real
-  const calcularNivelEstoque = (quantidade: number, minima: number, maxima: number) => {
-    if (quantidade === 0) return "CRITICO";
-    if (quantidade < minima) return "BAIXO";
-    if (quantidade > maxima) return "EXCESSO";
-    if (quantidade >= maxima * 0.8) return "ALTO";
-    return "NORMAL";
-  };
-
-  // Filtrar e ordenar produtos
-  const produtosProcessados = estoque?.data
-    ?.map((p: ProdutoEstoque) => ({
-      ...p,
-      nivelEstoque: calcularNivelEstoque(p.quantidade, p.quantidadeMinima || 5, p.quantidadeMaxima || 100),
-    }))
-    ?.filter((produto: ProdutoEstoque) => {
-      const buscaMatch = produto.nome.toLowerCase().includes(busca.toLowerCase()) ||
-                        produto.descricao?.toLowerCase().includes(busca.toLowerCase());
-      const statusMatch = filtroStatus === "todos" || produto.status === filtroStatus;
-      const categoriaMatch = filtroCategoria === "todas" || produto.id_categoria === filtroCategoria;
-      const nivelMatch = filtroNivel === "todos" || produto.nivelEstoque === filtroNivel;
-      return buscaMatch && statusMatch && categoriaMatch && nivelMatch;
-    })
-    ?.sort((a: ProdutoEstoque, b: ProdutoEstoque) => {
-      let comparacao = 0;
-      switch (ordenarPor) {
-        case "nome":
-          comparacao = a.nome.localeCompare(b.nome);
-          break;
-        case "quantidade":
-          comparacao = a.quantidade - b.quantidade;
-          break;
-        case "preco":
-          comparacao = a.preco - b.preco;
-          break;
-        case "valorTotal":
-          comparacao = (a.preco * a.quantidade) - (b.preco * b.quantidade);
-          break;
-        case "atualizadoEm":
-          comparacao = new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-          break;
-        default:
-          comparacao = a.nome.localeCompare(b.nome);
-      }
-      return ordenarDirecao === "asc" ? comparacao : -comparacao;
-    });
-
-  const totalPaginas = Math.ceil((produtosProcessados?.length || 0) / itensPorPagina);
-  const inicio = (paginaAtual - 1) * itensPorPagina;
-  const fim = inicio + itensPorPagina;
-  const produtosPagina = produtosProcessados?.slice(inicio, fim);
-
-  // Handlers
-  const handleSelecionarTodos = () => {
-    if (produtosSelecionados.length === produtosPagina?.length) {
-      setProdutosSelecionados([]);
-    } else {
-      setProdutosSelecionados(produtosPagina?.map((p: ProdutoEstoque) => p.id) || []);
-    }
-  };
-
-  const handleSelecionarProduto = (id: string) => {
-    if (produtosSelecionados.includes(id)) {
-      setProdutosSelecionados(produtosSelecionados.filter(pId => pId !== id));
-    } else {
-      setProdutosSelecionados([...produtosSelecionados, id]);
-    }
-  };
-
-  const handleMovimentacaoEmMassa = () => {
-    if (produtosSelecionados.length === 0) {
-      toast.error("Selecione pelo menos um produto");
-      return;
-    }
-    toast.success(`Movimentação em massa de ${produtosSelecionados.length} produtos em breve!`);
-  };
-
-  const handleExportarRelatorio = () => {
-    toast.success(`Relatório ${tipoRelatorio} exportado com sucesso!`);
-  };
-
-  const handleAtualizarTodos = () => {
-    queryClient.invalidateQueries({ queryKey: ["estoque"] });
-    toast.success("Dados atualizados com sucesso!");
-  };
-
-  // Cores para níveis de estoque
-  const getNivelInfo = (nivel: string) => {
-    const info: any = {
-      CRITICO: { label: "Crítico", cor: "bg-red-100 text-red-800", icon: AlertTriangle },
-      BAIXO: { label: "Baixo", cor: "bg-yellow-100 text-yellow-800", icon: AlertTriangle },
-      NORMAL: { label: "Normal", cor: "bg-green-100 text-green-800", icon: Package },
-      ALTO: { label: "Alto", cor: "bg-blue-100 text-blue-800", icon: Package },
-      EXCESSO: { label: "Excesso", cor: "bg-purple-100 text-purple-800", icon: Package },
-    };
-    return info[nivel] || info.NORMAL;
-  };
-
-  if (isLoading) {
+export const EstoqueImage = ({
+  src,
+  alt,
+  className = "",
+}: EstoqueImageProps) => {
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  if (!src || error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D4AF37]"></div>
+      <div
+        className={`bg-gray-200 flex items-center justify-center ${className}`}
+      >
+        <ImageIcon className="h-1/2 w-1/2 text-gray-400" />
       </div>
     );
   }
 
   return (
-    <div className="py-8">
-      {/* Header com Ações Rápidas */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestão de Estoque</h1>
-          <p className="text-gray-600">Controle completo de entradas, saídas e níveis de estoque</p>
+    <div className={`relative ${className}`}>
+      {loading && (
+        <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
         </div>
-        
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Ações em Massa - só aparece quando há produtos selecionados */}
-          {produtosSelecionados.length > 0 && (
-            <div className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
-              <span className="text-sm font-medium">{produtosSelecionados.length} selecionados</span>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`${className} ${loading ? "opacity-0" : "opacity-100"} transition-opacity duration-300 object-cover`}
+        onLoad={() => {
+          setLoading(false);
+        }}
+        onError={() => {
+          setError(true);
+          setLoading(false);
+        }}
+        crossOrigin="anonymous"
+      />
+    </div>
+  );
+};
+
+// Modal de Visualizar Produto
+const VisualizarProdutoModal = ({
+  isOpen,
+  onClose,
+  estoque,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  estoque: Estoque | null;
+}) => {
+  if (!isOpen || !estoque) return null;
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-AO", {
+      style: "currency",
+      currency: "AOA",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          onClick={onClose}
+        ></div>
+
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900">
+                Detalhes do Produto
+              </h3>
               <button
-                onClick={() => handleMovimentacaoEmMassa()}
-                className="p-1 hover:bg-white rounded"
-                title="Entrada em massa"
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-500"
               >
-                <PackagePlus className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => handleMovimentacaoEmMassa()}
-                className="p-1 hover:bg-white rounded"
-                title="Saída em massa"
-              >
-                <PackageMinus className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setProdutosSelecionados([])}
-                className="p-1 hover:bg-white rounded"
-                title="Limpar seleção"
-              >
-                <XCircle className="h-4 w-4" />
+                <X className="h-6 w-6" />
               </button>
             </div>
-          )}
 
-          {/* Botões de Ação */}
-          <button
-            onClick={() => {
-              setProdutoSelecionado(undefined);
-              setModalAberto(true);
-            }}
-            className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-2 rounded-lg hover:bg-[#c19b2c]"
-          >
-            <PackagePlus className="h-4 w-4" />
-            Novo Produto
-          </button>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Imagem */}
+              <div>
+                <div className="bg-gray-100 rounded-lg h-64 overflow-hidden flex items-center justify-center">
+                  <EstoqueImage
+                    src={estoque.foto || undefined}
+                    alt={estoque.imagemAlt || estoque.nome}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              </div>
 
-          <button
-            onClick={() => setModalMovimentacaoAberto(true)}
-            className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50"
-            disabled={!produtoSelecionado}
-          >
-            <ArrowUpDown className="h-4 w-4" />
-            Movimentar
-          </button>
+              {/* Informações */}
+              <div>
+                <h4 className="text-lg font-semibold mb-4">{estoque.nome}</h4>
 
-          <Select.Root value={tipoRelatorio} onValueChange={setTipoRelatorio}>
-            <Select.Trigger className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50">
-              <Select.Value />
-            </Select.Trigger>
-            <Select.Portal>
-              <Select.Content className="bg-white border rounded-lg shadow-lg overflow-hidden z-50">
-                <Select.Viewport className="p-1">
-                  {["completo", "movimentacoes", "alertas", "previsao"].map((tipo) => (
-                    <Select.Item
-                      key={tipo}
-                      value={tipo}
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer rounded"
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-gray-600">Categoria</label>
+                    <p className="font-medium">
+                      {estoque.Categoria?.nome ||
+                        estoque.categoria ||
+                        "Sem categoria"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-600">Preço</label>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`font-bold ${
+                          estoque.preco
+                            ? "text-gray-400 line-through"
+                            : "text-gray-900"
+                        }`}
+                      >
+                        {formatCurrency(estoque.preco)}
+                      </span>
+                      {estoque.preco && estoque.preco > 0 && (
+                        <>
+                          <span className="font-bold text-green-600">
+                            {formatCurrency(estoque.preco)}
+                          </span>
+                          {estoque.preco && (
+                            <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                              -{estoque.preco.toFixed(1)}%
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-600">Estoque</label>
+                    <p
+                      className={`font-medium ${
+                        estoque.quantidade === 0
+                          ? "text-red-600"
+                          : estoque.quantidade < 10
+                            ? "text-yellow-600"
+                            : "text-green-600"
+                      }`}
                     >
-                      <Select.ItemText>
-                        {tipo === "completo" ? "Relatório Completo" :
-                         tipo === "movimentacoes" ? "Movimentações" :
-                         tipo === "alertas" ? "Alertas" :
-                         "Previsão de Estoque"}
-                      </Select.ItemText>
-                    </Select.Item>
-                  ))}
-                </Select.Viewport>
-              </Select.Content>
-            </Select.Portal>
-          </Select.Root>
+                      {estoque.quantidade} unidades
+                    </p>
+                  </div>
 
-          <button
-            onClick={handleExportarRelatorio}
-            className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50"
+                  <div>
+                    <label className="text-sm text-gray-600">Status</label>
+                    <div>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          estoque.status === "ATIVO"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {estoque.status === "ATIVO" ? "Ativo" : "Inativo"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-600">Descrição</label>
+                    <p className="text-gray-700 mt-1 whitespace-pre-line">
+                      {estoque.descricao || "Sem descrição"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-600">
+                      Data de Criação
+                    </label>
+                    <p className="font-medium">
+                      {new Date(estoque.criadoEm).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Modal de Confirmação de Exclusão
+const ConfirmarExclusaoModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  produto,
+  loading,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  produto: Estoque | null;
+  loading?: boolean;
+}) => {
+  if (!isOpen || !produto) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          onClick={onClose}
+        ></div>
+
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="sm:flex sm:items-start">
+              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                <AlertOctagon className="h-6 w-6 text-red-600" />
+              </div>
+              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Confirmar Exclusão
+                </h3>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-500">
+                    Tem certeza que deseja excluir o produto{" "}
+                    <strong>{produto.nome}</strong>?
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Esta ação não pode ser desfeita.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={loading}
+              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Excluindo...
+                </>
+              ) : (
+                "Sim, Excluir"
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TabelaProdutos = ({
+  produtos,
+  loading,
+  onVisualizar,
+  onEditar,
+  onExcluir,
+}: {
+  produtos: any;
+  loading: boolean;
+  onVisualizar: (produto: Estoque) => void;
+  onEditar: (produto: Estoque) => void;
+  onExcluir: (produto: Estoque) => void;
+}) => {
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-AO", {
+      style: "currency",
+      currency: "AOA",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-[#D4AF37]" />
+      </div>
+    );
+  }
+
+  const produtosArray = produtos?.data?.data
+    ? produtos?.data
+    : produtos && Array.isArray(produtos?.data)
+      ? produtos.data
+      : [];
+
+  // Quando os produtos mudarem
+  useEffect(() => {}, [produtosArray]);
+
+  if (produtosArray?.length === 0) {
+    return (
+      <div className="text-center py-12 bg-white rounded-xl">
+        <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          Nenhum produto encontrado
+        </h3>
+        <p className="text-gray-600">
+          Comece adicionando um novo produto ou ajuste os filtros.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Produto
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Categoria
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Preço
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Estoque
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Ações
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {produtosArray?.map((produto: Estoque) => (
+              <tr key={produto.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <div className="h-10 w-10 flex-shrink-0">
+                      <EstoqueImage
+                        src={produto.foto || undefined}
+                        alt={produto.nome}
+                        className="h-10 w-10 rounded-lg object-cover"
+                      />
+                    </div>
+                    <div className="ml-4">
+                      <div className="text-sm font-medium text-gray-900">
+                        {produto.nome}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        ID: {produto.id.slice(0, 8)}...
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {produto.Categoria?.nome ||
+                      produto.categoria ||
+                      "Sem categoria"}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {formatCurrency(produto.preco)}
+                  </div>
+                  {produto.preco && (
+                    <div className="text-sm text-green-600">
+                      {formatCurrency(produto.preco)}
+                    </div>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      produto.quantidade === 0
+                        ? "bg-red-100 text-red-800"
+                        : produto.quantidade < 10
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-green-100 text-green-800"
+                    }`}
+                  >
+                    {produto.quantidade} unid.
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      produto.status === "ATIVO"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {produto.status === "ATIVO" ? "Ativo" : "Inativo"}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <button
+                    onClick={() => onVisualizar(produto)}
+                    className="text-gray-600 hover:text-gray-900 mr-3"
+                    title="Visualizar"
+                  >
+                    <Eye className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => onEditar(produto)}
+                    className="text-blue-600 hover:text-blue-900 mr-3"
+                    title="Editar"
+                  >
+                    <Edit className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => onExcluir(produto)}
+                    className="text-red-600 hover:text-red-900"
+                    title="Excluir"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// Componente Principal
+export default function AdminEstoque() {
+  const [filtroCategoria, setFiltroCategoria] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [ordenar, setOrdenar] = useState("criadoEm_desc");
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [termoBusca, setTermoBusca] = useState("");
+  const [debouncedTermo, setDebouncedTermo] = useState("");
+  const [modalVisualizar, setModalVisualizar] = useState(false);
+  const [modalExcluir, setModalExcluir] = useState(false);
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Estoque | null>(
+    null,
+  );
+
+  const [modalEditarAberto, setModalEditarAberto] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleEditar = (produto: Estoque) => {
+    setProdutoSelecionado(produto);
+    setModalEditarAberto(true);
+  };
+
+  const handleProdutoAtualizado = async () => {
+    queryClient.invalidateQueries({ queryKey: ["produtos"] });
+    queryClient.invalidateQueries({ queryKey: ["getProdutosCategorias"] });
+    queryClient.invalidateQueries({ queryKey: ["estatisticas-produtos"] });
+
+    await queryClient.refetchQueries({ queryKey: ["produtos"] });
+
+    toast.success("Lista de produtos atualizada!");
+  };
+
+  const [paginacao] = useState<Paginacao>({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  });
+  const [, setError] = useState<string | null>(null);
+  const [,] = useState<ModalData>({ type: null });
+  const [excluindo, setExcluindo] = useState(false);
+  const token = useAuthStore((state) => state.token);
+  const [,] = useState({
+    nome: "",
+    categoria: "Beleza",
+    preco: 0,
+    quantidade: 0,
+    status: "",
+  });
+
+  // Debounce para busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTermo(termoBusca);
+      setPaginaAtual(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [termoBusca]);
+
+  const { data: estoque } = useQuery({
+    queryKey: ["estoque"],
+    queryFn: async () => {
+      const response = await api.get("/estoque/get");
+      return response.data;
+    },
+    staleTime: 0,
+  });
+
+  useEffect(() => {
+    if (!token) {
+      setError("Faça login para acessar os produtos");
+      return;
+    }
+  }, [
+    paginaAtual,
+    debouncedTermo,
+    filtroCategoria,
+    filtroStatus,
+    ordenar,
+    token,
+  ]);
+
+  const { data: categorias, isLoading: loadingCategorias } = useQuery({
+    queryKey: ["categorias"],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/categorias");
+
+        if (response.data?.success && Array.isArray(response.data.data)) {
+          return response.data.data;
+        } else if (Array.isArray(response.data)) {
+          return response.data;
+        }
+        return [];
+      } catch (error) {
+        console.error("Erro ao buscar categorias:", error);
+        return [];
+      }
+    },
+  });
+
+  const { data: estatisticas } = useQuery({
+    queryKey: ["estatisticas_produtos"],
+    queryFn: async () => {
+      const response = await api.get("/estoque/get");
+      return response;
+    },
+  });
+
+  // Calcular estatísticas
+  const totalProdutos = estatisticas?.data?.total || 0;
+  const produtosSemEstoque =
+    estatisticas?.data?.data?.filter((p: any) => p.quantidade === 0).length ||
+    0;
+  const produtosBaixoEstoque =
+    estatisticas?.data?.data?.filter(
+      (p: any) => p.quantidade > 0 && p.quantidade < 10,
+    ).length || 0;
+
+  const handleVisualizar = (produto: Estoque) => {
+    setProdutoSelecionado(produto);
+    setModalVisualizar(true);
+  };
+
+  const handleExcluir = (produto: Estoque) => {
+    setProdutoSelecionado(produto);
+    setModalExcluir(true);
+  };
+
+  const confirmarExclusao = async () => {
+    if (!produtoSelecionado) return;
+
+    setExcluindo(true);
+    try {
+      await api.delete(`/estoque/${produtoSelecionado.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      toast.success("Produto excluído com sucesso!");
+      setModalExcluir(false);
+      setProdutoSelecionado(null);
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message || "Erro ao excluir produto";
+      toast.error(errorMessage);
+    } finally {
+      setExcluindo(false);
+    }
+  };
+
+  const handleExportar = () => {
+    if (!estoque || estoque.length === 0) return;
+
+    const csv = [
+      [
+        "ID",
+        "Nome",
+        "Categoria",
+        "Preço",
+        "Preço com Desconto",
+        "Estoque",
+        "Status",
+      ],
+      estoque?.map((p: any) => [
+        p.id,
+        p.nome,
+        p.Categoria?.nome || p.categoria || "",
+        p.preco.toString(),
+        p.precoDesconto?.toString() || "",
+        p.quantidade.toString(),
+        p.status === "ATIVO",
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `produtos-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const totalPaginas = paginacao.totalPages;
+
+  return (
+    <>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Gestão de Estoque
+          </h1>
+          <p className="text-gray-600">Gerencie todos os produtos da loja</p>
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            onClick={handleExportar}
+            variant="outline"
+            className="flex items-center gap-2"
           >
-            <FileSpreadsheet className="h-4 w-4" />
+            <Download className="h-5 w-5" />
             Exportar
-          </button>
+          </Button>
 
-          <button
-            onClick={handleAtualizarTodos}
-            className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50"
+          <Button
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ["produtos"] });
+              queryClient.refetchQueries({ queryKey: ["produtos"] });
+              toast.info("Atualizando lista...");
+            }}
+            variant="outline"
+            className="flex items-center gap-2"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-5 w-5" />
             Atualizar
-          </button>
+          </Button>
+
+          <NovoProdutoEstoqueModal
+            onProdutoCriado={() => {
+              queryClient.invalidateQueries({ queryKey: ["produtos"] });
+              queryClient.invalidateQueries({
+                queryKey: ["getProdutosCategorias"],
+              });
+              queryClient.invalidateQueries({
+                queryKey: ["estatisticas-produtos"],
+              });
+            }}
+          >
+            <Button className="flex items-center gap-2 bg-[#D4AF37] text-white px-4 py-3 rounded-lg hover:bg-[#c19b2c] transition">
+              <Plus className="h-5 w-5" />
+              Novo Produto
+            </Button>
+          </NovoProdutoEstoqueModal>
         </div>
       </div>
 
-      {/* Cards de Estatísticas Avançadas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl shadow p-4 border-l-4 border-[#D4AF37]">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="bg-white rounded-xl shadow p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total em Estoque</p>
-              <p className="text-2xl font-bold">KZ {relatorio?.data?.valorTotalEstoque?.toLocaleString() || "0"}</p>
+              <p className="text-sm text-gray-600">Total Produtos</p>
+              <p className="text-2xl font-bold">{totalProdutos}</p>
             </div>
-            <DollarSign className="h-8 w-8 text-[#D4AF37]" />
-          </div>
-          <div className="mt-2 text-xs text-gray-500">
-            {relatorio?.data?.totalProdutos || 0} produtos
+            <Package className="h-8 w-8 text-[#D4AF37]" />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow p-4 border-l-4 border-red-500">
+        <div className="bg-white rounded-xl shadow p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Crítico / Baixo</p>
+              <p className="text-sm text-gray-600">Categorias</p>
               <p className="text-2xl font-bold">
-                {(relatorio?.data?.produtosCriticos || 0) + (relatorio?.data?.produtosBaixos || 0)}
+                {loadingCategorias ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  categorias?.length || 0
+                )}
               </p>
             </div>
-            <AlertTriangle className="h-8 w-8 text-red-500" />
-          </div>
-          <div className="mt-2 text-xs text-gray-500">
-            {relatorio?.data?.produtosCriticos || 0} críticos · {relatorio?.data?.produtosBaixos || 0} baixos
+            <Tag className="h-8 w-8 text-blue-500" />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow p-4 border-l-4 border-green-500">
+        <div className="bg-white rounded-xl shadow p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Giro de Estoque</p>
-              <p className="text-2xl font-bold">{relatorio?.data?.mediaGiroEstoque?.toFixed(1) || "0"}x</p>
+              <p className="text-sm text-gray-600">Baixo Estoque</p>
+              <p className="text-2xl font-bold">{produtosBaixoEstoque}</p>
             </div>
-            <TrendingUp className="h-8 w-8 text-green-500" />
-          </div>
-          <div className="mt-2 text-xs text-gray-500">
-            {relatorio?.data?.diasCobertura || 0} dias de cobertura
+            <AlertCircle className="h-8 w-8 text-yellow-500" />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow p-4 border-l-4 border-purple-500">
+        <div className="bg-white rounded-xl shadow p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Sem Movimento</p>
-              <p className="text-2xl font-bold">{relatorio?.data?.produtosSemMovimento || 0}</p>
+              <p className="text-sm text-gray-600">Sem Estoque</p>
+              <p className="text-2xl font-bold">{produtosSemEstoque}</p>
             </div>
-            <Clock className="h-8 w-8 text-purple-500" />
-          </div>
-          <div className="mt-2 text-xs text-gray-500">
-            há mais de 30 dias
+            <AlertCircle className="h-8 w-8 text-red-500" />
           </div>
         </div>
       </div>
 
-      {/* Filtros Avançados */}
+      {/* Filtros e Busca */}
       <div className="bg-white rounded-xl shadow p-6 mb-6">
-        <div className="grid md:grid-cols-12 gap-4">
+        <div className="grid md:grid-cols-4 gap-4 mb-4">
           {/* Busca */}
-          <div className="md:col-span-4">
-            <label className="block text-sm font-medium mb-2">Buscar Produto</label>
+          <div className="md:col-span-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Nome, descrição, código..."
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                placeholder="Buscar produtos por nome, descrição..."
+                value={termoBusca}
+                onChange={(e) => setTermoBusca(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
               />
             </div>
           </div>
 
           {/* Filtro Categoria */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-2">Categoria</label>
-            <select
-              value={filtroCategoria}
-              onChange={(e) => setFiltroCategoria(e.target.value)}
-              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-            >
-              <option value="todas">Todas categorias</option>
-              {categorias?.data?.map((cat: any) => (
-                <option key={cat.id} value={cat.id}>{cat.nome}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filtro Nível Estoque */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-2">Nível Estoque</label>
-            <select
-              value={filtroNivel}
-              onChange={(e) => setFiltroNivel(e.target.value)}
-              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-            >
-              <option value="todos">Todos níveis</option>
-              <option value="CRITICO">Crítico</option>
-              <option value="BAIXO">Baixo</option>
-              <option value="NORMAL">Normal</option>
-              <option value="ALTO">Alto</option>
-              <option value="EXCESSO">Excesso</option>
-            </select>
+          <div>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <select
+                value={filtroCategoria}
+                onChange={(e) => {
+                  setFiltroCategoria(e.target.value);
+                  setPaginaAtual(1);
+                }}
+                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              >
+                <option value="todos">Todas categorias</option>
+                {Array.isArray(categorias) && categorias.length > 0 ? (
+                  categorias?.map((categoria: Categoria) => (
+                    <option key={categoria.id} value={categoria.id}>
+                      {categoria.nome}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    Carregando categorias...
+                  </option>
+                )}
+              </select>
+            </div>
           </div>
 
           {/* Filtro Status */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-2">Status</label>
-            <select
-              value={filtroStatus}
-              onChange={(e) => setFiltroStatus(e.target.value)}
-              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-            >
-              <option value="todos">Todos status</option>
-              <option value="ATIVO">Ativo</option>
-              <option value="INATIVO">Inativo</option>
-              <option value="BLOQUEADO">Bloqueado</option>
-            </select>
-          </div>
-
-          {/* Ordenação */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-2">Ordenar por</label>
-            <div className="flex items-center gap-2">
+          <div>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <select
-                value={ordenarPor}
-                onChange={(e) => setOrdenarPor(e.target.value)}
-                className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                value={filtroStatus}
+                onChange={(e) => {
+                  setFiltroStatus(e.target.value);
+                  setPaginaAtual(1);
+                }}
+                className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
               >
-                <option value="nome">Nome</option>
-                <option value="quantidade">Quantidade</option>
-                <option value="preco">Preço</option>
-                <option value="valorTotal">Valor Total</option>
-                <option value="atualizadoEm">Última atualização</option>
+                <option value="todos">Todos status</option>
+                <option value="ATIVO">Ativo</option>
+                <option value="INATIVO">Inativo</option>
               </select>
-              <button
-                onClick={() => setOrdenarDirecao(ordenarDirecao === "asc" ? "desc" : "asc")}
-                className="p-2 border rounded-lg hover:bg-gray-50"
-                title={ordenarDirecao === "asc" ? "Ordenar descendente" : "Ordenar ascendente"}
-              >
-                {ordenarDirecao === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Filtros Ativos */}
-        {(busca || filtroCategoria !== "todas" || filtroNivel !== "todos" || filtroStatus !== "todos") && (
-          <div className="mt-4 flex items-center gap-2 text-sm">
-            <span className="text-gray-600">Filtros ativos:</span>
-            {busca && (
-              <span className="bg-gray-100 px-3 py-1 rounded-full flex items-center gap-1">
-                Busca: {busca}
-                <button onClick={() => setBusca("")} className="hover:text-red-500">
-                  <XCircle className="h-3 w-3" />
-                </button>
-              </span>
-            )}
-            {filtroCategoria !== "todas" && (
-              <span className="bg-gray-100 px-3 py-1 rounded-full flex items-center gap-1">
-                Categoria: {categorias?.data?.find((c: any) => c.id === filtroCategoria)?.nome}
-                <button onClick={() => setFiltroCategoria("todas")} className="hover:text-red-500">
-                  <XCircle className="h-3 w-3" />
-                </button>
-              </span>
-            )}
-            {filtroNivel !== "todos" && (
-              <span className="bg-gray-100 px-3 py-1 rounded-full flex items-center gap-1">
-                Nível: {filtroNivel}
-                <button onClick={() => setFiltroNivel("todos")} className="hover:text-red-500">
-                  <XCircle className="h-3 w-3" />
-                </button>
-              </span>
-            )}
-            {filtroStatus !== "todos" && (
-              <span className="bg-gray-100 px-3 py-1 rounded-full flex items-center gap-1">
-                Status: {filtroStatus}
-                <button onClick={() => setFiltroStatus("todos")} className="hover:text-red-500">
-                  <XCircle className="h-3 w-3" />
-                </button>
-              </span>
-            )}
+        {/* Ordenação e Info */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="text-sm text-gray-600">
+            {paginacao.total} produtos encontrados
           </div>
-        )}
-      </div>
 
-      {/* Tabela de Estoque */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="p-4 w-10">
-                  <input
-                    type="checkbox"
-                    checked={produtosSelecionados.length === produtosPagina?.length && produtosPagina?.length > 0}
-                    onChange={handleSelecionarTodos}
-                    className="rounded border-gray-300 text-[#D4AF37] focus:ring-[#D4AF37]"
-                  />
-                </th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Produto</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Categoria</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Estoque Atual</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Mín / Máx</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Nível</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Valor Total</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Última Mov.</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Status</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-700">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {produtosPagina?.map((produto: ProdutoEstoque) => {
-                const NivelIcon = getNivelInfo(produto.nivelEstoque).icon;
-                const valorTotal = produto.preco * produto.quantidade;
-                
-                return (
-                  <tr 
-                    key={produto.id} 
-                    className={`border-b hover:bg-gray-50 ${
-                      produtosSelecionados.includes(produto.id) ? "bg-[#D4AF37]/5" : ""
-                    }`}
-                  >
-                    <td className="p-4">
-                      <input
-                        type="checkbox"
-                        checked={produtosSelecionados.includes(produto.id)}
-                        onChange={() => handleSelecionarProduto(produto.id)}
-                        className="rounded border-gray-300 text-[#D4AF37] focus:ring-[#D4AF37]"
-                      />
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                          {produto.ImagemProduto?.[0]?.url ? (
-                            <img
-                              src={produto.ImagemProduto[0].url}
-                              alt={produto.nome}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="h-5 w-5 text-gray-400" />
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <button
-                            onClick={() => {
-                              setProdutoSelecionado(produto);
-                              setModalDetalhesAberto(true);
-                            }}
-                            className="font-medium hover:text-[#D4AF37] text-left"
-                          >
-                            {produto.nome}
-                          </button>
-                          <div className="text-xs text-gray-400">{produto.id.slice(0, 8)}...</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm">{produto.categoria?.nome || "-"}</span>
-                    </td>
-                    <td className="p-4">
-                      <div>
-                        <div className={`font-bold text-lg ${
-                          produto.quantidade === 0 ? "text-red-600" :
-                          produto.quantidade < (produto.quantidadeMinima || 5) ? "text-yellow-600" :
-                          produto.quantidade > (produto.quantidadeMaxima || 100) ? "text-blue-600" :
-                          "text-green-600"
-                        }`}>
-                          {produto.quantidade}
-                        </div>
-                        <div className="w-24 bg-gray-200 rounded-full h-1.5 mt-1">
-                          <div
-                            className={`h-1.5 rounded-full ${
-                              produto.quantidade === 0 ? "bg-red-500" :
-                              produto.quantidade < (produto.quantidadeMinima || 5) ? "bg-yellow-500" :
-                              produto.quantidade > (produto.quantidadeMaxima || 100) ? "bg-blue-500" :
-                              "bg-green-500"
-                            }`}
-                            style={{
-                              width: `${Math.min(
-                                (produto.quantidade / (produto.quantidadeMaxima || 100)) * 100,
-                                100
-                              )}%`
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-sm">
-                        <div>Mín: {produto.quantidadeMinima || 5}</div>
-                        <div>Máx: {produto.quantidadeMaxima || 100}</div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getNivelInfo(produto.nivelEstoque).cor} flex items-center gap-1 w-fit`}>
-                        <NivelIcon className="h-3 w-3" />
-                        {getNivelInfo(produto.nivelEstoque).label}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-medium">KZ {valorTotal.toLocaleString()}</div>
-                      <div className="text-xs text-gray-500">KZ {produto.preco}/un</div>
-                    </td>
-                    <td className="p-4">
-                      <div>
-                        <div className="text-sm">{produto.ultimaMovimentacao || "Nunca"}</div>
-                        {produto.diasSemMovimentacao && produto.diasSemMovimentacao > 0 && (
-                          <div className="text-xs text-gray-500">
-                            {produto.diasSemMovimentacao} dias sem mov.
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        produto.status === "ATIVO" ? "bg-green-100 text-green-800" :
-                        produto.status === "INATIVO" ? "bg-gray-100 text-gray-800" :
-                        "bg-red-100 text-red-800"
-                      }`}>
-                        {produto.status}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-1">
-                        <Tooltip.Provider>
-                          <Tooltip.Root>
-                            <Tooltip.Trigger asChild>
-                              <button
-                                onClick={() => {
-                                  setProdutoSelecionado(produto);
-                                  setModalDetalhesAberto(true);
-                                }}
-                                className="p-1 hover:bg-gray-100 rounded"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </button>
-                            </Tooltip.Trigger>
-                            <Tooltip.Portal>
-                              <Tooltip.Content className="bg-gray-900 text-white text-xs px-2 py-1 rounded">
-                                Ver detalhes
-                              </Tooltip.Content>
-                            </Tooltip.Portal>
-                          </Tooltip.Root>
-
-                          <Tooltip.Root>
-                            <Tooltip.Trigger asChild>
-                              <button
-                                onClick={() => {
-                                  setProdutoSelecionado(produto);
-                                  setModalMovimentacaoAberto(true);
-                                }}
-                                className="p-1 hover:bg-gray-100 rounded"
-                              >
-                                <ArrowUpDown className="h-4 w-4" />
-                              </button>
-                            </Tooltip.Trigger>
-                            <Tooltip.Portal>
-                              <Tooltip.Content className="bg-gray-900 text-white text-xs px-2 py-1 rounded">
-                                Movimentar
-                              </Tooltip.Content>
-                            </Tooltip.Portal>
-                          </Tooltip.Root>
-
-                          <Tooltip.Root>
-                            <Tooltip.Trigger asChild>
-                              <button
-                                onClick={() => {
-                                  setProdutoSelecionado(produto);
-                                  setModalAberto(true);
-                                }}
-                                className="p-1 hover:bg-gray-100 rounded"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                            </Tooltip.Trigger>
-                            <Tooltip.Portal>
-                              <Tooltip.Content className="bg-gray-900 text-white text-xs px-2 py-1 rounded">
-                                Editar
-                              </Tooltip.Content>
-                            </Tooltip.Portal>
-                          </Tooltip.Root>
-
-                          <Tooltip.Root>
-                            <Tooltip.Trigger asChild>
-                              <button
-                                onClick={() => {
-                                  if (confirm(`Deseja realmente excluir ${produto.nome}?`)) {
-                                    toast.success("Produto excluído com sucesso!");
-                                  }
-                                }}
-                                className="p-1 hover:bg-red-50 text-red-600 rounded"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </Tooltip.Trigger>
-                            <Tooltip.Portal>
-                              <Tooltip.Content className="bg-gray-900 text-white text-xs px-2 py-1 rounded">
-                                Excluir
-                              </Tooltip.Content>
-                            </Tooltip.Portal>
-                          </Tooltip.Root>
-                        </Tooltip.Provider>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Paginação e Info */}
-        <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t gap-4">
           <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-600">
-              Mostrando {inicio + 1}-{Math.min(fim, produtosProcessados?.length || 0)} de {produtosProcessados?.length || 0} produtos
-            </div>
-            
             <select
-              value={itensPorPagina}
+              value={ordenar}
               onChange={(e) => {
-                setItensPorPagina(parseInt(e.target.value));
+                setOrdenar(e.target.value);
                 setPaginaAtual(1);
               }}
-              className="border rounded-lg px-2 py-1 text-sm"
+              className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
             >
-              <option value="10">10 por página</option>
-              <option value="20">20 por página</option>
-              <option value="50">50 por página</option>
-              <option value="100">100 por página</option>
+              <option value="criadoEm_desc">Mais recentes</option>
+              <option value="criadoEm_asc">Mais antigos</option>
+              <option value="nome_asc">Nome (A-Z)</option>
+              <option value="nome_desc">Nome (Z-A)</option>
+              <option value="preco_asc">Preço (menor p/ maior)</option>
+              <option value="preco_desc">Preço (maior p/ menor)</option>
+              <option value="quantidade_asc">Estoque (menor p/ maior)</option>
+              <option value="quantidade_desc">Estoque (maior p/ menor)</option>
             </select>
           </div>
-
-          {totalPaginas > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPaginaAtual(1)}
-                disabled={paginaAtual === 1}
-                className="p-2 border rounded disabled:opacity-50"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                <ChevronLeft className="h-4 w-4 -ml-2" />
-              </button>
-              <button
-                onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
-                disabled={paginaAtual === 1}
-                className="p-2 border rounded disabled:opacity-50"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
-                  let pageNum;
-                  if (totalPaginas <= 5) {
-                    pageNum = i + 1;
-                  } else if (paginaAtual <= 3) {
-                    pageNum = i + 1;
-                  } else if (paginaAtual >= totalPaginas - 2) {
-                    pageNum = totalPaginas - 4 + i;
-                  } else {
-                    pageNum = paginaAtual - 2 + i;
-                  }
-                  
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setPaginaAtual(pageNum)}
-                      className={`w-8 h-8 flex items-center justify-center rounded ${
-                        paginaAtual === pageNum
-                          ? 'bg-[#D4AF37] text-white'
-                          : 'border hover:bg-gray-50'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              
-              <button
-                onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))}
-                disabled={paginaAtual === totalPaginas}
-                className="p-2 border rounded disabled:opacity-50"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setPaginaAtual(totalPaginas)}
-                disabled={paginaAtual === totalPaginas}
-                className="p-2 border rounded disabled:opacity-50"
-              >
-                <ChevronRight className="h-4 w-4" />
-                <ChevronRight className="h-4 w-4 -ml-2" />
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Alertas de Estoque */}
-      {relatorio?.data?.produtosCriticos > 0 && (
-        <div className="mt-6 bg-red-50 border border-red-200 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <AlertTriangle className="h-6 w-6 text-red-600 mr-2" />
-              <h3 className="font-bold text-red-900">Alertas Críticos</h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
-                {relatorio.data.produtosCriticos} críticos
-              </span>
-              <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                {relatorio.data.produtosBaixos} baixos
-              </span>
-            </div>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {produtosProcessados
-              ?.filter((p: ProdutoEstoque) => p.nivelEstoque === "CRITICO" || p.nivelEstoque === "BAIXO")
-              ?.slice(0, 6)
-              ?.map((produto: ProdutoEstoque) => (
-                <div key={produto.id} className="bg-white p-4 rounded-lg border-l-4 border-red-500 shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium">{produto.nome}</h4>
-                      <p className="text-xs text-gray-500 mt-1">{produto.categoria?.nome}</p>
-                    </div>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      produto.nivelEstoque === "CRITICO" 
-                        ? "bg-red-100 text-red-800" 
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}>
-                      {produto.nivelEstoque}
-                    </span>
-                  </div>
-                  
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-600">Atual:</span>
-                      <span className="ml-2 font-bold">{produto.quantidade}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Mínimo:</span>
-                      <span className="ml-2 font-bold">{produto.quantidadeMinima || 5}</span>
-                    </div>
-                  </div>
+      {/* Tabela de Produtos */}
+      <TabelaProdutos
+        produtos={estoque}
+        loading={false}
+        onVisualizar={handleVisualizar}
+        onEditar={handleEditar}
+        onExcluir={handleExcluir}
+      />
 
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={() => {
-                        setProdutoSelecionado(produto);
-                        setModalMovimentacaoAberto(true);
-                      }}
-                      className="flex-1 text-sm bg-[#D4AF37] text-white px-3 py-1.5 rounded hover:bg-[#c19b2c]"
-                    >
-                      Repor
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProdutoSelecionado(produto);
-                        setModalDetalhesAberto(true);
-                      }}
-                      className="text-sm border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50"
-                    >
-                      Ver
-                    </button>
-                  </div>
-                </div>
-              ))}
-          </div>
+      <ModalEditarEstoque
+        isOpen={modalEditarAberto}
+        onClose={() => {
+          setModalEditarAberto(false);
+          setProdutoSelecionado(null);
+        }}
+        produto={produtoSelecionado}
+        categorias={categorias || []}
+        onProdutoAtualizado={handleProdutoAtualizado}
+      />
+
+      {/* Paginação */}
+      {totalPaginas > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <Button
+            variant="outline"
+            onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
+            disabled={paginaAtual === 1}
+            className="flex items-center gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Anterior
+          </Button>
+
+          <span className="px-4 py-2 text-sm">
+            Página {paginaAtual} de {totalPaginas}
+          </span>
+
+          <Button
+            variant="outline"
+            onClick={() => setPaginaAtual((p) => Math.min(totalPaginas, p + 1))}
+            disabled={paginaAtual === totalPaginas}
+            className="flex items-center gap-2"
+          >
+            Próxima
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       )}
 
       {/* Modais */}
-      <ModalProdutoEstoque
-        produto={produtoSelecionado}
-        open={modalAberto}
-        onOpenChange={setModalAberto}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["estoque"] });
-          setProdutoSelecionado(undefined);
+      <VisualizarProdutoModal
+        isOpen={modalVisualizar}
+        onClose={() => {
+          setModalVisualizar(false);
+          setProdutoSelecionado(null);
         }}
+        estoque={produtoSelecionado}
       />
 
-      <ModalMovimentacao
-        produto={produtoSelecionado}
-        open={modalMovimentacaoAberto}
-        onOpenChange={setModalMovimentacaoAberto}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["estoque"] });
-          setProdutoSelecionado(undefined);
+      <ConfirmarExclusaoModal
+        isOpen={modalExcluir}
+        onClose={() => {
+          setModalExcluir(false);
+          setProdutoSelecionado(null);
         }}
-      />
-
-      <ModalDetalhesProduto
+        onConfirm={confirmarExclusao}
         produto={produtoSelecionado}
-        open={modalDetalhesAberto}
-        onOpenChange={setModalDetalhesAberto}
+        loading={excluindo}
       />
-    </div>
+    </>
   );
 }

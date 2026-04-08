@@ -1,4 +1,3 @@
-import { produtosRoute } from "@/modules/services/api/routes/produtos";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { categoriaRoutes } from "@/modules/services/api/routes/categorias";
 import { Label } from "@/components/ui/label";
@@ -17,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Upload, X } from "lucide-react";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { api } from "@/modules/services/api/axios";
+import { estoqueRoute } from "@/modules/services/api/routes/estoque";
 
 interface NovoProdutoModalProps {
   children: React.ReactNode;
@@ -24,7 +24,7 @@ interface NovoProdutoModalProps {
   onProdutoCriado?: () => void;
 }
 
-export const NovoProdutoModal = ({
+export const NovoProdutoEstoqueModal = ({
   children,
   onProdutoCriado,
 }: NovoProdutoModalProps) => {
@@ -243,7 +243,7 @@ export const NovoProdutoModal = ({
         foto: imagem,
       };
 
-      return await produtosRoute.createProduto(produtoData as any);
+      return await estoqueRoute.createProduto(produtoData as any);
     },
 
     onSuccess: () => {
