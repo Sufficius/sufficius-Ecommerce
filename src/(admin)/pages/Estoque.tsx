@@ -952,7 +952,6 @@ export default function AdminEstoque() {
         onEditar={handleEditar}
         onExcluir={handleExcluir}
       />
-
       <ModalEditarEstoque
         isOpen={modalEditarAberto}
         onClose={() => {
