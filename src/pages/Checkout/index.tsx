@@ -30,14 +30,16 @@ import UploadArea from "@/(admin)/components/upload-area";
 import { api } from "@/modules/services/api/axios";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Componente de imagem com fallback e loading
+// ============================================
+// COMPONENTE DE IMAGEM COM FALLBACK
+// ============================================
 const CartItemImage = ({ src, alt }: { src?: string; alt: string }) => {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
 
   if (!src || error) {
     return (
-      <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
+      <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl flex items-center justify-center">
         <ShoppingCartIcon className="w-8 h-8 text-gray-400" />
       </div>
     );
@@ -46,7 +48,7 @@ const CartItemImage = ({ src, alt }: { src?: string; alt: string }) => {
   return (
     <div className="relative w-20 h-20">
       {loading && (
-        <div className="absolute inset-0 bg-gray-200 rounded-xl animate-pulse" />
+        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
       )}
       <img
         src={src}
@@ -59,9 +61,11 @@ const CartItemImage = ({ src, alt }: { src?: string; alt: string }) => {
   );
 };
 
-// Componente de estatísticas do pedido
+// ============================================
+// COMPONENTE DE ESTATÍSTICAS
+// ============================================
 const OrderStats = ({ total, quantidade }: { total: number; quantidade: number }) => (
-  <div className="grid grid-cols-2 gap-4 mb-6">
+  <div className="grid grid-cols-1 xs:grid-cols-2 gap-4 mb-6">
     <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 p-4 rounded-xl">
       <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
         <ShoppingCartIcon className="w-4 h-4" />
@@ -79,15 +83,17 @@ const OrderStats = ({ total, quantidade }: { total: number; quantidade: number }
   </div>
 );
 
-// Componente de item do carrinho
-const CartItem = ({ 
-  item, 
-  onUpdateQuantity, 
-  onRemove, 
+// ============================================
+// COMPONENTE DE ITEM DO CARRINHO
+// ============================================
+const CartItem = ({
+  item,
+  onUpdateQuantity,
+  onRemove,
   isUpdating,
   editedItems,
-  onSaveQuantity 
-}: { 
+  onSaveQuantity,
+}: {
   item: any;
   onUpdateQuantity: (id: string, quantity: number) => void;
   onRemove: (id: string) => void;
@@ -118,22 +124,22 @@ const CartItem = ({
       className="group relative bg-white dark:bg-gray-900 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-gray-800 overflow-hidden"
     >
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 translate-x-[-100%] group-hover:translate-x-[100%]" />
-      
-      <div className="p-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+
+      <div className="p-3 sm:p-4">
+        <div className="flex flex-col xs:flex-row items-start xs:items-center gap-3 sm:gap-4">
           {/* Imagem e detalhes */}
-          <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 w-full xs:w-auto">
             <CartItemImage src={item.image} alt={item.name} />
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+              <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate">
                 {item.name}
               </h3>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                   {formatCurrency(item.price)} un.
                 </span>
-                <span className="w-1 h-1 rounded-full bg-gray-300" />
-                <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                <span className="w-1 h-1 rounded-full bg-gray-300 hidden xs:block" />
+                <span className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400">
                   {formatCurrency(item.price * item.quantity)}
                 </span>
               </div>
@@ -141,35 +147,35 @@ const CartItem = ({
           </div>
 
           {/* Controles de quantidade */}
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full xs:w-auto mt-2 xs:mt-0">
             <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800">
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={() => handleQuantityChange(localQuantity - 1)}
                 disabled={localQuantity <= 1 || isUpdating}
-                className="h-10 w-10 rounded-none hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-none hover:bg-gray-200 dark:hover:bg-gray-700"
               >
-                <Minus className="w-4 h-4" />
+                <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
-              
+
               <Input
                 type="number"
                 value={localQuantity}
                 onChange={(e) => handleQuantityChange(Number(e.target.value))}
-                className="w-16 text-center border-0 bg-transparent focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-12 sm:w-16 text-center border-0 bg-transparent focus-visible:ring-0 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 min="1"
                 disabled={isUpdating}
               />
-              
+
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={() => handleQuantityChange(localQuantity + 1)}
                 disabled={isUpdating}
-                className="h-10 w-10 rounded-none hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-none hover:bg-gray-200 dark:hover:bg-gray-700"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
             </div>
 
@@ -178,10 +184,10 @@ const CartItem = ({
                 size="sm"
                 onClick={() => onSaveQuantity(item.id)}
                 disabled={isUpdating}
-                className="bg-green-500 hover:bg-green-600 text-white h-10 px-4 rounded-xl"
+                className="bg-green-500 hover:bg-green-600 text-white h-8 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm"
               >
                 {isUpdating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                 ) : (
                   "Salvar"
                 )}
@@ -193,9 +199,9 @@ const CartItem = ({
               size="icon"
               onClick={() => onRemove(item.product_id)}
               disabled={isUpdating}
-              className="h-10 w-10 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl"
+              className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
             </Button>
           </div>
         </div>
@@ -204,7 +210,9 @@ const CartItem = ({
   );
 };
 
-// Componente de formulário de pagamento
+// ============================================
+// COMPONENTE DE FORMULÁRIO DE PAGAMENTO
+// ============================================
 const PaymentForm = ({
   phone,
   setPhone,
@@ -215,7 +223,7 @@ const PaymentForm = ({
   errors,
   totalPrice,
   isSubmitting,
-  onSubmit
+  onSubmit,
 }: {
   phone: string;
   setPhone: (value: string) => void;
@@ -246,8 +254,8 @@ const PaymentForm = ({
           <Banknote className="w-4 h-4" />
           <span className="text-sm font-medium">Transferência Bancária</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 bg-white dark:bg-gray-900 rounded-xl border border-amber-200 dark:border-amber-800 px-4 py-3 font-mono text-sm">
+        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2">
+          <div className="flex-1 bg-white dark:bg-gray-900 rounded-xl border border-amber-200 dark:border-amber-800 px-3 py-2 sm:px-4 sm:py-3 font-mono text-xs sm:text-sm break-all">
             {iban}
           </div>
           <Button
@@ -255,7 +263,7 @@ const PaymentForm = ({
             variant="outline"
             onClick={handleCopy}
             className={`border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/50 ${
-              copyMessage ? 'bg-green-500 text-white border-green-500' : ''
+              copyMessage ? "bg-green-500 text-white border-green-500" : ""
             }`}
           >
             {copyMessage ? (
@@ -278,8 +286,8 @@ const PaymentForm = ({
           placeholder="(XX) XXX-XXX-XXX"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className={`h-12 ${
-            errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''
+          className={`h-11 sm:h-12 ${
+            errors.phone ? "border-red-500 focus-visible:ring-red-500" : ""
           }`}
         />
         {errors.phone && (
@@ -301,8 +309,8 @@ const PaymentForm = ({
           placeholder="Rua, número, bairro"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          className={`h-12 ${
-            errors.location ? 'border-red-500 focus-visible:ring-red-500' : ''
+          className={`h-11 sm:h-12 ${
+            errors.location ? "border-red-500 focus-visible:ring-red-500" : ""
           }`}
         />
         {errors.location && (
@@ -319,10 +327,9 @@ const PaymentForm = ({
           <FileText className="w-4 h-4" />
           Comprovativo de pagamento
         </label>
-        <UploadArea 
+        <UploadArea
           onChange={setPaymentProof}
           value={paymentProof as any}
-          // className={(errors.paymentProof as string) ? 'border-red-500' : ''}
         />
         {errors.paymentProof && (
           <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
@@ -336,18 +343,18 @@ const PaymentForm = ({
       <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm text-gray-500">Total a pagar</span>
-          <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
             {formatCurrency(totalPrice)}
           </span>
         </div>
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full h-14 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white text-lg font-semibold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 transition-all duration-300"
+          className="w-full h-12 sm:h-14 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white text-base sm:text-lg font-semibold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 transition-all duration-300"
         >
           {isSubmitting ? (
             <div className="flex items-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
               <span>Processando...</span>
             </div>
           ) : (
@@ -359,11 +366,12 @@ const PaymentForm = ({
   );
 };
 
-// Componente principal
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
 export default function CheckoutPage() {
   const { user } = useAuthStore();
   const user_Id = user?.id_usuario || "";
-  const [cart, setCart] = useState<any[]>([]);
   const [editedItems, setEditedItems] = useState<Record<string, number>>({});
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const [location, setLocation] = useState("");
@@ -372,62 +380,63 @@ export default function CheckoutPage() {
 
   const queryClient = useQueryClient();
 
-  const { data: cartData, isLoading } = useQuery({
-    queryKey: ["cart"],
+  // ✅ Query para buscar o carrinho
+  const { data: cartData, isLoading, refetch } = useQuery({
+    queryKey: ["cart", user_Id],
     queryFn: () => carrinhosRoute.getCarrinho(),
+    enabled: !!user_Id,
   });
 
+  // ✅ Limpar carrinho
   const clearCartMutation = useMutation({
     mutationFn: () => carrinhosRoute.deleteAllProductsInCart(cartData?.data?.id),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
       toast.success("Carrinho esvaziado");
-      setCart([]);
     },
   });
 
+  // ✅ Remover item
   const removeItemMutation = useMutation({
-    mutationFn: (produtoId: string) => 
+    mutationFn: (produtoId: string) =>
       carrinhosRoute.deleteProductInCart(cartData?.data?.id, produtoId),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
       toast.success("Produto removido");
     },
   });
 
+  // ✅ Atualizar quantidade
   const updateQuantityMutation = useMutation({
     mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
       carrinhosRoute.atualizarItem(cartData?.data?.id, productId, quantity),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
       toast.success("Quantidade atualizada");
       setEditedItems({});
     },
   });
 
-  useEffect(() => {
-    if (cartData?.data?.itens) {
-      const mapped = cartData.data.itens.map((item) => ({
-        id: item.id,
-        name: item.produto.nome,
-        image: item.produto.foto || item.produto.imagemUrl || item.produto.imagem,
-        price: item.produto.preco,
-        quantity: item.quantidade,
-        product_id: item.produtoId,
-      }));
-      setCart(mapped);
-    }
-  }, [cartData]);
+  // ✅ Mapear os itens do carrinho
+  const cart = cartData?.data?.itens?.map((item: any) => ({
+    id: item.id,
+    name: item.produto.nome,
+    image: item.produto.foto || item.produto.imagemUrl || item.produto.imagem,
+    price: item.produto.preco,
+    quantity: item.quantidade,
+    product_id: item.produtoId,
+  })) || [];
 
   const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
+  // ✅ Atualizar quantidade localmente
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity < 1) return;
-    setCart(prev => prev.map(item => item.id === id ? { ...item, quantity } : item));
-    setEditedItems(prev => ({ ...prev, [id]: quantity }));
+    setEditedItems((prev) => ({ ...prev, [id]: quantity }));
   };
 
+  // ✅ Salvar quantidade no backend
   const saveQuantity = async (id: string) => {
     const quantity = editedItems[id];
     if (quantity) {
@@ -435,16 +444,17 @@ export default function CheckoutPage() {
     }
   };
 
+  // ✅ Finalizar compra
   const finalizePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const newErrors: any = {};
     if (!phone.trim()) newErrors.phone = "Telefone é obrigatório";
     if (!location.trim()) newErrors.location = "Endereço é obrigatório";
     if (!paymentProof) newErrors.paymentProof = "Comprovativo é obrigatório";
-    
+
     setErrors(newErrors);
-    
+
     if (Object.keys(newErrors).length > 0) {
       toast.error("Preencha todos os campos");
       return;
@@ -470,20 +480,21 @@ export default function CheckoutPage() {
       });
 
       toast.dismiss(toastId);
-      
+
       if (response.data.success) {
         toast.success("Pedido realizado com sucesso!");
-        setCart([]);
+        queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
         setPaymentProof(null);
         setLocation("");
         setPhone("");
+        setErrors({});
       }
     } catch (error: any) {
       toast.dismiss(toastId);
-      
-      if (error.code === 'ECONNABORTED') {
+
+      if (error.code === "ECONNABORTED") {
         toast.warning("Pedido recebido! Processando em segundo plano.");
-        setCart([]);
+        queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
         setPaymentProof(null);
         setLocation("");
         setPhone("");
@@ -493,6 +504,7 @@ export default function CheckoutPage() {
     }
   };
 
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
@@ -501,7 +513,7 @@ export default function CheckoutPage() {
             <div className="h-8 w-32 bg-gray-200 dark:bg-gray-800 rounded" />
             <div className="h-12 w-64 bg-gray-200 dark:bg-gray-800 rounded mx-auto" />
             <div className="space-y-4">
-              {[1, 2, 3].map(i => (
+              {[1, 2, 3].map((i) => (
                 <div key={i} className="h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
               ))}
             </div>
@@ -512,19 +524,19 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 py-8">
-      <div className="container max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 py-4 sm:py-8">
+      <div className="container max-w-7xl mx-auto px-3 sm:px-4">
+        {/* Header responsivo */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 sm:mb-8">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+            className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors order-2 sm:order-1"
           >
             <ChevronLeftIcon className="w-5 h-5" />
             <span>Continuar comprando</span>
           </Link>
-          
-          <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-yellow-500">
+
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-yellow-500 order-1 sm:order-2">
             Finalizar Compra
           </h1>
 
@@ -532,10 +544,11 @@ export default function CheckoutPage() {
             <Button
               variant="ghost"
               onClick={() => clearCartMutation.mutate()}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 order-3"
+              size="sm"
             >
-              <XCircle className="w-4 h-4 mr-2" />
-              Esvaziar
+              <XCircle className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden xs:inline">Esvaziar</span>
             </Button>
           )}
         </div>
@@ -544,36 +557,36 @@ export default function CheckoutPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-20 text-center"
+            className="flex flex-col items-center justify-center py-16 sm:py-20 text-center"
           >
-            <div className="w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-full flex items-center justify-center mb-6">
-              <ShoppingCartIcon className="w-16 h-16 text-gray-400" />
+            <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-full flex items-center justify-center mb-4 sm:mb-6">
+              <ShoppingCartIcon className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
               Seu carrinho está vazio
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-8">
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-6 sm:mb-8">
               Adicione produtos para começar suas compras
             </p>
             <Link to="/">
-              <Button className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-8 py-6 rounded-xl text-lg">
+              <Button className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-6 sm:px-8 py-5 sm:py-6 rounded-xl text-base sm:text-lg">
                 Ver produtos
               </Button>
             </Link>
           </motion.div>
         ) : (
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Lista de produtos */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               <OrderStats total={totalPrice} quantidade={totalItems} />
-              
+
               <AnimatePresence mode="popLayout">
                 {cart.map((item) => (
                   <CartItem
                     key={item.id}
                     item={item}
                     onUpdateQuantity={updateQuantity}
-                    onRemove={(id) => removeItemMutation.mutate(id)}
+                    onRemove={(productId) => removeItemMutation.mutate(productId)}
                     isUpdating={updateQuantityMutation.isPending}
                     editedItems={editedItems}
                     onSaveQuantity={saveQuantity}
@@ -588,9 +601,9 @@ export default function CheckoutPage() {
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-6"
+                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-4 sm:p-6"
                 >
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6 flex items-center gap-2">
                     <CreditCard className="w-5 h-5 text-amber-500" />
                     Pagamento
                   </h2>
