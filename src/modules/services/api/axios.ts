@@ -19,8 +19,8 @@
 
 import axios from "axios";
 
-// const apiUrl =  "https://sufficius-ecommerce-back.onrender.com";
-const localUrl = import.meta.env.VITE_API_URL;
+const apiUrl =  "https://sufficius-ecommerce-back.onrender.com";
+// const localUrl = import.meta.env.VITE_API_URL;
 
 // FUNÇÃO PARA EXTRAIR O TOKEN DO COOKIE OU LOCALSTORAGE
 const getToken = (): string | null => {  
@@ -57,8 +57,8 @@ const getToken = (): string | null => {
 
 // Configuração base do axios
 export const api = axios.create({
-  baseURL: localUrl,
-  // baseURL: apiUrl,
+  // baseURL: localUrl,
+  baseURL: apiUrl,
   withCredentials: true, // Importante para enviar cookies automaticamente
   timeout: 60000, // 30 segundos de timeout
 });
