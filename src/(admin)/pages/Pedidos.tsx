@@ -295,6 +295,9 @@ export default function AdminPedidos() {
   };
 
   const handleAlterarStatus = async (id: string, novoStatus: string) => {
+    const statusLabel = statusPedidos[novoStatus as keyof typeof statusPedidos]?.label || novoStatus;
+
+
     if (
       !(
         `Alterar status do pedido para ${
@@ -320,7 +323,7 @@ export default function AdminPedidos() {
       );
 
       if (response.data.success) {
-        toast.success("Status do pedido alterado com sucesso!");
+        toast.success(`Status do pedido alterado para "${statusLabel}" com sucesso!`);
         fetchPedidos(); // Recarregar lista
       }
     } catch (err: any) {

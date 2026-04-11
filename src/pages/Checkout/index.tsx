@@ -540,6 +540,14 @@ export default function CheckoutPage() {
     formData.append("phone", phone);
     formData.append("paymentProof", paymentProof!);
 
+      console.log("📦 Enviando checkout com:", {
+    userId: user_Id,
+    location,
+    phone,
+    paymentProof: paymentProof?.name
+  });
+
+
     const toastId = toast.loading("Processando pedido...", {
       duration: Infinity,
     });

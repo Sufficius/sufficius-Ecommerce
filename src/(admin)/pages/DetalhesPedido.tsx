@@ -162,6 +162,143 @@ const statusPagamento: Record<string, { label: string; cor: string }> = {
   REEMBOLSADO: { label: "Reembolsado", cor: "bg-gray-100 text-gray-800" },
 };
 
+// Modal de Confirmação
+function ConfirmModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText = "Confirmar",
+  cancelText = "Cancelar",
+  isLoading = false,
+  variant = "primary",
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  isLoading?: boolean;
+  variant?: "primary" | "danger" | "success";
+}) {
+  if (!isOpen) return null;
+
+  const variantClasses = {
+    primary: "bg-amber-500 hover:bg-amber-600",
+    danger: "bg-red-500 hover:bg-red-600",
+    success: "bg-green-500 hover:bg-green-600",
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6 animate-in zoom-in-95 duration-200">
+        <div className="flex items-center gap-3 mb-4">
+          {variant === "danger" && (
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+              <XCircle className="h-5 w-5 text-red-600" />
+            </div>
+          )}
+          {variant === "success" && (
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            </div>
+          )}
+          {variant === "primary" && (
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <Package className="h-5 w-5 text-amber-600" />
+            </div>
+          )}
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        </div>
+        <p className="text-gray-600 mb-6">{message}</p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className={`px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2 ${variantClasses[variant]} disabled:opacity-50`}
+          >
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Modal para motivo do cancelamento
+function CancelamentoModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  isLoading = false,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (motivo: string) => void;
+  isLoading?: boolean;
+}) {
+  const [motivo, setMotivo] = useState("");
+
+  if (!isOpen) return null;
+
+  const handleConfirm = () => {
+    if (!motivo.trim()) {
+      toast.error("Informe um motivo para o cancelamento");
+      return;
+    }
+    onConfirm(motivo);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6 animate-in zoom-in-95 duration-200">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+            <XCircle className="h-5 w-5 text-red-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Cancelar Pedido
+          </h3>
+        </div>
+        <p className="text-gray-600 mb-4">Informe o motivo do cancelamento:</p>
+        <textarea
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          placeholder="Digite o motivo do cancelamento..."
+          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[100px]"
+          autoFocus
+        />
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            Voltar
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={isLoading}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors flex items-center gap-2"
+          >
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Confirmar Cancelamento
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DetalhesPedido() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -169,6 +306,10 @@ export default function DetalhesPedido() {
   const queryClient = useQueryClient();
   const printRef = useRef<HTMLDivElement>(null);
   const [copiado, setCopiado] = useState(false);
+
+  // Estados para modais
+  const [showAprovarModal, setShowAprovarModal] = useState(false);
+  const [showCancelarModal, setShowCancelarModal] = useState(false);
 
   const {
     data: pedido,
@@ -206,17 +347,27 @@ export default function DetalhesPedido() {
       const response = await api.put(
         `/pedidos/${id}/status`,
         { status: "APROVADO" },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       return response.data;
     },
-    onSuccess: () => {
-      toast.success("Pedido aprovado com sucesso!");
+    onSuccess: (data) => {
+        if(data.smsEnviado){
+            toast.success("Pedido aprovado e SMS enviado com sucesso!");
+        }
+        else{
+            toast.success("Pedido aprovado com sucesso!");
+            if(pedido?.usuario?.telefone){
+                toast.warning("Não foi possível enviar SMS. Verifique o número do cliente.");
+            }
+        }
       queryClient.invalidateQueries({ queryKey: ["pedido", id] });
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
+      setShowAprovarModal(false);
       refetch();
     },
     onError: (err: any) => {
+        console.log(err);
       toast.error(err.response?.data?.message || "Erro ao aprovar pedido");
     },
   });
@@ -227,7 +378,7 @@ export default function DetalhesPedido() {
       const response = await api.put(
         `/pedidos/${id}/status`,
         { status: "CANCELADO", motivoCancelamento: motivo },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       return response.data;
     },
@@ -235,6 +386,7 @@ export default function DetalhesPedido() {
       toast.success("Pedido cancelado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["pedido", id] });
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
+      setShowCancelarModal(false);
       refetch();
     },
     onError: (err: any) => {
@@ -243,18 +395,11 @@ export default function DetalhesPedido() {
   });
 
   const handleAprovar = () => {
-    if (confirm("Deseja aprovar este pedido? O estoque será atualizado.")) {
-      aprovarMutation.mutate();
-    }
+    setShowAprovarModal(true);
   };
 
   const handleCancelar = () => {
-    const motivo = prompt("Informe o motivo do cancelamento:");
-    if (motivo && motivo.trim()) {
-      cancelarMutation.mutate(motivo);
-    } else if (motivo !== null) {
-      toast.error("Informe um motivo para o cancelamento");
-    }
+    setShowCancelarModal(true);
   };
 
   const handleImprimir = useReactToPrint({
@@ -331,9 +476,8 @@ export default function DetalhesPedido() {
   const subtotal =
     pedido.ItemPedido?.reduce((sum, item) => sum + item.precoTotal, 0) || 0;
 
-  // Verificar se pode aprovar (status Pendente ou Aguardando)
   const podeAprovar = ["PAGAMENTO_PENDENTE", "AGUARDANDO_CONFIRMACAO"].includes(
-    pedido.status
+    pedido.status,
   );
   const podeCancelar = !["CANCELADO", "ENTREGUE"].includes(pedido.status);
   const temComprovativo =
@@ -343,6 +487,26 @@ export default function DetalhesPedido() {
 
   return (
     <div className="py-8 print:py-0">
+      {/* Modais */}
+      <ConfirmModal
+        isOpen={showAprovarModal}
+        onClose={() => setShowAprovarModal(false)}
+        onConfirm={() => aprovarMutation.mutate()}
+        title="Aprovar Pedido"
+        message="Deseja aprovar este pedido? O estoque será atualizado e o cliente será notificado."
+        confirmText="Sim, Aprovar"
+        cancelText="Cancelar"
+        isLoading={aprovarMutation.isPending}
+        variant="success"
+      />
+
+      <CancelamentoModal
+        isOpen={showCancelarModal}
+        onClose={() => setShowCancelarModal(false)}
+        onConfirm={(motivo) => cancelarMutation.mutate(motivo)}
+        isLoading={cancelarMutation.isPending}
+      />
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 print:hidden">
         <div className="flex items-center gap-4">
@@ -456,7 +620,7 @@ export default function DetalhesPedido() {
                       onClick={() =>
                         window.open(
                           `https://rojyeqiqrvriknawugmt.supabase.co/storage/v1/object/public/sufficius-files/${pedido.pagamentos?.[0].comprovativoUrl}`,
-                          "_blank"
+                          "_blank",
                         )
                       }
                       className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
@@ -467,7 +631,7 @@ export default function DetalhesPedido() {
                     <button
                       onClick={() =>
                         handleCopiarComprovativo(
-                          pedido.pagamentos?.[0].comprovativoUrl || ""
+                          pedido.pagamentos?.[0].comprovativoUrl || "",
                         )
                       }
                       className="flex items-center gap-2 text-gray-600 hover:text-gray-700"
@@ -612,7 +776,10 @@ export default function DetalhesPedido() {
                       </tr>
                     )}
                     <tr className="border-t">
-                      <td colSpan={3} className="p-4 text-right font-bold text-lg">
+                      <td
+                        colSpan={3}
+                        className="p-4 text-right font-bold text-lg"
+                      >
                         TOTAL:
                       </td>
                       <td className="p-4 text-right font-bold text-lg text-amber-600">
@@ -639,7 +806,9 @@ export default function DetalhesPedido() {
 
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <p className="text-sm text-gray-500 mb-1">Método de Pagamento</p>
+                <p className="text-sm text-gray-500 mb-1">
+                  Método de Pagamento
+                </p>
                 <p className="font-medium">
                   {metodosPagamento[pedido.metodoPagamento]?.label ||
                     pedido.metodoPagamento ||
@@ -647,7 +816,9 @@ export default function DetalhesPedido() {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">Status do Pagamento</p>
+                <p className="text-sm text-gray-500 mb-1">
+                  Status do Pagamento
+                </p>
                 <span
                   className={`px-3 py-1 rounded-full text-sm font-medium ${statusPagamento[pedido.statusPagamento]?.cor || "bg-gray-100"}`}
                 >
