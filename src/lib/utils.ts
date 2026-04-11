@@ -8,28 +8,28 @@ export function cn(...inputs: ClassValue[]) {
 // src/utils/localImageUtil.ts
 export const getImageUrl = (fotoPath?: string): string | null => {
   console.log('🔍 getImageUrl - recebido:', fotoPath);
-  
+
   if (!fotoPath) {
     console.log('❌ getImageUrl - retornando null');
     return null;
   }
-  
+
   // Se já for URL completa, retorna
   if (fotoPath.startsWith('http://') || fotoPath.startsWith('https://')) {
     return fotoPath;
   }
-  
+
   // URL base do backend
   const baseUrl = 'http://localhost:3000';
-  
+
   // Garante que o path comece com /
   const path = fotoPath.startsWith('/') ? fotoPath : '/' + fotoPath;
-  
+
   // CONCATENA a baseUrl com o path
   const finalUrl = baseUrl + path;
-  
+
   console.log('✅ getImageUrl - URL final:', finalUrl);
-  
+
   return finalUrl;
 };
 
@@ -41,13 +41,28 @@ export function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  }).format(date);
+export function formatDate(dateString: string | undefined | null): string {
+
+  if (!dateString) {
+    return 'Data não informada';
+  }
+
+  try {
+    const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) {
+      return 'Data inválida';
+    }
+
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }).format(date);
+  } catch (error) {
+    console.error('Erro ao formatar data:', dateString, error);
+    return 'Data inválida';
+  }
 }
 
 export function formatShortDate(dateString: string): string {
@@ -70,7 +85,7 @@ export function getStatusColor(status: string): string {
     'CANCELADO': 'bg-gray-100 text-gray-800',
     'PENDENTE': 'bg-gray-100 text-gray-800'
   };
-  
+
   return colors[status.toUpperCase()] || 'bg-gray-100 text-gray-800';
 }
 
@@ -85,6 +100,6 @@ export function getStatusText(status: string): string {
     'CANCELADO': 'Cancelado',
     'PENDENTE': 'Pendente'
   };
-  
+
   return statusMap[status.toUpperCase()] || status;
 }

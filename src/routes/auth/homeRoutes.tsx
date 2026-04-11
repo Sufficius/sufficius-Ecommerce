@@ -3,6 +3,7 @@ import CategoryPage from "@/(admin)/pages/Categorias";
 // import ConfiguracoesPage from "@/(admin)/pages/Configuracoes";
 // import AdminCupons from "@/(admin)/pages/Cupons";
 import AdminDashboard from "@/(admin)/pages/Dashboard";
+import DetalhesPedido from "@/(admin)/pages/DetalhesPedido";
 import AdminEstoque from "@/(admin)/pages/Estoque";
 import PagamentosPage from "@/(admin)/pages/Pagamentos";
 import AdminPedidos from "@/(admin)/pages/Pedidos";
@@ -17,7 +18,7 @@ export const HomesRoutes: IRouteProps = {
   element: AdminLayout,
   visibility: "public", // Mude de "auth" para "private"
   children: [
-       {
+    {
       path: "/",
       element: AdminDashboard,
       visibility: "guest", // Mude para "private"
@@ -37,6 +38,11 @@ export const HomesRoutes: IRouteProps = {
       path: "/pedidos",
       element: AdminPedidos,
       visibility: "auth", // Mude para "auth"
+    },
+    {
+      path: "/pedidos/:id",
+      element: DetalhesPedido,
+      visibility: "auth",
     },
     {
       path: "/usuarios",

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -64,151 +64,173 @@ const CartItemImage = ({ src, alt }: { src?: string; alt: string }) => {
 // ============================================
 // COMPONENTE DE ESTATÍSTICAS
 // ============================================
-const OrderStats = ({ total, quantidade }: { total: number; quantidade: number }) => (
+const OrderStats = ({
+  total,
+  quantidade,
+}: {
+  total: number;
+  quantidade: number;
+}) => (
   <div className="grid grid-cols-1 xs:grid-cols-2 gap-4 mb-6">
     <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 p-4 rounded-xl">
       <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
         <ShoppingCartIcon className="w-4 h-4" />
         <span className="text-sm font-medium">Itens</span>
       </div>
-      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{quantidade}</p>
+      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+        {quantidade}
+      </p>
     </div>
     <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 p-4 rounded-xl">
       <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-1">
         <CreditCard className="w-4 h-4" />
         <span className="text-sm font-medium">Total</span>
       </div>
-      <p className="text-2xl font-bold text-green-700 dark:text-green-300">{formatCurrency(total)}</p>
+      <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+        {formatCurrency(total)}
+      </p>
     </div>
   </div>
 );
 
 // ============================================
-// COMPONENTE DE ITEM DO CARRINHO
+// COMPONENTE DE ITEM DO CARRINHO (COM forwardRef)
 // ============================================
-const CartItem = ({
-  item,
-  onUpdateQuantity,
-  onRemove,
-  isUpdating,
-  editedItems,
-  onSaveQuantity,
-}: {
-  item: any;
-  onUpdateQuantity: (id: string, quantity: number) => void;
-  onRemove: (id: string) => void;
-  isUpdating: boolean;
-  editedItems: Record<string, number>;
-  onSaveQuantity: (id: string) => void;
-}) => {
-  const [localQuantity, setLocalQuantity] = useState(item.quantity);
+const CartItem = forwardRef<
+  HTMLDivElement,
+  {
+    item: any;
+    onUpdateQuantity: (id: string, quantity: number) => void;
+    onRemove: (id: string) => void;
+    isUpdating: boolean;
+    editedItems: Record<string, number>;
+    onSaveQuantity: (id: string) => void;
+  }
+>(
+  (
+    {
+      item,
+      onUpdateQuantity,
+      onRemove,
+      isUpdating,
+      editedItems,
+      onSaveQuantity,
+    },
+    ref,
+  ) => {
+    const [localQuantity, setLocalQuantity] = useState(item.quantity);
 
-  useEffect(() => {
-    setLocalQuantity(item.quantity);
-  }, [item.quantity]);
+    useEffect(() => {
+      setLocalQuantity(item.quantity);
+    }, [item.quantity]);
 
-  const handleQuantityChange = (newQuantity: number) => {
-    if (newQuantity < 1) return;
-    setLocalQuantity(newQuantity);
-    onUpdateQuantity(item.id, newQuantity);
-  };
+    const handleQuantityChange = (newQuantity: number) => {
+      if (newQuantity < 1) return;
+      setLocalQuantity(newQuantity);
+      onUpdateQuantity(item.id, newQuantity);
+    };
 
-  const isEdited = editedItems[item.id] !== undefined;
+    const isEdited = editedItems[item.id] !== undefined;
 
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -100 }}
-      className="group relative bg-white dark:bg-gray-900 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-gray-800 overflow-hidden"
-    >
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 translate-x-[-100%] group-hover:translate-x-[100%]" />
+    return (
+      <motion.div
+        ref={ref}
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, x: -100 }}
+        transition={{ duration: 0.2 }}
+        className="group relative bg-white dark:bg-gray-900 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-gray-800 overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 translate-x-[-100%] group-hover:translate-x-[100%]" />
 
-      <div className="p-3 sm:p-4">
-        <div className="flex flex-col xs:flex-row items-start xs:items-center gap-3 sm:gap-4">
-          {/* Imagem e detalhes */}
-          <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 w-full xs:w-auto">
-            <CartItemImage src={item.image} alt={item.name} />
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate">
-                {item.name}
-              </h3>
-              <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                  {formatCurrency(item.price)} un.
-                </span>
-                <span className="w-1 h-1 rounded-full bg-gray-300 hidden xs:block" />
-                <span className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400">
-                  {formatCurrency(item.price * item.quantity)}
-                </span>
+        <div className="p-3 sm:p-4">
+          <div className="flex flex-col xs:flex-row items-start xs:items-center gap-3 sm:gap-4">
+            {/* Imagem e detalhes */}
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 w-full xs:w-auto">
+              <CartItemImage src={item.image} alt={item.name} />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate">
+                  {item.name}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                    {formatCurrency(item.price)} un.
+                  </span>
+                  <span className="w-1 h-1 rounded-full bg-gray-300 hidden xs:block" />
+                  <span className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400">
+                    {formatCurrency(item.price * item.quantity)}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Controles de quantidade */}
-          <div className="flex flex-wrap items-center gap-2 w-full xs:w-auto mt-2 xs:mt-0">
-            <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800">
+            {/* Controles de quantidade */}
+            <div className="flex flex-wrap items-center gap-2 w-full xs:w-auto mt-2 xs:mt-0">
+              <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => handleQuantityChange(localQuantity - 1)}
+                  disabled={localQuantity <= 1 || isUpdating}
+                  className="h-8 w-8 sm:h-10 sm:w-10 rounded-none hover:bg-gray-200 dark:hover:bg-gray-700"
+                >
+                  <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
+                </Button>
+
+                <Input
+                  type="number"
+                  value={localQuantity}
+                  onChange={(e) => handleQuantityChange(Number(e.target.value))}
+                  className="w-12 sm:w-16 text-center border-0 bg-transparent focus-visible:ring-0 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  min="1"
+                  disabled={isUpdating}
+                />
+
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => handleQuantityChange(localQuantity + 1)}
+                  disabled={isUpdating}
+                  className="h-8 w-8 sm:h-10 sm:w-10 rounded-none hover:bg-gray-200 dark:hover:bg-gray-700"
+                >
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                </Button>
+              </div>
+
+              {isEdited && (
+                <Button
+                  size="sm"
+                  onClick={() => onSaveQuantity(item.id)}
+                  disabled={isUpdating}
+                  className="bg-green-500 hover:bg-green-600 text-white h-8 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm"
+                >
+                  {isUpdating ? (
+                    <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                  ) : (
+                    "Salvar"
+                  )}
+                </Button>
+              )}
+
               <Button
-                size="icon"
                 variant="ghost"
-                onClick={() => handleQuantityChange(localQuantity - 1)}
-                disabled={localQuantity <= 1 || isUpdating}
-                className="h-8 w-8 sm:h-10 sm:w-10 rounded-none hover:bg-gray-200 dark:hover:bg-gray-700"
-              >
-                <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
-              </Button>
-
-              <Input
-                type="number"
-                value={localQuantity}
-                onChange={(e) => handleQuantityChange(Number(e.target.value))}
-                className="w-12 sm:w-16 text-center border-0 bg-transparent focus-visible:ring-0 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                min="1"
-                disabled={isUpdating}
-              />
-
-              <Button
                 size="icon"
-                variant="ghost"
-                onClick={() => handleQuantityChange(localQuantity + 1)}
+                onClick={() => onRemove(item.product_id)}
                 disabled={isUpdating}
-                className="h-8 w-8 sm:h-10 sm:w-10 rounded-none hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl"
               >
-                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
             </div>
-
-            {isEdited && (
-              <Button
-                size="sm"
-                onClick={() => onSaveQuantity(item.id)}
-                disabled={isUpdating}
-                className="bg-green-500 hover:bg-green-600 text-white h-8 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm"
-              >
-                {isUpdating ? (
-                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                ) : (
-                  "Salvar"
-                )}
-              </Button>
-            )}
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onRemove(item.product_id)}
-              disabled={isUpdating}
-              className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl"
-            >
-              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-            </Button>
           </div>
         </div>
-      </div>
-    </motion.div>
-  );
-};
+      </motion.div>
+    );
+  },
+);
+
+CartItem.displayName = "CartItem";
 
 // ============================================
 // COMPONENTE DE FORMULÁRIO DE PAGAMENTO
@@ -327,10 +349,7 @@ const PaymentForm = ({
           <FileText className="w-4 h-4" />
           Comprovativo de pagamento
         </label>
-        <UploadArea
-          onChange={setPaymentProof}
-          value={paymentProof as any}
-        />
+        <UploadArea onChange={setPaymentProof} value={paymentProof as any} />
         {errors.paymentProof && (
           <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
             <AlertCircle className="w-3 h-3" />
@@ -377,66 +396,100 @@ export default function CheckoutPage() {
   const [location, setLocation] = useState("");
   const [phone, setPhone] = useState("");
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const queryClient = useQueryClient();
 
-  // ✅ Query para buscar o carrinho
-  const { data: cartData, isLoading, refetch } = useQuery({
+  // Query para buscar o carrinho
+  const { data: cartData, isLoading } = useQuery({
     queryKey: ["cart", user_Id],
     queryFn: () => carrinhosRoute.getCarrinho(),
     enabled: !!user_Id,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchInterval: false,
   });
 
-  // ✅ Limpar carrinho
+  // Obter o ID do carrinho com segurança
+  const cartId = cartData?.data?.id;
+
+  // Limpar carrinho
   const clearCartMutation = useMutation({
-    mutationFn: () => carrinhosRoute.deleteAllProductsInCart(cartData?.data?.id),
+    mutationFn: () => {
+      if (!cartId) throw new Error("Carrinho não encontrado");
+      return carrinhosRoute.deleteAllProductsInCart(cartId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
       toast.success("Carrinho esvaziado");
     },
+    onError: () => {
+      toast.error("Erro ao esvaziar carrinho");
+    },
   });
 
-  // ✅ Remover item
+  // Remover item
   const removeItemMutation = useMutation({
-    mutationFn: (produtoId: string) =>
-      carrinhosRoute.deleteProductInCart(cartData?.data?.id, produtoId),
+    mutationFn: (produtoId: string) => {
+      if (!cartId) throw new Error("Carrinho não encontrado");
+      return carrinhosRoute.deleteProductInCart(cartId, produtoId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
       toast.success("Produto removido");
     },
+    onError: () => {
+      toast.error("Erro ao remover produto");
+    },
   });
 
-  // ✅ Atualizar quantidade
+  // Atualizar quantidade
   const updateQuantityMutation = useMutation({
-    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
-      carrinhosRoute.atualizarItem(cartData?.data?.id, productId, quantity),
+    mutationFn: ({
+      productId,
+      quantity,
+    }: {
+      productId: string;
+      quantity: number;
+    }) => {
+      if (!cartId) throw new Error("Carrinho não encontrado");
+      return carrinhosRoute.atualizarItem(cartId, productId, quantity);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
       toast.success("Quantidade atualizada");
       setEditedItems({});
     },
+    onError: () => {
+      toast.error("Erro ao atualizar quantidade");
+    },
   });
 
-  // ✅ Mapear os itens do carrinho
-  const cart = cartData?.data?.itens?.map((item: any) => ({
-    id: item.id,
-    name: item.produto.nome,
-    image: item.produto.foto || item.produto.imagemUrl || item.produto.imagem,
-    price: item.produto.preco,
-    quantity: item.quantidade,
-    product_id: item.produtoId,
-  })) || [];
+  // Mapear os itens do carrinho
+  const cart =
+    cartData?.data?.itens?.map((item: any) => ({
+      id: item.id,
+      name: item.produto.nome,
+      image: item.produto.foto || item.produto.imagemUrl || item.produto.imagem,
+      price: item.produto.preco,
+      quantity: item.quantidade,
+      product_id: item.produtoId,
+    })) || [];
 
-  const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const totalPrice = cart.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0,
+  );
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // ✅ Atualizar quantidade localmente
+  // Atualizar quantidade localmente
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity < 1) return;
     setEditedItems((prev) => ({ ...prev, [id]: quantity }));
   };
 
-  // ✅ Salvar quantidade no backend
+  // Salvar quantidade no backend
   const saveQuantity = async (id: string) => {
     const quantity = editedItems[id];
     if (quantity) {
@@ -444,10 +497,11 @@ export default function CheckoutPage() {
     }
   };
 
-  // ✅ Finalizar compra
+  // Finalizar compra
   const finalizePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validações
     const newErrors: any = {};
     if (!phone.trim()) newErrors.phone = "Telefone é obrigatório";
     if (!location.trim()) newErrors.location = "Endereço é obrigatório";
@@ -456,14 +510,29 @@ export default function CheckoutPage() {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      toast.error("Preencha todos os campos");
+      toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
+    // Validar tamanho do arquivo
     if (paymentProof!.size > 10 * 1024 * 1024) {
       toast.error("Arquivo muito grande. Máximo 10MB");
       return;
     }
+
+    // Validar tipo do arquivo
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+      "application/pdf",
+    ];
+    if (!allowedTypes.includes(paymentProof!.type)) {
+      toast.error("Formato de arquivo não suportado. Use JPG, PNG ou PDF");
+      return;
+    }
+
+    setIsSubmitting(true);
 
     const formData = new FormData();
     formData.append("userId", user_Id);
@@ -471,36 +540,45 @@ export default function CheckoutPage() {
     formData.append("phone", phone);
     formData.append("paymentProof", paymentProof!);
 
-    const toastId = toast.loading("Enviando pedido...");
+    const toastId = toast.loading("Processando pedido...", {
+      duration: Infinity,
+    });
 
     try {
       const response = await api.post("/carrinho/checkout", formData, {
         headers: { "Content-Type": "multipart/form-data" },
-        timeout: 15000,
+        timeout: 120000,
       });
 
       toast.dismiss(toastId);
 
-      if (response.data.success) {
-        toast.success("Pedido realizado com sucesso!");
-        queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
+      if (response.data?.success) {
+        toast.success(response.data.message || "Pedido realizado com sucesso!");
+
+        // Limpar tudo após sucesso
         setPaymentProof(null);
         setLocation("");
         setPhone("");
         setErrors({});
+
+        await queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
       }
     } catch (error: any) {
       toast.dismiss(toastId);
+      console.error("Erro detalhado:", error);
 
-      if (error.code === "ECONNABORTED") {
-        toast.warning("Pedido recebido! Processando em segundo plano.");
-        queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
-        setPaymentProof(null);
-        setLocation("");
-        setPhone("");
+      if (error.response?.data?.error?.includes("upload")) {
+        toast.error(
+          "Erro ao enviar o comprovativo. Tente novamente com um arquivo menor ou em outro formato.",
+        );
       } else {
-        toast.error(error.response?.data?.message || "Erro ao processar pedido");
+        toast.error(
+          error.response?.data?.message ||
+            "Erro ao processar pedido. Tente novamente.",
+        );
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -514,7 +592,10 @@ export default function CheckoutPage() {
             <div className="h-12 w-64 bg-gray-200 dark:bg-gray-800 rounded mx-auto" />
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+                <div
+                  key={i}
+                  className="h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl"
+                />
               ))}
             </div>
           </div>
@@ -586,7 +667,9 @@ export default function CheckoutPage() {
                     key={item.id}
                     item={item}
                     onUpdateQuantity={updateQuantity}
-                    onRemove={(productId) => removeItemMutation.mutate(productId)}
+                    onRemove={(productId) =>
+                      removeItemMutation.mutate(productId)
+                    }
                     isUpdating={updateQuantityMutation.isPending}
                     editedItems={editedItems}
                     onSaveQuantity={saveQuantity}
@@ -617,7 +700,7 @@ export default function CheckoutPage() {
                     setPaymentProof={setPaymentProof}
                     errors={errors}
                     totalPrice={totalPrice}
-                    isSubmitting={updateQuantityMutation.isPending}
+                    isSubmitting={isSubmitting}
                     onSubmit={finalizePurchase}
                   />
                 </motion.div>

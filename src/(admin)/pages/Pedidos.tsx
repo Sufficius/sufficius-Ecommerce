@@ -291,7 +291,7 @@ export default function AdminPedidos() {
 
   // Funções de navegação
   const handleVisualizarPedido = (id: string) => {
-    navigate(`/admin/pedidos/${id}`);
+    navigate(`/pedidos/${id}`);
   };
 
   const handleAlterarStatus = async (id: string, novoStatus: string) => {
@@ -332,7 +332,7 @@ export default function AdminPedidos() {
 
   const handleImprimirNota = (id: string) => {
     // Lógica para imprimir nota fiscal
-    window.open(`/admin/pedidos/${id}/nota`, "_blank");
+    window.open(`/pedidos/${id}/nota`, "_blank");
   };
 
   // Calcular estatísticas locais como fallback
