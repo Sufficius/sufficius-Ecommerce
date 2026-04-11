@@ -14,6 +14,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuthStore } from "@/modules/services/store/auth-store";
+import { BiCategory } from "react-icons/bi";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -34,6 +35,12 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       label: "Produtos",
       path: "/produtos",
       section: "produtos",
+    },
+    {
+      icon: <BiCategory className="h-5 w-5" />,
+      label: "Categorias",
+      path: "/categorias",
+      section: "categorias",
     },
     {
       icon: <ShoppingBag className="h-5 w-5" />,

@@ -1,202 +1,450 @@
 "use client";
 
 import { useState } from "react";
-import { PieChart, ShoppingBag, Tag } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { categoriaRoutes } from "@/modules/services/api/routes/categorias";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  AlertCircle,
+  Loader2,
+  Tag,
+} from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/modules/services/api/axios";
+import { useAuthStore } from "@/modules/services/store/auth-store";
+import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
-export default function CategoryPage() {
-  const [periodo, setPeriodo] = useState("mes");
+interface Categoria {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  criadoEm: string;
+  atualizadoEm: string;
+  Produto?: Array<{ id: string; nome: string }>;
+}
 
-  const {data: categoria} = useQuery({
+export default function AdminCategorias() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((state) => state.token);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
+  const [formData, setFormData] = useState({
+    nome: "",
+    descricao: "",
+  });
+
+  // Buscar categorias
+  const { data: categoriasData, isLoading, error } = useQuery({
     queryKey: ["categorias"],
     queryFn: async () => {
-      const response = categoriaRoutes.getAllCategoria();
-      return response;
-    }
+      const response = await api.get("/categorias", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data.data as Categoria[];
+    },
+    enabled: !!token,
   });
 
-const categoriaId = categoria?.map(c => c.id);
-
-  const {data: vendas}= useQuery({
-    queryKey: ["vendas"],
-    queryFn: async () =>  {
-      const response = await api.get("/vendas/dashboard");
-      return response.data.data?.total?.vendas
-    }
+  // Criar categoria
+  const createMutation = useMutation({
+    mutationFn: async (data: { nome: string; descricao: string;}) => {
+      const response = await api.post("/categorias", data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success("Categoria criada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["categorias"] });
+      setIsCreateModalOpen(false);
+      resetForm();
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Erro ao criar categoria");
+    },
   });
 
+  // Atualizar categoria
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { nome: string; descricao: string;} }) => {
+      const response = await api.put(`/categorias/${id}`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success("Categoria atualizada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["categorias"] });
+      setIsEditModalOpen(false);
+      resetForm();
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Erro ao atualizar categoria");
+    },
+  });
 
-  const total = vendas ?? 0;
+  // Deletar categoria
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.delete(`/categorias/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success("Categoria deletada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["categorias"] });
+      setIsDeleteAlertOpen(false);
+      setSelectedCategoria(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Erro ao deletar categoria");
+    },
+  });
 
-  const calcularAngulos = () => {
-    let anguloAcumulado = 0;
-    return categoriaId?.map((cat: any) => {
-      const porcentagem = (cat.valor / (total ?? 0)) * 100;
-      const angulo = (porcentagem / 100) * 360;
-      const resultado = {
-        ...cat,
-        porcentagem,
-        anguloInicio: anguloAcumulado,
-        anguloFim: anguloAcumulado + angulo
-      };
-      anguloAcumulado += angulo;
-      return resultado;
-    });
+  const resetForm = () => {
+    setFormData({ nome: "", descricao: "" });
+    setSelectedCategoria(null);
   };
 
-  const dadosComAngulos = calcularAngulos();
+  const handleEdit = (categoria: Categoria) => {
+    setSelectedCategoria(categoria);
+    setFormData({
+      nome: categoria.nome,
+      descricao: categoria.descricao || "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleDelete = (categoria: Categoria) => {
+    setSelectedCategoria(categoria);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const handleCreateSubmit = () => {
+    if (!formData.nome.trim()) {
+      toast.error("Nome da categoria é obrigatório");
+      return;
+    }
+    createMutation.mutate(formData);
+  };
+
+  const handleUpdateSubmit = () => {
+    if (!selectedCategoria) return;
+    if (!formData.nome.trim()) {
+      toast.error("Nome da categoria é obrigatório");
+      return;
+    }
+    updateMutation.mutate({ id: selectedCategoria.id, data: formData });
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedCategoria) {
+      deleteMutation.mutate(selectedCategoria.id);
+    }
+  };
+
+  // Filtrar categorias
+  const filteredCategorias = categoriasData?.filter((cat) =>
+    cat.nome.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const hasProducts = (categoria: Categoria) => {
+    return categoria?.Produto && categoria?.Produto?.length > 0;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-red-700 mb-2">Erro ao carregar categorias</h2>
+        <p className="text-red-600">Tente novamente mais tarde.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="my-8 mb-8">
-      <div className="flex items-center justify-between mb-8">
-       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    Categorias
-                  </h1>
-                  <p className="text-gray-600">
-                    Gerencie as suas categorias como quiseres
-                  </p>
-                </div>
-              </div>
+    <div className="py-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
-          <div className="text-2xl font-bold">KZ {total?.toLocaleString()}</div>
-          <div className="flex items-center text-sm">
-            <Tag className="h-4 w-4 text-[#D4AF37] mr-1" />
-            <span className="text-gray-600">Vendas por categoria</span>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Categorias</h1>
+          <p className="text-gray-600">Gerencie as categorias dos produtos</p>
         </div>
-        
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-          {["hoje", "mes", "ano"].map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriodo(p)}
-              className={`px-3 py-1 text-sm rounded-md transition ${
-                periodo === p
-                  ? "bg-white shadow"
-                  : "hover:bg-gray-200"
-              }`}
-            >
-              {p === "hoje" ? "Hoje" : p === "mes" ? "Este mês" : "Este ano"}
-            </button>
-          ))}
+        <Button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="bg-amber-500 hover:bg-amber-600 text-white"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Categoria
+        </Button>
+      </div>
+
+      {/* Search */}
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Buscar categorias..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
       </div>
 
-      {/* Gráfico de pizza e legenda lado a lado */}
-      <div className="grid lg:grid-cols-2 gap-8 ">
-        {/* Gráfico de pizza */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative h-48 w-48">
-              {/* Anel externo */}
-              <div className="absolute inset-0 rounded-full border-8 border-gray-100"></div>
-              
-              {/* Fatias da pizza */}
-              <svg className="absolute inset-0" viewBox="0 0 100 100">
-                {dadosComAngulos?.map((cat, index) => {
-                  const raio = 40;
-                  const x1 = 50 + raio * Math.cos((cat.anguloInicio - 90) * (Math.PI / 180));
-                  const y1 = 50 + raio * Math.sin((cat.anguloInicio - 90) * (Math.PI / 180));
-                  const x2 = 50 + raio * Math.cos((cat.anguloFim - 90) * (Math.PI / 180));
-                  const y2 = 50 + raio * Math.sin((cat.anguloFim - 90) * (Math.PI / 180));
-                  
-                  const grandeArco = cat.anguloFim - cat.anguloInicio > 180 ? 1 : 0;
-                  
-                  return (
-                    <path
-                      key={index}
-                      d={`M 50 50 L ${x1} ${y1} A ${raio} ${raio} 0 ${grandeArco} 1 ${x2} ${y2} Z`}
-                      fill={cat?.cor?.replace('bg-', '')?.replace('-500', '')}
-                      fillOpacity="0.8"
-                      stroke="white"
-                      strokeWidth="2"
-                      className="transition-all duration-300 hover:opacity-90 cursor-pointer"
-                    //  title={`${String(cat.nome)}: ${String(cat.porcentagem.toFixed(1))}%`}
-                    />
-                  );
-                })}
-              </svg>
-              
-              {/* Centro do gráfico */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="h-16 w-16 bg-white rounded-full shadow flex items-center justify-center">
-                  <PieChart className="h-8 w-8 text-[#D4AF37]" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Total no centro (opcional) */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-            <div className="text-lg font-bold">
-              {categoria?.length} categorias
-            </div>
-          </div>
-        </div>
-
-        {/* Legenda e detalhes */}
-        <div className="space-y-4">
-          <h4 className="font-bold text-gray-900">Distribuição por Categoria</h4>
-          
-          <div className="space-y-3">
-            {dadosComAngulos?.map((cat, index) => (
-              <div key={index} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg cursor-pointer group">
-                <div className="flex items-center gap-3">
-                  <div className={`h-3 w-3 rounded-full ${cat.cor}`}></div>
-                  <div>
-                    <div className="font-medium">{cat.nome}</div>
-                    <div className="text-sm text-gray-500">
-                      {cat.porcentagem.toFixed(1)}% do total
+      {/* Tabela de Categorias */}
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <Table>
+          <TableHeader className="bg-gray-50">
+            <TableRow>
+              <TableHead className="text-left">Nome</TableHead>
+              <TableHead className="text-left">Descrição</TableHead>
+              <TableHead className="text-center">Produtos</TableHead>
+              <TableHead className="text-center">Criado em</TableHead>
+              <TableHead className="text-center w-24">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredCategorias && filteredCategorias.length > 0 ? (
+              filteredCategorias.map((categoria) => (
+                <TableRow key={categoria.id} className="hover:bg-gray-50">
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-4 w-4 text-amber-500" />
+                      {categoria.nome}
                     </div>
-                  </div>
-                </div>
-                
-                <div className="text-right">
-                  <div className="font-bold">KZ {cat.valor?.toLocaleString()}</div>
-                  <div className="text-sm text-gray-500">
-                    {periodo === "hoje" ? "hoje" : periodo === "mes" ? "este mês" : "este ano"}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Estatísticas */}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-            <div className="text-center">
-              <div className="text-sm text-gray-500">Categoria Top</div>
-              <div className="font-bold">{dadosComAngulos?.[0]?.nome}</div>
-              <div className="text-xs text-gray-500">
-                {dadosComAngulos?.[0]?.porcentagem.toFixed(1)}% do total
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-sm text-gray-500">Variação</div>
-              <div className="font-bold text-green-500">+15.2%</div>
-              <div className="text-xs text-gray-500">vs. anterior</div>
-            </div>
-          </div>
-        </div>
+                  </TableCell>
+                  <TableCell className="max-w-xs truncate">
+                    {categoria.descricao || "-"}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="secondary">
+                      {categoria.Produto?.length || 0}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    {new Date(categoria.criadoEm).toLocaleDateString("pt-BR")}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(categoria)}
+                        className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(categoria)}
+                        disabled={hasProducts(categoria)}
+                        className={`h-8 w-8 ${
+                          hasProducts(categoria)
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-red-600 hover:text-red-700"
+                        }`}
+                        title={
+                          hasProducts(categoria)
+                            ? "Não é possível excluir categoria com produtos"
+                            : "Excluir categoria"
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  {searchTerm
+                    ? "Nenhuma categoria encontrada com este termo"
+                    : "Nenhuma categoria cadastrada"}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Insights */}
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-        <div className="flex items-center gap-3">
-          <ShoppingBag className="h-5 w-5 text-blue-600" />
-          <div>
-            <div className="font-medium text-blue-900">Insight do Mês</div>
-            <div className="text-sm text-blue-700">
-              A categoria <strong>{dadosComAngulos?.[0]?.nome}</strong> representa{" "}
-              <strong>{dadosComAngulos?.[0]?.porcentagem?.toFixed(1)}%</strong> das vendas totais. 
-              Considere aumentar o investimento nesta categoria.
+      {/* Modal de Criar Categoria */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova Categoria</DialogTitle>
+            <DialogDescription>
+              Preencha os dados para criar uma nova categoria
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={formData.nome}
+                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                placeholder="Ex: Eletrônicos"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descrição
+              </label>
+              <Textarea
+                value={formData.descricao}
+                onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                placeholder="Descrição da categoria (opcional)"
+                rows={3}
+              />
             </div>
           </div>
-        </div>
-      </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateSubmit}
+              disabled={createMutation.isPending}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Criar Categoria
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Editar Categoria */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Categoria</DialogTitle>
+            <DialogDescription>Altere os dados da categoria</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={formData.nome}
+                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descrição
+              </label>
+              <Textarea
+                value={formData.descricao}
+                onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleUpdateSubmit}
+              disabled={updateMutation.isPending}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AlertDialog de Confirmação de Exclusão */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a categoria "{selectedCategoria?.nome}"?
+              {selectedCategoria?.Produto && selectedCategoria.Produto.length > 0 && (
+                <span className="block mt-2 text-red-600 font-medium">
+                  ⚠️ Atenção: Esta categoria possui {selectedCategoria.Produto.length} produto(s) associado(s). 
+                  Não é possível excluir categorias com produtos.
+                </span>
+              )}
+              {(!selectedCategoria?.Produto || selectedCategoria.Produto.length === 0) && (
+                <span className="block mt-2">
+                  Esta ação não pode ser desfeita.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={hasProducts(selectedCategoria as Categoria)}
+              className={
+                hasProducts(selectedCategoria as Categoria)
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-red-600 hover:bg-red-700"
+              }
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                "Sim, excluir"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

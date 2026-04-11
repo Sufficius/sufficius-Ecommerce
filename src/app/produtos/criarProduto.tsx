@@ -402,13 +402,13 @@ export const NovoProdutoModal = ({
 
       setUploadProgress(90);
 
-      const response = await api.post("/produtos", produtoData, {
+       await api.post("/produtos", produtoData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      console.log("✅ Produto criado:", response.data);
+      // console.log("✅ Produto criado:", response.data);
       setUploadProgress(100);
 
       toast.success("Produto criado com sucesso!");
