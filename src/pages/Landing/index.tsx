@@ -1,4 +1,3 @@
-// src/modules/landing/index.tsx
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -184,7 +183,6 @@ const Header = () => {
     navigate("/");
     toast.success("Até logo!");
   };
-
   const navItems = [
     { name: "Início", href: "#inicio" },
     { name: "Produtos", href: "#produtos" },
@@ -198,7 +196,9 @@ const Header = () => {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        isScrolled ? "bg-white/95 backdrop-blur-md shadow-lg" : "bg-transparent text-white"
+        isScrolled
+          ? "bg-white/95 backdrop-blur-md shadow-lg"
+          : "bg-transparent text-white"
       }`}
     >
       <div className="max-w-7xl mx-auto px-4">
@@ -229,7 +229,9 @@ const Header = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className={`w-full ${isScrolled ? "placeholder:text-gray-500" : "placeholder:text-white"} h-12 pl-12 pr-4 rounded-2xl border-2 border-gray-100 bg-white/50 backdrop-blur-sm focus:border-amber-400 focus:ring-4 focus:ring-amber-100 transition-all outline-none`}
             />
-            <Search className={`absolute left-4 top-1/2 -translate-y-1/2 ${isScrolled ? "text-gray-500" : "text-white"}  w-5 h-5`} />
+            <Search
+              className={`absolute left-4 top-1/2 -translate-y-1/2 ${isScrolled ? "text-gray-500" : "text-white"}  w-5 h-5`}
+            />
           </div>
 
           {/* Navigation - Desktop */}
@@ -433,7 +435,7 @@ const HeroSection = () => {
   ];
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: any;
     if (isAutoPlay) {
       interval = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % slides.length);
