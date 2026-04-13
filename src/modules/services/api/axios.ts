@@ -65,7 +65,6 @@ export const api = axios.create({
 
 // ✅ INTERCEPTOR PARA ADICIONAR TOKEN AUTOMATICAMENTE
 api.interceptors.request.use((config) => {
-  
   // Obter o token
   const token = getToken();
   
@@ -73,7 +72,6 @@ api.interceptors.request.use((config) => {
     // Adicionar token ao header Authorization
     config.headers.Authorization = `Bearer ${token}`;
   } else {
-    
     // Se for uma rota protegida (POST, PUT, DELETE, PATCH em /produtos), avisar
     const isProtectedRoute = config.url?.includes('/produtos') && 
                             ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase() || '');
