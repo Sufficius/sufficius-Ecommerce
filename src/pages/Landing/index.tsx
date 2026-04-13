@@ -1397,7 +1397,7 @@ const Footer = () => {
             {
               title: "Contato",
               links: [
-                { icon: Phone, text: "+244 900 000 000" },
+                { icon: Phone, text: "+244 957 249 674" },
                 { icon: Mail, text: "contato@sufficius.com" },
                 { icon: MapPin, text: "Luanda, Angola" },
               ],
