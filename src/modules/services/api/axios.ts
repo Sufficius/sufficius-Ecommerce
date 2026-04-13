@@ -60,7 +60,10 @@ export const api = axios.create({
   // baseURL: localUrl,
   baseURL: apiUrl,
   withCredentials: true, // Importante para enviar cookies automaticamente
-  timeout: 60000, // 30 segundos de timeout
+  timeout: 60000, 
+   headers: {
+    'Content-Type': 'application/json',
+  }
 });
 
 // ✅ INTERCEPTOR PARA ADICIONAR TOKEN AUTOMATICAMENTE
