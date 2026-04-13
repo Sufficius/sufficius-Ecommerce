@@ -21,7 +21,6 @@ interface IItemCarrinho {
 }
 
 interface ICriarCarrinho {
-  userId: string;
   produtoId: string;
   quantidade: number;
 }
@@ -81,7 +80,12 @@ class CarrinhosRoute {
   // Adicionar item ao carrinho
   async adicionarItem(data: ICriarCarrinho) {
     try {
-      const response = await api.post("/carrinho/item", data);
+      const token = localStorage.getItem("token");
+      const response = await api.post("/carrinho/item", data, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
 
       return response.data;
     } catch (error: any) {
@@ -343,10 +347,10 @@ class CarrinhosRoute {
   // }
 
 
-  async countCartItems(userId: string) {
+  async countCartItems() {
 
     try {
-      const response = await api.get(`/carrinho/count-items-on-card/${userId}`);
+      const response = await api.get(`/carrinho/count-items-on-card`);
       const total = response.data?.totalItens ?? 0;
       
       return { totalItens: total };

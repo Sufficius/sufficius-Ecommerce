@@ -133,11 +133,9 @@ const Header = () => {
   const navigate = useNavigate();
 
   const { data: countData, refetch: refetchCount } = useQuery({
-    queryKey: ["cart-count", user?.id_usuario],
+    queryKey: ["cart-count"],
     queryFn: async () => {
-      const result = await carrinhosRoute.countCartItems(
-        user?.id_usuario || "",
-      );
+      const result = await carrinhosRoute.countCartItems();
       return result;
     },
     enabled: !!user,
@@ -674,7 +672,6 @@ const ProductsSection = () => {
   const [quantity, setQuantity] = useState(1);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const user_Id = user?.id_usuario || "";
 
   const { data: produtos, isLoading } = useQuery({
     queryKey: ["produtos"],
@@ -688,7 +685,7 @@ const ProductsSection = () => {
     mutationFn: (data: any) => carrinhosRoute.adicionarItem(data),
     onSuccess: () => {
       toast.success("Produto adicionado ao carrinho!");
-      queryClient.invalidateQueries({ queryKey: ["cart-count", user_Id] });
+      queryClient.invalidateQueries({ queryKey: ["cart-count"] });
       window.dispatchEvent(new Event("cart-updated"));
       setSelectedProduct(null);
       setQuantity(1);
@@ -845,7 +842,6 @@ const ProductsSection = () => {
                     <button
                       onClick={() =>
                         addToCartMutation.mutate({
-                          userId: user_Id,
                           produtoId: produto.id,
                           quantidade: 1,
                         })
@@ -987,7 +983,6 @@ const ProductsSection = () => {
                         <button
                           onClick={() =>
                             addToCartMutation.mutate({
-                              userId: user_Id,
                               produtoId: selectedProduct.id,
                               quantidade: quantity,
                             })
