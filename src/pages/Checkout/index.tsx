@@ -27,7 +27,6 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/utils";
 import UploadArea from "@/(admin)/components/upload-area";
-import { api } from "@/modules/services/api/axios";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ============================================
