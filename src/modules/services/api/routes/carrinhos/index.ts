@@ -1,4 +1,5 @@
 // src/services/carrinhos.service.ts
+import Cookies from "js-cookie";
 import { api } from "../../axios";
 
 interface IItemCarrinho {
@@ -79,7 +80,7 @@ class CarrinhosRoute {
   // Adicionar item ao carrinho
   async adicionarItem(data: ICriarCarrinho) {
     try {
-      const token = localStorage.getItem("token");
+      const token = Cookies.get("authSufficius-token") || localStorage.getItem("token");
       if(!token) {
         return {
           success: false,
