@@ -47,33 +47,32 @@ class CarrinhosRoute {
   // Obter carrinho do usuário autenticado
   async getCarrinho(): Promise<IRespostaCarrinho> {
     try {
-      const response = await api.get("/carrinho");
+      const token = localStorage.getItem("token");
+
+      const response = await api.get("/carrinho", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       return response.data;
     } catch (error: any) {
       console.error('❌ [Frontend] Erro ao obter carrinho:', error);
 
       if (error.response?.status === 401) {
         return {
-          success: false,
-          message: "Sessão expirada. Faça login novamente."
+          success: true,
+          data: {
+            id: '',
+            usuarioId: '',
+            criadoEm: new Date().toISOString(),
+            atualizadoEm: new Date().toISOString(),
+            itens: [],
+            totalItens: 0,
+            subtotal: 0,
+            desconto: 0,
+            total: 0
+          }
         };
       }
-
-      // Em caso de erro, retornar carrinho vazio
-      return {
-        success: true,
-        data: {
-          id: '',
-          usuarioId: '',
-          criadoEm: new Date().toISOString(),
-          atualizadoEm: new Date().toISOString(),
-          itens: [],
-          totalItens: 0,
-          subtotal: 0,
-          desconto: 0,
-          total: 0
-        }
-      };
+      throw error;
     }
   }
 
@@ -81,6 +80,13 @@ class CarrinhosRoute {
   async adicionarItem(data: ICriarCarrinho) {
     try {
       const token = localStorage.getItem("token");
+      if(!token) {
+        return {
+          success: false,
+          message: "Usuário não autenticado. Faça login para adicionar itens ao carrinho."
+        };
+      }
+
       const response = await api.post("/carrinho/item", data, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -120,8 +126,19 @@ class CarrinhosRoute {
   }
 
   // Atualizar quantidade de um item no carrinho
-  async atualizarItem(id: string | undefined, produtoId: string, quantidade: number): Promise<IRespostaCarrinho> {
+  async atualizarItem(
+    id: string,
+    produtoId: string, 
+    quantidade: number
+  ): Promise<IRespostaCarrinho> {
     try {
+      const token = localStorage.getItem("token");
+      if(!token) {
+        return {
+          success: false,
+          message: "Usuário não autenticado. Faça login para atualizar itens do carrinho."
+        };
+      }
 
       if (!id) {
         return {
@@ -149,7 +166,13 @@ class CarrinhosRoute {
         return await this.removerItem(produtoId);
       }
 
-      const response = await api.put(`/carrinho/item/${id}/${produtoId}`, { quantidade });
+      const response = await api.put(`/carrinho/item/${produtoId}`, { quantidade },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
       return response.data;
     } catch (error: any) {
       console.error(`❌ [Frontend] Erro ao atualizar item ${produtoId} no carrinho:`, error);
@@ -186,6 +209,14 @@ class CarrinhosRoute {
   async removerItem(produtoId: string): Promise<IRespostaCarrinho> {
     try {
 
+      const token = localStorage.getItem("token");
+
+      if(!token) {
+        return {
+          success: false,
+          message: "Usuário não autenticado. Faça login para remover itens do carrinho."
+        };
+      }
       if (!produtoId) {
         return {
           success: false,
@@ -193,7 +224,11 @@ class CarrinhosRoute {
         };
       }
 
-      const response = await api.delete(`/carrinho/item/${produtoId}`);
+      const response = await api.delete(`/carrinho/item/${produtoId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       return response.data;
     } catch (error: any) {
       console.error(`❌ [Frontend] Erro ao remover item ${produtoId} do carrinho:`, error);
@@ -219,20 +254,43 @@ class CarrinhosRoute {
     }
   }
 
-  async deleteAllProductsInCart(id: string | undefined) {
-    const response = await api.delete(`/carrinho/deleteAllProducts/${id}`);
+  async deleteAllProductsInCart(id: string) {
+    const token = localStorage.getItem("token");
+
+    if(!token) {
+      throw new Error("Usuário não autenticado. Faça login para esvaziar o carrinho.");
+    }
+    
+    const response = await api.delete(`/carrinho/limpar/${id}`,{
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
     return response.data;
   }
 
-  async deleteProductInCart(id: string | undefined, produtoId: string) {
-    const response = await api.delete(`/carrinho/deleteProduct/${id}/${produtoId}`);
-    return response.data;
+  async deleteProductInCart(produtoId: string) {
+    return this.removerItem(produtoId);
   }
 
   // Limpar todo o carrinho
   async limparCarrinho(): Promise<IRespostaCarrinho> {
     try {
-      const response = await api.delete("/carrinho/limpar");
+      const token = localStorage.getItem("token");
+
+
+        if(!token) {
+          return {
+            success: false,
+            message: "Usuário não autenticado. Faça login para limpar o carrinho."
+          };
+        }
+
+      const response = await api.delete("/carrinho/limpar", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       return response.data;
     } catch (error: any) {
       console.error('❌ [Frontend] Erro ao limpar carrinho:', error);
@@ -332,9 +390,16 @@ class CarrinhosRoute {
   }
 
   async finalizePurchase(data: FormData): Promise<ICarrinho> {
+    const token = localStorage.getItem("token");
+
+    if(!token) {
+      throw new Error("Usuário não autenticado. Faça login para finalizar a compra.");
+    }
+
     const response = await api.post("/carrinho/checkout", data, {
       headers: {
         "Content-Type": "multipart/form-data",
+        "Authorization": `Bearer ${token}`
       },
     });
     console.log("✅ [API] Resposta recebida:", response.data);
@@ -352,7 +417,7 @@ class CarrinhosRoute {
     try {
       const response = await api.get(`/carrinho/count-items-on-card`);
       const total = response.data?.totalItens ?? 0;
-      
+
       return { totalItens: total };
     }
     catch (error) {

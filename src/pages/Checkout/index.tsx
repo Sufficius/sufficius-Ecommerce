@@ -402,13 +402,11 @@ export default function CheckoutPage() {
 
   // Query para buscar o carrinho
   const { data: cartData, isLoading } = useQuery({
-    queryKey: ["cart", user_Id],
+    queryKey: ["cart"],
     queryFn: () => carrinhosRoute.getCarrinho(),
-    enabled: !!user_Id,
     staleTime: 30000,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
-    refetchInterval: false,
   });
 
   // Obter o ID do carrinho com segurança
@@ -421,7 +419,7 @@ export default function CheckoutPage() {
       return carrinhosRoute.deleteAllProductsInCart(cartId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
       toast.success("Carrinho esvaziado");
     },
     onError: () => {
@@ -433,14 +431,14 @@ export default function CheckoutPage() {
   const removeItemMutation = useMutation({
     mutationFn: (produtoId: string) => {
       if (!cartId) throw new Error("Carrinho não encontrado");
-      return carrinhosRoute.deleteProductInCart(cartId, produtoId);
+      return carrinhosRoute.deleteProductInCart(produtoId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
       toast.success("Produto removido");
     },
-    onError: () => {
-      toast.error("Erro ao remover produto");
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao remover produto");
     },
   });
 
@@ -457,12 +455,12 @@ export default function CheckoutPage() {
       return carrinhosRoute.atualizarItem(cartId, productId, quantity);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
       toast.success("Quantidade atualizada");
       setEditedItems({});
     },
-    onError: () => {
-      toast.error("Erro ao atualizar quantidade");
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao atualizar quantidade");
     },
   });
 
@@ -501,6 +499,11 @@ export default function CheckoutPage() {
   const finalizePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if(!user_Id) {
+      toast.error("Usuário não autenticado. Faça login para finalizar a compra.");
+      return;
+    }
+
     // Validações
     const newErrors: any = {};
     if (!phone.trim()) newErrors.phone = "Telefone é obrigatório";
@@ -513,6 +516,8 @@ export default function CheckoutPage() {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
+
+    setIsSubmitting(true);
 
     // Validar tamanho do arquivo
     if (paymentProof!.size > 10 * 1024 * 1024) {
@@ -545,15 +550,12 @@ export default function CheckoutPage() {
     });
 
     try {
-      const response = await api.post("/carrinho/checkout", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        timeout: 120000,
-      });
+       await carrinhosRoute.finalizePurchase(formData);
 
       toast.dismiss(toastId);
 
-      if (response.data?.success) {
-        toast.success(response.data.message || "Pedido realizado com sucesso!");
+      toast.success("Pedido realizado com sucesso!");
+
 
         // Limpar tudo após sucesso
         setPaymentProof(null);
@@ -561,13 +563,15 @@ export default function CheckoutPage() {
         setPhone("");
         setErrors({});
 
-        await queryClient.invalidateQueries({ queryKey: ["cart", user_Id] });
-      }
+        await queryClient.invalidateQueries({ queryKey: ["cart"] });
     } catch (error: any) {
       toast.dismiss(toastId);
       console.error("Erro detalhado:", error);
+       if (error.response?.status === 401) {
+        toast.error("Sessão expirada. Faça login novamente.");
+      }
 
-      if (error.response?.data?.error?.includes("upload")) {
+      else if (error.response?.data?.error?.includes("upload")) {
         toast.error(
           "Erro ao enviar o comprovativo. Tente novamente com um arquivo menor ou em outro formato.",
         );
