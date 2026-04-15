@@ -48,7 +48,7 @@ class CarrinhosRoute {
   // Obter carrinho do usuário autenticado
   async getCarrinho(): Promise<IRespostaCarrinho> {
     try {
-      const token = localStorage.getItem("token");
+      const token = Cookies.get("authSufficius-token") || localStorage.getItem("token");
 
       const response = await api.get("/carrinho", {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -133,7 +133,7 @@ class CarrinhosRoute {
     quantidade: number
   ): Promise<IRespostaCarrinho> {
     try {
-      const token = localStorage.getItem("token");
+      const token = Cookies.get("authSufficius-token") || localStorage.getItem("token");
       if(!token) {
         return {
           success: false,
@@ -210,7 +210,7 @@ class CarrinhosRoute {
   async removerItem(produtoId: string): Promise<IRespostaCarrinho> {
     try {
 
-      const token = localStorage.getItem("token");
+      const token = Cookies.get("authSufficius-token") || localStorage.getItem("token");
 
       if(!token) {
         return {
@@ -256,7 +256,7 @@ class CarrinhosRoute {
   }
 
   async deleteAllProductsInCart(id: string) {
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("authSufficius-token") || localStorage.getItem("token");
 
     if(!token) {
       throw new Error("Usuário não autenticado. Faça login para esvaziar o carrinho.");
@@ -277,7 +277,7 @@ class CarrinhosRoute {
   // Limpar todo o carrinho
   async limparCarrinho(): Promise<IRespostaCarrinho> {
     try {
-      const token = localStorage.getItem("token");
+      const token = Cookies.get("authSufficius-token") || localStorage.getItem("token");
 
 
         if(!token) {
@@ -391,7 +391,7 @@ class CarrinhosRoute {
   }
 
   async finalizePurchase(data: FormData): Promise<ICarrinho> {
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("authSufficius-token") || localStorage.getItem("token");
 
     if(!token) {
       throw new Error("Usuário não autenticado. Faça login para finalizar a compra.");
