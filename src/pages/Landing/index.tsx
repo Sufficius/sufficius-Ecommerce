@@ -149,6 +149,8 @@ const Header = () => {
     retry: false,
   });
 
+  console.log("Contagem do carrinho:", countData);
+
   useEffect(() => {
     const handleCartUpdate = () => {
       refetchCount();
