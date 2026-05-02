@@ -135,13 +135,18 @@ const Header = () => {
   const { data: countData, refetch: refetchCount } = useQuery({
     queryKey: ["cart-count"],
     queryFn: async () => {
-      const result = await carrinhosRoute.countCartItems();
-      return result;
+      try {
+        const result = await carrinhosRoute.countCartItems();
+        return result;
+      } catch (error) {
+        return { totalItens: 0 };
+      }
     },
-    enabled: !!user,
+    enabled: true,
     staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    retry: false,
   });
 
   useEffect(() => {
@@ -326,17 +331,19 @@ const Header = () => {
                 <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-amber-100 transition-colors cursor-pointer">
                   <ShoppingCart className="w-5 h-5 text-gray-700" />
                 </div>
-                {user && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full flex items-center justify-center shadow-lg"
-                  >
-                    {typeof countData?.totalItens === "number"
-                      ? countData.totalItens
-                      : 0}
-                  </motion.span>
-                )}
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className={`
+                      absolute -top-1 -right-1 min-w-5 h-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full flex items-center justify-center shadow-lg px-1 ${
+                        !countData?.totalItens || countData.totalItens === 0
+                          ? "opacity-0 scale-0"
+                          : "opacity-100 scale-100"
+                      } transition-all duration-300
+                      `}
+                >
+                  {countData?.totalItens || 0}
+                </motion.span>
               </motion.div>
             </Link>
 
