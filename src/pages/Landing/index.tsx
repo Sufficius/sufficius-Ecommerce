@@ -128,6 +128,9 @@ const Header = () => {
   const profileRef = useRef<HTMLDivElement>(null);
 
   const { user } = useAuthStore();
+
+  console.log("user no header:", user);
+  
   const logged = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
