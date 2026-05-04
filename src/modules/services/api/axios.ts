@@ -41,7 +41,6 @@ const getToken = (): string | null => {
       }
     }
   }
-  
   // 3. Verifica se é um token válido
   if (token) {
     // Verifica se tem formato JWT (3 partes separadas por ponto)
@@ -51,10 +50,8 @@ const getToken = (): string | null => {
       return null;
     }
   }
-  
   return null;
 };
-
 // Configuração base do axios
 export const api = axios.create({
   // baseURL: localUrl,

@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import {
   ShoppingCart,
@@ -39,9 +38,6 @@ import { carrinhosRoute } from "@/modules/services/api/routes/carrinhos";
 import { api } from "@/modules/services/api/axios";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ============================================
-// TIPOS
-// ============================================
 interface Product {
   id: string;
   nome: string;
@@ -54,9 +50,6 @@ interface Product {
   rating?: number;
 }
 
-// ============================================
-// ANIMAÇÕES
-// ============================================
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
@@ -71,9 +64,6 @@ const staggerContainer = {
   },
 };
 
-// ============================================
-// COMPONENTE DE IMAGEM OTIMIZADA
-// ============================================
 const OptimizedImage = ({
   src,
   alt,
@@ -207,7 +197,6 @@ const Header = () => {
     >
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
             <motion.div
               whileHover={{ rotate: 360 }}
@@ -224,7 +213,6 @@ const Header = () => {
             </div>
           </Link>
 
-          {/* Search Bar - Desktop */}
           <div className="hidden md:flex relative flex-1 max-w-md mx-8">
             <input
               type="search"
@@ -238,7 +226,6 @@ const Header = () => {
             />
           </div>
 
-          {/* Navigation - Desktop */}
           <nav className="hidden lg:flex items-center gap-8">
             {navItems.map((item) => (
               <a
@@ -252,9 +239,7 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Actions */}
           <div className="flex items-center gap-3">
-            {/* Profile */}
             <div className="relative" ref={profileRef}>
               {logged ? (
                 <motion.button
@@ -273,7 +258,6 @@ const Header = () => {
                 </Link>
               )}
 
-              {/* Profile Menu */}
               <AnimatePresence>
                 {profileOpen && logged && (
                   <motion.div
@@ -322,7 +306,6 @@ const Header = () => {
               </AnimatePresence>
             </div>
 
-            {/* Cart */}
             <Link to="/checkout">
               <motion.div
                 whileHover={{ scale: 1.05 }}
@@ -348,7 +331,6 @@ const Header = () => {
               </motion.div>
             </Link>
 
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden w-10 h-10 rounded-full flex items-center justify-center transition-colors"
@@ -358,7 +340,6 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div
@@ -397,9 +378,7 @@ const Header = () => {
   );
 };
 
-// ============================================
-// HERO SECTION CINEMATOGRÁFICA
-// ============================================
+
 const HeroSection = () => {
   const navigate = useNavigate();
   const logged = useAuthStore((state) => state.isAuthenticated);
@@ -462,7 +441,6 @@ const HeroSection = () => {
 
   return (
     <section className="relative h-screen min-h-[600px] overflow-hidden">
-      {/* Slides */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentSlide}
@@ -483,7 +461,6 @@ const HeroSection = () => {
         </motion.div>
       </AnimatePresence>
 
-      {/* Content */}
       <div className="relative h-full max-w-7xl mx-auto px-4 flex items-center">
         <motion.div
           key={currentSlide}
@@ -548,7 +525,6 @@ const HeroSection = () => {
         </motion.div>
       </div>
 
-      {/* Controls */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4">
         <button
           onClick={prevSlide}
@@ -593,9 +569,7 @@ const HeroSection = () => {
   );
 };
 
-// ============================================
-// FEATURES SECTION COM ÍCONES ANIMADOS
-// ============================================
+
 const Features = () => {
   const features = [
     {
@@ -672,9 +646,7 @@ const Features = () => {
   );
 };
 
-// ============================================
-// PRODUTOS SECTION COM GRID MODERNO
-// ============================================
+
 const ProductsSection = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -772,7 +744,6 @@ const ProductsSection = () => {
               whileHover={{ y: -10 }}
               className="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
             >
-              {/* Badges */}
               <div className="absolute top-4 left-4 z-10 flex gap-2">
                 {index === 0 && (
                   <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-bold rounded-full shadow-lg">
@@ -786,7 +757,6 @@ const ProductsSection = () => {
                 )}
               </div>
 
-              {/* Image */}
               <div className="relative h-64 overflow-hidden bg-gray-100">
                 <OptimizedImage
                   src={
@@ -797,7 +767,6 @@ const ProductsSection = () => {
                   className="w-full h-full group-hover:scale-110 transition-transform duration-500"
                 />
 
-                {/* Quick Actions */}
                 <div className="absolute top-4 right-4 flex flex-col gap-2">
                   <button className="p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-amber-500 hover:text-white transition-colors">
                     <Heart className="w-4 h-4" />
@@ -810,7 +779,6 @@ const ProductsSection = () => {
                   </button>
                 </div>
 
-                {/* Discount Badge */}
                 {index === 1 && (
                   <div className="absolute bottom-4 left-4 px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-bold rounded-full shadow-lg">
                     -20% OFF
@@ -818,7 +786,6 @@ const ProductsSection = () => {
                 )}
               </div>
 
-              {/* Content */}
               <div className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -878,7 +845,6 @@ const ProductsSection = () => {
           ))}
         </motion.div>
 
-        {/* View All Button */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -894,7 +860,6 @@ const ProductsSection = () => {
         </motion.div>
       </div>
 
-      {/* Product Modal */}
       <AnimatePresence>
         {selectedProduct && (
           <motion.div
@@ -912,7 +877,6 @@ const ProductsSection = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="grid md:grid-cols-2 gap-8 p-8">
-                {/* Image */}
                 <div className="space-y-4">
                   <div className="h-96 rounded-2xl overflow-hidden bg-gray-100">
                     <OptimizedImage
@@ -927,7 +891,6 @@ const ProductsSection = () => {
                   </div>
                 </div>
 
-                {/* Details */}
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-3xl font-bold mb-2">
@@ -1033,9 +996,6 @@ const ProductsSection = () => {
   );
 };
 
-// ============================================
-// CATEGORIAS SECTION
-// ============================================
 const CategoriesSection = () => {
   const { data: categorias, isLoading } = useQuery({
     queryKey: ["categorias"],
@@ -1137,9 +1097,6 @@ const CategoriesSection = () => {
   );
 };
 
-// ============================================
-// PROMO BANNER
-// ============================================
 const PromoBanner = () => (
   <section className="py-20">
     <div className="max-w-7xl mx-auto px-4">
@@ -1198,9 +1155,6 @@ const PromoBanner = () => (
   </section>
 );
 
-// ============================================
-// TESTIMONIALS SECTION
-// ============================================
 const Testimonials = () => {
   const testimonials = [
     {
@@ -1307,9 +1261,6 @@ const Testimonials = () => {
   );
 };
 
-// ============================================
-// NEWSLETTER SECTION
-// ============================================
 const Newsletter = () => {
   const [email, setEmail] = useState("");
 
@@ -1364,9 +1315,6 @@ const Newsletter = () => {
   );
 };
 
-// ============================================
-// FOOTER MODERNO
-// ============================================
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
@@ -1459,9 +1407,7 @@ const Footer = () => {
   );
 };
 
-// ============================================
-// COMPONENTE PRINCIPAL
-// ============================================
+
 export default function Landing() {
   return (
     <div className="min-h-screen bg-white">
