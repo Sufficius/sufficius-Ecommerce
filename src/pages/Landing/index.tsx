@@ -378,7 +378,6 @@ const Header = () => {
   );
 };
 
-
 const HeroSection = () => {
   const navigate = useNavigate();
   const logged = useAuthStore((state) => state.isAuthenticated);
@@ -569,7 +568,6 @@ const HeroSection = () => {
   );
 };
 
-
 const Features = () => {
   const features = [
     {
@@ -645,7 +643,6 @@ const Features = () => {
     </section>
   );
 };
-
 
 const ProductsSection = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -1261,60 +1258,6 @@ const Testimonials = () => {
   );
 };
 
-const Newsletter = () => {
-  const [email, setEmail] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Inscrição realizada com sucesso!");
-    setEmail("");
-  };
-
-  return (
-    <section className="py-20 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
-      <div className="max-w-4xl mx-auto px-4 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
-          <Mail className="w-16 h-16 mx-auto mb-6 text-amber-500" />
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Fique por dentro
-          </h2>
-          <p className="text-xl text-gray-300 mb-8">
-            Receba ofertas exclusivas e lançamentos diretamente no seu email
-          </p>
-
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto"
-          >
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Seu melhor email"
-              className="flex-1 h-14 px-6 rounded-2xl text-gray-900 focus:outline-none focus:ring-4 focus:ring-amber-500/50"
-              required
-            />
-            <button
-              type="submit"
-              className="h-14 px-8 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-semibold rounded-2xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-            >
-              Inscrever-se
-            </button>
-          </form>
-
-          <p className="text-sm text-gray-400 mt-4">
-            Ao se inscrever, você concorda com nossa Política de Privacidade
-          </p>
-        </motion.div>
-      </div>
-    </section>
-  );
-};
-
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
@@ -1407,7 +1350,6 @@ const Footer = () => {
   );
 };
 
-
 export default function Landing() {
   return (
     <div className="min-h-screen bg-white">
@@ -1419,7 +1361,6 @@ export default function Landing() {
         <CategoriesSection />
         <PromoBanner />
         <Testimonials />
-        <Newsletter />
       </main>
       <Footer />
     </div>
