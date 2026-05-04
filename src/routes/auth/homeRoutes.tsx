@@ -26,53 +26,48 @@ export const HomesRoutes: IRouteProps = {
     {
       path: "/dashboard",
       element: AdminDashboard,
-      visibility: "auth", // Mude para "private"
+      visibility: "private", // Mude para "private"
     },
     {
       path: "/produtos",
       element: AdminProdutos,
       // element: NotFound,
-      visibility: "auth", // Mude para "auth"
+      visibility: "private", 
     },
     {
       path: "/pedidos",
       element: AdminPedidos,
-      visibility: "auth", // Mude para "auth"
+      visibility: "private", 
     },
     {
       path: "/pedidos/:id",
       element: DetalhesPedido,
-      visibility: "auth",
+      visibility: "private",
     },
     {
       path: "/usuarios",
       element: AdminUsuarios,
-      visibility: "auth", // Mude para "auth"
+      visibility: "private", 
     },
-    // {
-    //   path: "/cupons",
-    //   element: AdminCupons,
-    //   visibility: "auth", // Mude para "auth"
-    // },
     {
       path: "/estoque",
       element: AdminEstoque,
-      visibility: "auth", // Mude para "auth"
+      visibility: "private", 
     },
     {
       path: "/pagamentos",
       element: PagamentosPage,
-      visibility: "auth", // Mude para "auth"
+      visibility: "private", 
     },
     {
       path: "/relatorios",
       element: RelatoriosPage,
-      visibility: "auth", // Mude para "auth"
+      visibility: "private", 
     },
     {
       path: "/categorias",
       element: CategoryPage,
-      visibility: "auth", // Mude para "auth"
+      visibility: "private", 
     },
     {
       path: "*",

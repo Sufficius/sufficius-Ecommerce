@@ -66,7 +66,7 @@ interface DashboardData {
 const exportarParaCSV = (
   dados: DashboardData,
   periodo: string,
-  tipoExportacao: string
+  tipoExportacao: string,
 ) => {
   try {
     const timestamp = new Date().toISOString().split("T")[0];
@@ -80,7 +80,7 @@ const exportarParaCSV = (
           "Número do Pedido",
           "Cliente",
           "Email",
-          "Status",
+          "Estados",
           "Valor Total (KZ)",
           "Itens",
           "Data do Pedido",
@@ -99,7 +99,7 @@ const exportarParaCSV = (
         csvContent = [
           cabecalhoPedidos.join(","),
           ...linhasPedidos.map((linha) =>
-            linha.map((campo) => `"${campo}"`).join(",")
+            linha.map((campo) => `"${campo}"`).join(","),
           ),
         ].join("\n");
 
@@ -128,7 +128,7 @@ const exportarParaCSV = (
         csvContent = [
           cabecalhoProdutos.join(","),
           ...linhasProdutos.map((linha) =>
-            linha.map((campo) => `"${campo}"`).join(",")
+            linha.map((campo) => `"${campo}"`).join(","),
           ),
         ].join("\n");
 
@@ -174,7 +174,7 @@ const exportarParaCSV = (
           [
             "Período,Data Início,Data Fim,Total Vendas (KZ),Total Pedidos,Total Itens,Ticket Médio (KZ)",
             `"${periodo}","${formatDate(dados.periodo.inicio)}","${formatDate(
-              dados.periodo.fim
+              dados.periodo.fim,
             )}","${(dados.resumo.totalVendas || 0).toFixed(2)}","${
               dados.resumo.totalPedidos || 0
             }","${dados.resumo.totalItens || 0}","${(
@@ -186,7 +186,7 @@ const exportarParaCSV = (
           [
             "Status,Quantidade",
             ...Object.entries(dados.pedidosPorStatus || {}).map(
-              ([status, quantidade]) => `"${status}","${quantidade}"`
+              ([status, quantidade]) => `"${status}","${quantidade}"`,
             ),
           ].join("\n"),
           "",
@@ -201,7 +201,7 @@ const exportarParaCSV = (
                   pedido.status || "PENDENTE"
                 }","${(pedido.total || 0).toFixed(2)}","${
                   pedido.itens || 0
-                }","${pedido.criadoEm ? formatDate(pedido.criadoEm) : "N/A"}"`
+                }","${pedido.criadoEm ? formatDate(pedido.criadoEm) : "N/A"}"`,
             ),
           ].join("\n"),
           "",
@@ -216,7 +216,7 @@ const exportarParaCSV = (
                   produto.quantidade > 0
                     ? (produto.total / produto.quantidade).toFixed(2)
                     : "0.00"
-                }"`
+                }"`,
             ),
           ].join("\n"),
         ];
@@ -426,6 +426,7 @@ export default function AdminDashboard() {
     pedidos: [],
   });
 
+
   const [loading, setLoading] = useState(true);
   const [exportando, setExportando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -440,7 +441,6 @@ export default function AdminDashboard() {
       return response.data as IPedidoResponse[] | unknown;
     },
   });
-
 
   // Função principal para buscar dados das vendas - USANDO APENAS ENDPOINTS EXISTENTES
   const fetchDashboardData = async () => {
@@ -483,7 +483,7 @@ export default function AdminDashboard() {
           const primeiroDiaMes = new Date(
             hoje.getFullYear(),
             hoje.getMonth(),
-            1
+            1,
           );
           inicio = primeiroDiaMes.toISOString().split("T")[0];
           break;
@@ -510,7 +510,7 @@ export default function AdminDashboard() {
         } catch (hojeError) {
           console.warn(
             "Erro ao buscar vendas de hoje, tentando /vendas/periodo:",
-            hojeError
+            hojeError,
           );
         }
       }
@@ -607,7 +607,7 @@ export default function AdminDashboard() {
                 quantidade: Number(produto.quantidade) || 0,
                 total: Number(produto.total) || 0,
                 precoUnitario: Number(produto.precoUnitario) || 0,
-              })
+              }),
             );
           }
           // CASO 3: Outras estruturas
@@ -620,7 +620,7 @@ export default function AdminDashboard() {
       } catch (produtosError: any) {
         console.warn(
           "Erro ao buscar produtos mais vendidos:",
-          produtosError.message
+          produtosError.message,
         );
         console.warn("Erro completo:", produtosError);
       }
@@ -807,47 +807,46 @@ export default function AdminDashboard() {
   };
 
   const getProdutosTop = () => {
-
     const produtosTop = dados.produtosMaisVendidos.map((produto) => ({
       nome: produto.nome || "Produto",
-      vendas: produto.quantidade || 0,
-      total: produto.total || 0,
+      vendas: produto.quantidade,
+      total: produto.total,
     }));
 
-    if(dados.resumo.totalVendas === 0){
+
+    if (dados.resumo.totalVendas === 0) {
       return [];
-    }
-    else{
+    } else {
       return produtosTop;
     }
   };
 
   const getStatusColor = (status: string) => {
-    const cores: any = {
-      entregue: "bg-green-100 text-green-800",
+    const cores: Record<string, string> = {
+      entregue: "bg-teal-100 text-teal-800",
+      aprovado: "bg-green-100 text-green-800",
       processando: "bg-blue-100 text-blue-800",
       confirmado: "bg-yellow-100 text-yellow-800",
-      preparando: "bg-orange-100 text-orange-800",
       enviado: "bg-purple-100 text-purple-800",
       pago: "bg-green-100 text-green-800",
-      pendente: "bg-gray-100 text-gray-800",
+      pagamento_pendente: "bg-gray-100 text-gray-800",
       cancelado: "bg-red-100 text-red-800",
     };
-    return cores[status.toLowerCase()] || "bg-gray-100 text-gray-800";
+    return cores[status] || status;
   };
 
   const getStatusText = (status: string) => {
     const statusMap: Record<string, string> = {
-      entregue: "Entregue",
-      processando: "Processando",
-      confirmado: "Confirmado",
-      preparando: "Preparando",
-      enviado: "Enviado",
-      pago: "Pago",
-      pendente: "Pendente",
-      cancelado: "Cancelado",
+      entregue: "ENTREGUE",
+      aprovado: "APROVADO",
+      processando: "PROCESSANDO",
+      confirmado: "CONFIRMADO",
+      enviado: "ENVIADO",
+      pago: "PAGO",
+      pagamento_pendente: "PENDENTE",
+      cancelado: "CANCELADO",
     };
-    return statusMap[status.toLowerCase()] || status;
+    return statusMap[status] || status;
   };
 
   if (loading) {
@@ -864,6 +863,7 @@ export default function AdminDashboard() {
   const resumoCards = getResumoCards();
   const pedidosRecentes = getPedidosRecentes();
   const produtosTop = getProdutosTop();
+
 
   return (
     <div className="py-8">
@@ -1009,7 +1009,7 @@ export default function AdminDashboard() {
                       <div
                         key={status}
                         className={`text-xs px-2 py-1 rounded-full ${getStatusColor(
-                          status
+                          status,
                         )}`}
                       >
                         {count} {getStatusText(status).substring(0, 3)}
@@ -1043,7 +1043,10 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {pedidosRecentes.map((pedido: any) => (
-                    <tr key={pedido.id} className="border-b hover:bg-gray-50 items-center text-center truncate">
+                    <tr
+                      key={pedido.id}
+                      className="border-b hover:bg-gray-50 items-center text-center truncate"
+                    >
                       <td className="p-4 font-medium">{pedido.id}</td>
                       <td className="p-4 truncate">{pedido.cliente}</td>
                       <td className="p-4 font-medium">
@@ -1051,9 +1054,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="p-4">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                            pedido.status
-                          )}`}
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(pedido.status)}`}
                         >
                           {getStatusText(pedido.status)}
                         </span>
@@ -1109,7 +1110,7 @@ export default function AdminDashboard() {
                           style={{
                             width: `${Math.min(
                               100,
-                              (produto.vendas * 100) / 50
+                              (produto.vendas * 100) / 50,
                             )}%`,
                           }}
                         />
@@ -1143,7 +1144,7 @@ export default function AdminDashboard() {
                 <div key={status} className="text-center p-4 border rounded-lg">
                   <div
                     className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${getStatusColor(
-                      status
+                      status,
                     )}`}
                   >
                     {getStatusText(status)}
@@ -1151,7 +1152,7 @@ export default function AdminDashboard() {
                   <div className="text-2xl font-bold">{quantidade}</div>
                   <div className="text-sm text-gray-500">pedidos</div>
                 </div>
-              )
+              ),
             )}
           </div>
         </div>

@@ -129,8 +129,6 @@ const Header = () => {
 
   const { user } = useAuthStore();
 
-  console.log("user no header:", user);
-
   const logged = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
@@ -140,11 +138,8 @@ const Header = () => {
     queryFn: async () => {
       try {
         const result = await carrinhosRoute.countCartItems();
-        console.log("🔍 countCartItems RAW result:", result);
-        console.log("🔍 result.totalItens:", result?.totalItens);
         return result;
       } catch (error) {
-        console.log("❌ countCartItems error:", error);
         return { totalItens: 0 };
       }
     },
@@ -154,8 +149,6 @@ const Header = () => {
     refetchOnWindowFocus: true,
     retry: false,
   });
-
-  console.log("Contagem do carrinho:", countData);
 
   useEffect(() => {
     const handleCartUpdate = () => {
