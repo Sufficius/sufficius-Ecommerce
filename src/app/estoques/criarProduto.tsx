@@ -324,8 +324,6 @@ export const NovoProdutoEstoqueModal = ({
       throw new Error("Usuário não autenticado");
     }
 
-    console.log("📤 Enviando imagem:", file.name, file.type, file.size);
-
     const response = await api.post("/upload/supabase", formData, {
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -340,8 +338,6 @@ export const NovoProdutoEstoqueModal = ({
         }
       },
     });
-
-    console.log("✅ Upload response:", response.data);
 
     if (response.data?.success) {
       return response.data.url; // Supabase retorna 'url'
@@ -388,7 +384,6 @@ export const NovoProdutoEstoqueModal = ({
     }
 
     // 1. Upload da imagem
-    console.log("📤 Iniciando upload da imagem...");
     setUploadProgress(30);
     
     const urlImagem = await uploadImagem(imagem);

@@ -367,7 +367,6 @@ export default function DetalhesPedido() {
       refetch();
     },
     onError: (err: any) => {
-        console.log(err);
       toast.error(err.response?.data?.message || "Erro ao aprovar pedido");
     },
   });
