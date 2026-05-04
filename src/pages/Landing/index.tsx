@@ -132,7 +132,7 @@ const Header = () => {
   const logged = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
-  
+
   const { data: countData, refetch: refetchCount } = useQuery({
     queryKey: ["cart-count"],
     queryFn: async () => {
@@ -351,7 +351,7 @@ const Header = () => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-amber-100 transition-colors"
+              className="lg:hidden w-10 h-10 rounded-full flex items-center justify-center transition-colors"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -693,6 +693,7 @@ const ProductsSection = () => {
     mutationFn: (data: any) => carrinhosRoute.adicionarItem(data),
     onSuccess: () => {
       toast.success("Produto adicionado ao carrinho!");
+      reloadCartCount();
       queryClient.invalidateQueries({ queryKey: ["cart-count"] });
       window.dispatchEvent(new Event("cart-updated"));
       setSelectedProduct(null);
@@ -702,6 +703,12 @@ const ProductsSection = () => {
       toast.error(error.response?.data?.message || "Erro ao adicionar produto");
     },
   });
+
+  function reloadCartCount() {
+    const event = new Event("cart-updated");
+    window.dispatchEvent(event);
+  }
+  
 
   const getProdutosArray = (): Product[] => {
     if (!produtos) return [];
