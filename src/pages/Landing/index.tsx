@@ -708,7 +708,6 @@ const ProductsSection = () => {
     const event = new Event("cart-updated");
     window.dispatchEvent(event);
   }
-  
 
   const getProdutosArray = (): Product[] => {
     if (!produtos) return [];
