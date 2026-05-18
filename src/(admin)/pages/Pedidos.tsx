@@ -27,6 +27,16 @@ import { api } from "@/modules/services/api/axios";
 import { useAuthStore } from "@/modules/services/store/auth-store";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Pedido {
   id: string;
@@ -87,6 +97,19 @@ export default function AdminPedidos() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
+
+  // 🆕 Estado para confirmação de alteração de status
+  const [confirmarStatus, setConfirmarStatus] = useState<{
+    isOpen: boolean;
+    pedidoId: string;
+    novoStatus: string;
+    statusLabel: string;
+  }>({
+    isOpen: false,
+    pedidoId: '',
+    novoStatus: '',
+    statusLabel: '',
+  });
 
   const statusPedidos = {
     PAGAMENTO_PENDENTE: {
@@ -294,42 +317,37 @@ export default function AdminPedidos() {
     navigate(`/pedidos/${id}`);
   };
 
-  const handleAlterarStatus = async (id: string, novoStatus: string) => {
+  // 🆕 Abrir modal de confirmação antes de alterar status
+  const handleAlterarStatus = (id: string, novoStatus: string) => {
     const statusLabel = statusPedidos[novoStatus as keyof typeof statusPedidos]?.label || novoStatus;
+    
+    setConfirmarStatus({
+      isOpen: true,
+      pedidoId: id,
+      novoStatus,
+      statusLabel,
+    });
+  };
 
-
-    if (
-      !(
-        `Alterar status do pedido para ${
-          statusPedidos[novoStatus as keyof typeof statusPedidos]?.label ||
-          novoStatus
-        }?`
-      )
-    ) {
-      return;
-    }
-
+  // 🆕 Confirmar alteração de status
+  const confirmarAlteracaoStatus = async () => {
+    const { pedidoId, novoStatus, statusLabel } = confirmarStatus;
+    
     try {
       const response = await api.put(
-        `/pedidos/${id}/status`,
-        {
-          status: novoStatus,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        `/pedidos/${pedidoId}/status`,
+        { status: novoStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.data.success) {
         toast.success(`Status do pedido alterado para "${statusLabel}" com sucesso!`);
-        fetchPedidos(); // Recarregar lista
+        fetchPedidos();
       }
     } catch (err: any) {
-      toast.error(
-        err.response?.data?.message || "Erro ao alterar status do pedido"
-      );
+      toast.error(err.response?.data?.message || "Erro ao alterar status do pedido");
+    } finally {
+      setConfirmarStatus({ isOpen: false, pedidoId: '', novoStatus: '', statusLabel: '' });
     }
   };
 
@@ -843,6 +861,49 @@ export default function AdminPedidos() {
           </>
         )}
       </div>
+
+      {/* 🆕 Modal de Confirmação de Alteração de Status */}
+      <AlertDialog 
+        open={confirmarStatus.isOpen} 
+        onOpenChange={(open) => !open && setConfirmarStatus(prev => ({ ...prev, isOpen: false }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar alteração de status</AlertDialogTitle>
+            <AlertDialogDescription>
+              <div className="space-y-3">
+                <p>Deseja realmente alterar o status deste pedido?</p>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm font-medium text-amber-800">
+                    Novo status: <span className="font-bold">{confirmarStatus.statusLabel}</span>
+                  </p>
+                </div>
+                {confirmarStatus.novoStatus === 'CANCELADO' && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-sm text-red-800 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>⚠️ Atenção: Ao cancelar o pedido, o cliente será notificado e o processo será interrompido.</span>
+                    </p>
+                  </div>
+                )}
+                <p className="text-sm text-gray-500">Esta ação não pode ser desfeita.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmarAlteracaoStatus}
+              className={confirmarStatus.novoStatus === 'CANCELADO' 
+                ? 'bg-red-600 hover:bg-red-700' 
+                : 'bg-[#D4AF37] hover:bg-[#c19b2c]'
+              }
+            >
+              Sim, alterar status
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
