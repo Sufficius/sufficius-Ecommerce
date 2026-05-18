@@ -5,6 +5,7 @@ import { useNavigate, Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { useAuthStore } from "@/modules/services/store/auth-store";
+import { PushNotificationButton } from "../PushNotification/button";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -21,6 +22,7 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PushNotificationButton />
       {/* Sidebar para desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64">
         <Sidebar isOpen={sidebarOpen} />
