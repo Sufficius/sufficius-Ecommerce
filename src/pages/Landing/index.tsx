@@ -239,8 +239,8 @@ const Header = () => {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3">
-            <div className="relative" ref={profileRef}>
+          <div className="flex items-center gap-4">
+            <div className="relative flex gap-4" ref={profileRef}>
               {logged ? (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -252,11 +252,19 @@ const Header = () => {
                 </motion.button>
               ) : (
                 <Link to="/login">
-                  <Button className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white border-0 shadow-lg shadow-amber-500/30">
+                  <Button className="ml-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white border-0 shadow-lg shadow-amber-500/30">
                     Entrar
                   </Button>
                 </Link>
               )}
+
+              <div className=" gap-3">
+                <Link to="/signup">
+                  <Button className="bg-gradient-to-r from-white to-white hover:from-white hover:to-white text-yellow-600 border-0 shadow-lg shadow-amber-500/30">
+                    Cadastrar-se
+                  </Button>
+                </Link>
+              </div>
 
               <AnimatePresence>
                 {profileOpen && logged && (
@@ -475,7 +483,7 @@ const HeroSection = () => {
             transition={{ delay: 0.3 }}
             className="inline-block px-4 py-2 bg-white/20 backdrop-blur-md rounded-full text-sm font-medium mb-6"
           >
-            ✨ {slides[currentSlide].subtitle}
+            {slides[currentSlide].subtitle}
           </motion.span>
 
           <motion.h1
@@ -714,7 +722,7 @@ const ProductsSection = () => {
           className="text-center mb-12"
         >
           <span className="inline-block px-4 py-2 bg-amber-100 text-amber-600 rounded-full text-sm font-medium mb-4">
-            🛍️ Produtos em Destaque
+            Produtos em Destaque
           </span>
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             Os Mais Vendidos da{" "}
@@ -744,7 +752,7 @@ const ProductsSection = () => {
               <div className="absolute top-4 left-4 z-10 flex gap-2">
                 {index === 0 && (
                   <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-bold rounded-full shadow-lg">
-                    🔥 Mais Vendido
+                    Mais Vendido
                   </span>
                 )}
                 {produto.quantidade > 0 && produto.quantidade < 5 && (
@@ -1034,7 +1042,7 @@ const CategoriesSection = () => {
           className="text-center mb-12"
         >
           <span className="inline-block px-4 py-2 bg-amber-100 text-amber-600 rounded-full text-sm font-medium mb-4">
-            📂 Categorias
+            Categorias
           </span>
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             Navegue por{" "}
@@ -1194,7 +1202,7 @@ const Testimonials = () => {
           className="text-center mb-12"
         >
           <span className="inline-block px-4 py-2 bg-amber-100 text-amber-600 rounded-full text-sm font-medium mb-4">
-            ⭐ Depoimentos
+            Depoimentos
           </span>
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             O que nossos{" "}

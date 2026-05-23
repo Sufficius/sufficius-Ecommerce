@@ -4,7 +4,6 @@ import RecentOrders from './recent-orders';
 
 
 export default function Dashboard() {
-  // Dados de exemplo
   const stats = [
     { 
       title: 'Vendas Hoje', 

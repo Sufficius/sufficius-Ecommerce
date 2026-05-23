@@ -3,6 +3,7 @@ import { IRouteProps } from "@/interfaces/routes/route";
 import Landing from "@/pages/Landing";
 import { AuthLayout } from "@/pages/layout/authLayout";
 import { NotFound } from "@/pages/not-found";
+import SignUp from "@/pages/SignUp";
 
 export const AuthRoutes: IRouteProps = {
   path: "/",
@@ -19,11 +20,11 @@ export const AuthRoutes: IRouteProps = {
       element: AdminLogin,
       visibility: "public",
     },
-    // {
-    //   path: "/auth/register",
-    //   element: Register,
-    //   visibility: "auth",
-    // },
+    {
+      path: "/signup",
+      element:SignUp ,
+      visibility: "auth",
+    },
     {
       path: "*",
       element: NotFound,
