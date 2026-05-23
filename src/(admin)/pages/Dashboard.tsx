@@ -426,7 +426,6 @@ export default function AdminDashboard() {
     pedidos: [],
   });
 
-
   const [loading, setLoading] = useState(true);
   const [exportando, setExportando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -813,7 +812,6 @@ export default function AdminDashboard() {
       total: produto.total,
     }));
 
-
     if (dados.resumo.totalVendas === 0) {
       return [];
     } else {
@@ -864,7 +862,6 @@ export default function AdminDashboard() {
   const pedidosRecentes = getPedidosRecentes();
   const produtosTop = getProdutosTop();
 
-
   return (
     <div className="py-8">
       <ModalExportacao
@@ -879,9 +876,7 @@ export default function AdminDashboard() {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Dashboard
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
             <p className="text-gray-600">
               Bem-vindo, {user?.nome || user?.email || "Administrador"}
             </p>
