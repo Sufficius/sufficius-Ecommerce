@@ -1,4 +1,5 @@
 // src/services/carrinhos.service.ts
+import Cookies from "js-cookie";
 import { api } from "../../axios";
 
 interface IItemCarrinho {
@@ -16,6 +17,11 @@ interface IItemCarrinho {
     imagem?: string;
     imagemAlt?: string;
   };
+}
+
+interface ICriarCarrinho {
+  produtoId:string;
+  quantidade: number;
 }
 
 interface ICarrinho {
@@ -40,61 +46,53 @@ class CarrinhosRoute {
   // Obter carrinho do usuário autenticado
   async getCarrinho(): Promise<IRespostaCarrinho> {
     try {
-      const response = await api.get("/carrinho");
+      const token = Cookies.get("authSufficius-token") || localStorage.getItem("token");
+
+      const response = await api.get("/carrinho", {
+        headers: token ? { Authorization: `Bearer ${token}`} : {}
+      });
       return response.data;
     } catch (error: any) {
       console.error('❌ [Frontend] Erro ao obter carrinho:', error);
       
       if (error.response?.status === 401) {
         return {
-          success: false,
-          message: "Sessão expirada. Faça login novamente."
+          success: true,
+          data: {
+            id: "",
+            usuarioId: "",
+            criadoEm: new Date().toISOString(),
+            atualizadoEm: new Date().toISOString(),
+            itens: [],
+            totalItens:0,
+            subtotal:0,
+            desconto:0,
+            total:0
+          }
         };
       }
-      
-      // Em caso de erro, retornar carrinho vazio
-      return {
-        success: true,
-        data: {
-          id: '',
-          usuarioId: '',
-          criadoEm: new Date().toISOString(),
-          atualizadoEm: new Date().toISOString(),
-          itens: [],
-          totalItens: 0,
-          subtotal: 0,
-          desconto: 0,
-          total: 0
-        }
-      };
+      throw error;
     }
   }
+  
 
   // Adicionar item ao carrinho
-  async adicionarItem(produtoId: string, quantidade: number = 1): Promise<IRespostaCarrinho> {
+  async adicionarItem(data:ICriarCarrinho) {
     try {
-      console.log(`➕ [Frontend] Adicionando produto ${produtoId} (quantidade: ${quantidade}) ao carrinho`);
-      
-      if (!produtoId) {
+      const token = Cookies.get("authSufficius-token") || localStorage.getItem("token");
+      if (!token) {
         return {
           success: false,
-          message: "ID do produto é obrigatório"
+          message: "Usuário não autenticado. Faça login para adicionar itens ao carrinho"
         };
       }
       
-      if (!quantidade || quantidade < 1) {
-        return {
-          success: false,
-          message: "Quantidade deve ser maior que zero"
-        };
-      }
-
-      const response = await api.post("/carrinho/item", {
-        produtoId,
-        quantidade
+      const response = await api.post("/carrinho/item", data, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
     
-      
       return response.data;
     } catch (error: any) {
       console.error('❌ [Frontend] Erro ao adicionar item ao carrinho:', error);
@@ -128,17 +126,36 @@ class CarrinhosRoute {
   }
 
   // Atualizar quantidade de um item no carrinho
-  async atualizarItem(produtoId: string, quantidade: number): Promise<IRespostaCarrinho> {
+async atualizarItem(
+  id: string,
+  produtoId:string, 
+  quantidade: number
+): Promise<IRespostaCarrinho> {
     try {
-      console.log(`✏️ [Frontend] Atualizando item ${produtoId} para quantidade: ${quantidade}`);
+      const token = Cookies.get("authSufficius-token") || localStorage.getItem("token");
       
-      if (!produtoId) {
+      
+      if (!token) {
         return {
+          success: false,
+          message: "Usuário não autenticado. Faça login para atualizar itens do carrinho!"
+        };
+      }
+
+      if(!id){
+        return {
+          success: false,
+          message: "ID do usuário é obrigatório"
+        };
+      }
+      
+
+      if(!produtoId){
+           return {
           success: false,
           message: "ID do produto é obrigatório"
         };
       }
-      
       if (quantidade < 0) {
         return {
           success: false,
@@ -151,7 +168,14 @@ class CarrinhosRoute {
         return await this.removerItem(produtoId);
       }
 
-      const response = await api.put(`/carrinho/item/${produtoId}`, { quantidade });
+      const response = await api.put(`/carrinho/item/${produtoId}`, { quantidade }, 
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+      }
+    ); 
+
       console.log('✅ [Frontend] Item atualizado:', {
         success: response.data.success,
         totalItens: response.data.data?.totalItens || 0
@@ -337,7 +361,8 @@ class CarrinhosRoute {
   }
 
   // Adicionar múltiplos itens de uma vez
-  async adicionarMultiplosItens(itens: Array<{produtoId: string, quantidade: number}>): Promise<IRespostaCarrinho> {
+  async adicionarMultiplosItens(itens: Array<{produtoId: string, quantidade: number}>): Promise<IRespostaCarrinho> 
+  {
     try {
       const response = await api.post("/carrinho/itens", { itens });
       return response.data;
@@ -355,6 +380,19 @@ class CarrinhosRoute {
         success: false,
         message: error.response?.data?.message || "Erro ao adicionar itens"
       };
+    }
+  }
+
+  async countCartItems(){
+    try {
+      const response = await api.get(`/carrinho/count-items-on-card`);
+      const total = response.data?.totalItens ?? 0;
+
+      return { totalItens: total};
+    }
+    catch (error){
+      console.error("Erro ao buscar contagem: ", error);
+      return { totalItens: 0};
     }
   }
 }
