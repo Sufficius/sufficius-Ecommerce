@@ -1,11 +1,12 @@
 import { api } from "../../axios";
+
 interface IProdutoToCreate {
   nome: string;
   preco: string | number;
   descricao: string;
   quantidade: string | number;
   id_categoria: string;
-  foto: File | null;
+  imagemproduto: File | null;
   status?: string;
 }
 
@@ -15,14 +16,8 @@ interface IProdutoToEdit {
   descricao?: string;
   quantidade?: string | number;
   id_categoria?: string;
-  foto?: File | null;
+  imagemproduto?: File | null;
   status?: string;
-}
-
-interface ProdutoResponse {
-   success: boolean;
-    data: IProduto[];
-    total: number;
 }
 
 interface IProduto {
@@ -42,7 +37,7 @@ interface IProduto {
     id: string;
     nome: string;
   };
-  foto?: Array<{
+  imagemproduto?: Array<{
     id: string;
     filename: string;
     url: string;
@@ -54,8 +49,13 @@ interface IProduto {
 class ProdutosRoute {
 
   async getProdutos() {
-      const response = await api.get<ProdutoResponse>("/produtos/get");
-      return response.data.data;
+    try {
+      const response = await api.get("/produtos");
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Erro ao buscar produtos:', error);
+      throw new Error("Erro ao carregar produtos");
+    }
   }
 
   async criarProduto(produto: IProdutoToCreate) {
@@ -73,9 +73,9 @@ class ProdutosRoute {
       formData.append("status", "ACTIVO");
     }
 
-    if (produto.foto && produto.foto instanceof File) {
-      formData.append("foto", produto.foto);
-    } else if (produto.foto) {
+    if (produto.imagemproduto && produto.imagemproduto instanceof File) {
+      formData.append("imagemproduto", produto.imagemproduto);
+    } else if (produto.imagemproduto) {
       console.warn('⚠️  Imagem não é um arquivo válido');
     }
 
@@ -142,7 +142,7 @@ class ProdutosRoute {
   async atualizarProduto(id: string, produto: IProdutoToEdit) {
     try {
       // Se tiver imagem, usar FormData
-      if (produto.foto && produto.foto instanceof File) {
+      if (produto.imagemproduto && produto.imagemproduto instanceof File) {
         const formData = new FormData();
         
         if (produto.nome) formData.append("nome", produto.nome.trim());
@@ -152,7 +152,7 @@ class ProdutosRoute {
         if (produto.id_categoria) formData.append("id_categoria", produto.id_categoria);
         if (produto.status) formData.append("status", produto.status);
         
-        formData.append("foto", produto.foto);
+        formData.append("imagemproduto", produto.imagemproduto);
 
         const { data } = await api.put(`/produtos/${id}`, formData, {
           headers: {

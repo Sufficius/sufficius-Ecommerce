@@ -7,5 +7,4 @@ export const mapUser = (apiUser: any): User => ({
     data_nascimento: apiUser.born,
     avatar: apiUser.avatar,
     role: apiUser.role,
-    fotoUrl: apiUser.fotoUrl,
 });

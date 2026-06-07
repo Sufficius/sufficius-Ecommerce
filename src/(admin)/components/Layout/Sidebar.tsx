@@ -1,26 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Package,
   ShoppingBag,
   Users,
+  // Tag,
   BarChart3,
+  Settings,
   LogOut,
   TrendingUp,
   CreditCard,
   Shield,
+  Home,
 } from "lucide-react";
 import { useAuthStore } from "@/modules/services/store/auth-store";
-import { BiCategory } from "react-icons/bi";
 
 interface SidebarProps {
   isOpen: boolean;
 }
 
 export default function Sidebar({ isOpen }: SidebarProps) {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("dashboard");
 
   const menuItems = [
@@ -35,12 +38,6 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       label: "Produtos",
       path: "/produtos",
       section: "produtos",
-    },
-    {
-      icon: <BiCategory className="h-5 w-5" />,
-      label: "Categorias",
-      path: "/categorias",
-      section: "categorias",
     },
     {
       icon: <ShoppingBag className="h-5 w-5" />,
@@ -71,6 +68,12 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       label: "Relatórios",
       path: "/relatorios",
       section: "relatorios",
+    },
+    {
+      icon: <Settings className="h-5 w-5" />,
+      label: "Configurações",
+      path: "/configuracoes",
+      section: "configuracoes",
     },
   ];
 
@@ -114,11 +117,35 @@ export default function Sidebar({ isOpen }: SidebarProps) {
               <span className="font-medium">{item.label}</span>
             </NavLink>
           ))}
-
-            <div className="space-y-1">
         </div>
 
-        <div className="p-4 border-t">
+        {/* Separador */}
+        <div className="my-6 border-t"></div>
+
+        {/* Links rápidos */}
+        <div className="space-y-1">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 w-full text-left"
+          >
+            <Home className="h-5 w-5" />
+            <span className="font-medium">Ir para Loja</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Perfil e Logout */}
+      <div className="p-4 border-t">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-10 w-10 bg-[#D4AF37]/10 rounded-full flex items-center justify-center">
+            <span className="font-bold text-[#D4AF37]">A</span>
+          </div>
+          <div className="flex-1">
+            <div className="font-medium">Administrador</div>
+            <div className="text-xs text-gray-500">Super Admin</div>
+          </div>
+        </div>
+
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition"
@@ -127,10 +154,6 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           <span className="font-medium">Sair</span>
         </button>
       </div>
-        </div>
-
-        {/* Separador */}
-      </nav>      
     </div>
   );
 }

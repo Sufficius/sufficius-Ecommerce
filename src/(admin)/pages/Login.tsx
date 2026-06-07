@@ -363,7 +363,6 @@ export default function AdminLogin() {
         BI: `GOOGLE_DEV_${Date.now()}`,
         role: "ADMIN" as const,
         googleId: `google_dev_${Date.now()}`,
-        fotoUrl: ""
       };
 
       const mockToken = `mock_jwt_${Date.now()}`;

@@ -21,6 +21,7 @@ interface Metricas {
   receitaTotal: number;
   pedidosTotal: number;
   clientesTotal: number;
+  ticketMedio: number;
   crescimentoReceita: number;
   crescimentoPedidos: number;
   taxaConversao: number;
@@ -31,6 +32,7 @@ interface RelatorioVendas {
   receita: number;
   pedidos: number;
   clientes: number;
+  ticketMedio: number;
 }
 
 interface RelatorioProdutos {
@@ -45,6 +47,7 @@ interface RelatorioClientes {
   segmento: string;
   quantidade: number;
   receita: number;
+  ticketMedio: number;
   fidelidade: number;
 }
 
@@ -68,11 +71,11 @@ export default function RelatoriosPage() {
     receitaTotal: 1250000,
     pedidosTotal: 1250,
     clientesTotal: 850,
+    ticketMedio: 1000,
     crescimentoReceita: 12.5,
     crescimentoPedidos: 8.3,
     taxaConversao: 3.2,
   });
-
 
   const [relatorioVendas] = useState<RelatorioVendas[]>([
     {
@@ -80,36 +83,42 @@ export default function RelatoriosPage() {
       receita: 98000,
       pedidos: 98,
       clientes: 85,
+      ticketMedio: 1000,
     },
     {
       periodo: "Fev",
       receita: 105000,
       pedidos: 105,
       clientes: 92,
+      ticketMedio: 1000,
     },
     {
       periodo: "Mar",
       receita: 125000,
       pedidos: 125,
       clientes: 108,
+      ticketMedio: 1000,
     },
     {
       periodo: "Abr",
       receita: 118000,
       pedidos: 118,
       clientes: 102,
+      ticketMedio: 1000,
     },
     {
       periodo: "Mai",
       receita: 135000,
       pedidos: 135,
       clientes: 117,
+      ticketMedio: 1000,
     },
     {
       periodo: "Jun",
       receita: 142000,
       pedidos: 142,
       clientes: 123,
+      ticketMedio: 1000,
     },
   ]);
 
@@ -156,18 +165,21 @@ export default function RelatoriosPage() {
       segmento: "Novos",
       quantidade: 250,
       receita: 187500,
+      ticketMedio: 750,
       fidelidade: 0,
     },
     {
       segmento: "Recorrentes",
       quantidade: 450,
       receita: 675000,
+      ticketMedio: 1500,
       fidelidade: 65,
     },
     {
       segmento: "VIP",
       quantidade: 150,
       receita: 387500,
+      ticketMedio: 2583,
       fidelidade: 92,
     },
   ]);
@@ -411,6 +423,21 @@ export default function RelatoriosPage() {
           <div className="text-sm text-gray-600">Clientes Ativos</div>
         </div>
 
+        <div className="bg-white rounded-xl shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <CreditCard className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="text-sm font-medium text-green-600">
+              <TrendingUp className="h-4 w-4 inline mr-1" />
+              5.4%
+            </div>
+          </div>
+          <div className="text-2xl font-bold">
+            {formatarMoeda(metricas.ticketMedio)}
+          </div>
+          <div className="text-sm text-gray-600">Ticket Médio</div>
+        </div>
       </div>
 
       {/* Navegação de Relatórios */}
@@ -462,6 +489,7 @@ export default function RelatoriosPage() {
                         <div className="flex justify-between text-sm text-gray-600">
                           <span>{item.pedidos} pedidos</span>
                           <span>{item.clientes} clientes</span>
+                          <span>Tk: {formatarMoeda(item.ticketMedio)}</span>
                         </div>
                       </div>
                     ))}
@@ -542,6 +570,9 @@ export default function RelatoriosPage() {
                           Clientes
                         </th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                          Ticket Médio
+                        </th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
                           Crescimento
                         </th>
                       </tr>
@@ -557,6 +588,9 @@ export default function RelatoriosPage() {
                           </td>
                           <td className="px-6 py-4">{item.pedidos}</td>
                           <td className="px-6 py-4">{item.clientes}</td>
+                          <td className="px-6 py-4">
+                            {formatarMoeda(item.ticketMedio)}
+                          </td>
                           <td className="px-6 py-4">
                             <span className="text-green-600 font-medium">
                               <TrendingUp className="h-4 w-4 inline mr-1" />
@@ -789,6 +823,9 @@ export default function RelatoriosPage() {
                           <div className="text-right">
                             <div className="font-bold">
                               {formatarMoeda(segmento.receita)}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              Ticket: {formatarMoeda(segmento.ticketMedio)}
                             </div>
                           </div>
                         </div>

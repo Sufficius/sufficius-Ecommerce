@@ -1,9 +1,7 @@
 import AdminLayout from "@/(admin)/components/Layout/Layout";
-import CategoryPage from "@/(admin)/pages/Categorias";
-// import ConfiguracoesPage from "@/(admin)/pages/Configuracoes";
+import ConfiguracoesPage from "@/(admin)/pages/Configuracoes";
 // import AdminCupons from "@/(admin)/pages/Cupons";
 import AdminDashboard from "@/(admin)/pages/Dashboard";
-import DetalhesPedido from "@/(admin)/pages/DetalhesPedido";
 import AdminEstoque from "@/(admin)/pages/Estoque";
 import PagamentosPage from "@/(admin)/pages/Pagamentos";
 import AdminPedidos from "@/(admin)/pages/Pedidos";
@@ -18,7 +16,7 @@ export const HomesRoutes: IRouteProps = {
   element: AdminLayout,
   visibility: "public", // Mude de "auth" para "private"
   children: [
-    {
+       {
       path: "/",
       element: AdminDashboard,
       visibility: "guest", // Mude para "private"
@@ -26,48 +24,47 @@ export const HomesRoutes: IRouteProps = {
     {
       path: "/dashboard",
       element: AdminDashboard,
-      visibility: "private", // Mude para "private"
+      visibility: "auth", // Mude para "private"
     },
     {
       path: "/produtos",
       element: AdminProdutos,
-      // element: NotFound,
-      visibility: "private", 
+      visibility: "auth", // Mude para "auth"
     },
     {
       path: "/pedidos",
       element: AdminPedidos,
-      visibility: "private", 
-    },
-    {
-      path: "/pedidos/:id",
-      element: DetalhesPedido,
-      visibility: "private",
+      visibility: "auth", // Mude para "auth"
     },
     {
       path: "/usuarios",
       element: AdminUsuarios,
-      visibility: "private", 
+      visibility: "auth", // Mude para "auth"
     },
+    // {
+    //   path: "/cupons",
+    //   element: AdminCupons,
+    //   visibility: "auth", // Mude para "auth"
+    // },
     {
       path: "/estoque",
       element: AdminEstoque,
-      visibility: "private", 
+      visibility: "auth", // Mude para "auth"
     },
     {
       path: "/pagamentos",
       element: PagamentosPage,
-      visibility: "private", 
+      visibility: "auth", // Mude para "auth"
     },
     {
       path: "/relatorios",
       element: RelatoriosPage,
-      visibility: "private", 
+      visibility: "auth", // Mude para "auth"
     },
     {
-      path: "/categorias",
-      element: CategoryPage,
-      visibility: "private", 
+      path: "/configuracoes",
+      element: ConfiguracoesPage,
+      visibility: "auth", // Mude para "auth"
     },
     {
       path: "*",

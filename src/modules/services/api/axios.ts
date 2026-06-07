@@ -41,6 +41,7 @@ const getToken = (): string | null => {
       }
     }
   }
+  
   // 3. Verifica se é um token válido
   if (token) {
     // Verifica se tem formato JWT (3 partes separadas por ponto)
@@ -50,21 +51,20 @@ const getToken = (): string | null => {
       return null;
     }
   }
+  
   return null;
 };
+
 // Configuração base do axios
 export const api = axios.create({
   baseURL: localUrl,
-  // baseURL: apiUrl,
   withCredentials: true, // Importante para enviar cookies automaticamente
-  timeout: 60000, 
-   headers: {
-    'Content-Type': 'application/json',
-  }
+  timeout: 30000, // 30 segundos de timeout
 });
 
 // ✅ INTERCEPTOR PARA ADICIONAR TOKEN AUTOMATICAMENTE
 api.interceptors.request.use((config) => {
+  
   // Obter o token
   const token = getToken();
   
@@ -72,6 +72,7 @@ api.interceptors.request.use((config) => {
     // Adicionar token ao header Authorization
     config.headers.Authorization = `Bearer ${token}`;
   } else {
+    
     // Se for uma rota protegida (POST, PUT, DELETE, PATCH em /produtos), avisar
     const isProtectedRoute = config.url?.includes('/produtos') && 
                             ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase() || '');

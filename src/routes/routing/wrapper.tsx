@@ -4,30 +4,42 @@ import { Navigate, useLocation } from "react-router-dom";
 
 const RouteWrapper = ({ element: Element, visibility }: IRouteWrapperProps) => {
   const token = Cookies.get("authSufficius-token") || null;
-  const users =
+  const userString =
     Cookies.get("authSufficius-user") ||
     localStorage.getItem("authSufficius-user");
 
-  const location: any = useLocation();
-  const from = location.state?.from?.pathname || "/";
-
-  if ((!token || !users) && visibility === "private") {
-    return <Navigate to="/login" state={{ from: location }} />;
-  }
-  // 1. ROTAS PÚBLICAS - sempre acessíveis
-  if (token && users && visibility === "auth") {
-    return <Navigate to={from} replace />;
-  }
-
-  // 3. ROTAS PRIVADAS - apenas para autenticados
-  if (visibility === "guest") {
-    if (token && users) {
-      return <Navigate to="/dashboard" replace />;
+  let user = null;
+    try {
+      user = userString ? JSON.parse(userString) : null;
+    } catch (error) {
+      console.error("Erro ao parsear usuário:", error);
+      user = null;
     }
-    return <Element />;
-  }
+    const location = useLocation();
 
-  return <Element />;
+    // 1. ROTAS PÚBLICAS - sempre acessíveis
+    if (visibility === "public") {
+      return <Element />;
+    }
+
+    // 2. ROTAS DE AUTENTICAÇÃO (login/register) - apenas para NÃO autenticados
+    if (visibility === "auth" || visibility === "private") {
+      if (!token || !user) {
+        return  <Navigate to="/" state={{ from: location.pathname }} replace />
+      
+      }
+      return <Element />;
+    }
+
+    // 3. ROTAS PRIVADAS - apenas para autenticados
+    if (visibility === "guest") {
+      if (token && user) {
+        return <Navigate to="/dashboard" replace />;
+      }
+      return <Element />;
+    }
+
+    return <Element />;
 };
 
 export default RouteWrapper;

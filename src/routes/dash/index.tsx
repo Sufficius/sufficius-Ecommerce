@@ -8,27 +8,27 @@ import { DashLayout } from "@/pages/layout/dashLayout";
 export const DashRoutes: IRouteProps = {
   path: "/",
   element: DashLayout,
-  visibility: "public",
+  visibility: "auth",
   children: [
     {
       path: "/",
       element: Landing,
-      visibility: "public",
+      visibility: "auth",
     },
-    {
+     {
       path: "/dashboard",
       element: Dashboard,
-      visibility: "auth",
+      visibility: "private",
     },
     {
       path: "/checkout",
       element: CheckoutPage,
-      visibility: "public",
+      visibility: "auth", 
     },
     {
-      path: "/confirmacao",
+      path:"/confirmacao",
       element: ConfirmacaoCompra,
       visibility: "auth",
-    },
+    }
   ],
 };
